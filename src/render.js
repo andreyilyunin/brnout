@@ -217,11 +217,13 @@ function drawWorld(){
     var hold=t.life*0.7; // плато читаемости, затем плавный фейд
     ctx.globalAlpha=t.t<hold?1:1-(t.t-hold)/(t.life-hold);
     ctx.font='bold '+t.size+'px "IBM Plex Mono",Arial,monospace';
-    var tw2=ctx.measureText(t.text).width; // подсветка: тёмная плашка + обводка
-    ctx.fillStyle='rgba(8,6,12,0.62)';
-    rr(ctx,t.x-tw2/2-6,t.y-t.size-3,tw2+12,t.size+8,4);ctx.fill();
+    if(t.w===undefined)t.w=ctx.measureText(t.text).width;
+    if(t.ch==='C'||t.ch==='I'||t.ch==='S'||!t.ch){ // плашка+обводка только важным каналам
+      ctx.fillStyle='rgba(8,6,12,0.62)';
+      rr(ctx,t.x-t.w/2-6,t.y-t.size-3,t.w+12,t.size+8,4);ctx.fill();
+    }
     ctx.textAlign='center';
-    ctx.strokeStyle='rgba(4,3,8,0.9)';ctx.lineWidth=3;ctx.strokeText(t.text,t.x,t.y);
+    if(t.ch==='C'||t.ch==='I'||t.ch==='S'||!t.ch){ctx.strokeStyle='rgba(4,3,8,0.9)';ctx.lineWidth=3;ctx.strokeText(t.text,t.x,t.y);}
     ctx.fillStyle=t.color;ctx.fillText(t.text,t.x,t.y);
     ctx.textAlign='left';
     ctx.globalAlpha=1;
@@ -259,6 +261,11 @@ function drawPickup(pk){
     ctx.fillStyle='#d8dce2';rr(ctx,pk.x-6,y-8,12,14,2);ctx.fill();
     ctx.strokeStyle='#d8dce2';ctx.lineWidth=2;ctx.beginPath();ctx.arc(pk.x+8,y-1,4,-1.2,1.2);ctx.stroke();
     ctx.fillStyle='#6f4a23';ctx.fillRect(pk.x-4,y-2,8,6);
+  }else if(pk.kind==='folder'){
+    ctx.fillStyle='#d29922';rr(ctx,pk.x-11,y-9,22,17,2);ctx.fill();
+    ctx.fillStyle='#8a6a10';ctx.fillRect(pk.x-11,y-9,22,5);
+    ctx.fillStyle='#1c1600';ctx.font='bold 10px Arial';ctx.textAlign='center';
+    ctx.fillText('ЗАДАЧИ',pk.x,y+6);ctx.textAlign='left';
   }else{
     ctx.fillStyle=pk.kind==='espresso'?'#6f4a23':(pk.kind==='desk'?'#4a6da7':'#3fb950');
     rr(ctx,pk.x-9,y-9,18,18,3);ctx.fill();
@@ -438,7 +445,7 @@ function drawCup(x,y,s,fill){
     var jit=p.burnout>70?R()*3-1.5:0;
     hctx.fillStyle=p.burnout>70?'#dc2626':'#b45309';
     hctx.fillRect(12+jit,topY+2,128*clamp(p.burnout/100,0,1),8);
-    hctx.font=pixFont(12,true);hctx.fillStyle=p.burnout>70?'#e5534b':'#c9d1d9';
+    hctx.font=pixFont(13,true);hctx.fillStyle=p.burnout>70?'#e5534b':'#c9d1d9';
     hctx.fillText(Math.round(p.burnout)+'%',146,topY+10);
     // кофе в той же строке
     drawCup(176,topY+5,0.75,p.coffee/(p.coffeeMax||100));
@@ -665,7 +672,7 @@ function drawHUD(){
   if(boss){
     var hpF=(NET.mode==='guest')?(boss.hpF||0):clamp(boss.hp/boss.hpMax,0,1);
     var hpTxt=(NET.mode==='guest')?Math.round(hpF*100)+'%':(Math.max(0,Math.round(boss.hp))+' / '+boss.hpMax);
-    var bbw=380,bbx=W/2-bbw/2,bby=54;
+    var bbw=Math.min(380,W-32),bbx=W/2-bbw/2,bby=54;
     hctx.fillStyle='rgba(10,13,18,0.85)';rr(hctx,bbx-10,bby-8,bbw+20,46,6);hctx.fill();
     hctx.strokeStyle='rgba(229,83,75,0.5)';hctx.lineWidth=1;rr(hctx,bbx-10,bby-8,bbw+20,46,6);hctx.stroke();
     hctx.font=pixFont(13,true);hctx.fillStyle='#e5534b';hctx.textAlign='center';

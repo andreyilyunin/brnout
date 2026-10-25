@@ -4,6 +4,8 @@
 'use strict';
 const puppeteer = require('puppeteer');
 const BASE = process.env.COOP_BASE || 'http://127.0.0.1:8099';
+// COOP_BROKER: ws(s)-url локального брокера — детерминированный прогон без публичных брокеров
+const BROKER = process.env.COOP_BROKER || '';
 const FLAGS = ['--no-sandbox','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding','--disable-background-timer-throttling'];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
@@ -18,8 +20,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     p.on('pageerror', e => fail('JS: ' + String(e).slice(0, 120)));
     await p.setViewport({ width: 900, height: 500 });
   }
-  await h.goto(BASE + '/?cooph', { waitUntil: 'domcontentloaded' });
+  await h.goto(BASE + '/?cooph' + (BROKER ? '&broker=' + encodeURIComponent(BROKER) : ''), { waitUntil: 'domcontentloaded' });
   await g.goto(BASE + '/?coopg', { waitUntil: 'domcontentloaded' });
+  if (BROKER) await g.evaluate(b => localStorage.setItem('brnt_broker', b), BROKER); // переживёт переход на ?join=
   await sleep(1500);
   await h.evaluate(() => { document.getElementById('mCoop').click(); document.getElementById('cHost').click(); });
   let code = '';

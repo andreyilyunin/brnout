@@ -1,6 +1,7 @@
 'use strict';
 // ============================== overlays ==============================
-var OVERLAYS=['bmenu','bset','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin'];
+var OVERLAYS=['bmenu','bset','bcareer','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin','bperk'];
+var OV_BACK={bset:'bmenu',bcareer:'bmenu',bcoop:'bmenu',bjoin:'bcoop',bhost:'bcoop',bwait:'bmenu',bpause:'bmenu'};
 var OV_OPEN=null;
 function showOv(id){
   for(var i=0;i<OVERLAYS.length;i++){var el=document.getElementById(OVERLAYS[i]);if(el)el.classList.add('bghidden');}

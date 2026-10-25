@@ -15,8 +15,8 @@
   <div id="btnFU" class="tbtn tb tb-ult" aria-label="ульта"><svg viewBox="0 0 24 24"><path d="M12 2c1.2 4.2-1.4 5.4-1.4 8.4 1.8-1 2.8-2.8 3-4.8 2.6 2.2 3.9 5 3.9 8a6.5 6.5 0 0 1-13 0c0-5.4 4.6-6.4 7.5-11.6Z" fill="currentColor"/></svg><span class="tlbl">УЛЬТА</span></div>
   <div id="btnR" class="tbtn tb tb-abs" aria-label="абсолют"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2Z" fill="currentColor"/></svg><span class="tlbl">СУПЕР</span></div>
 </div>
-<div id="btnPauseM" class="hidden">II</div>
-<div id="btnFS" title="Полный экран">⛶</div>
+<div id="btnPauseM" class="hidden" role="button" aria-label="Пауза">II</div>
+<div id="btnFS" title="Полный экран" role="button" aria-label="Полный экран">⛶</div>
   <div id="joyHint" class="hidden"></div>
 
 <div class="bgov" id="bmenu">
@@ -24,7 +24,7 @@
     <div class="bgtitle">brnout<span>:</span> corporate hell</div>
     <div class="bgtag">18:52. Все ушли домой. Кроме вас. И их.</div>
     <div class="bgcards" id="classCards">
-      <div class="bgcard" id="bmgr" data-cls="mgr">
+      <div class="bgcard" id="bmgr" data-cls="mgr" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-mgr" width="150" height="120"></canvas>
         <h2>МЕНЕДЖЕР</h2>
         <p class="bgdesc">Дерётся жирой. JIRA-тикеты в дальний бой.</p>
@@ -34,7 +34,7 @@
           <div><b>Q</b> АСАП — ускоряет себя и коллег</div>
         </div>
       </div>
-      <div class="bgcard" id="bdev" data-cls="dev">
+      <div class="bgcard" id="bdev" data-cls="dev" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-dev" width="150" height="120"></canvas>
         <h2>ПРОГРАММИСТ</h2>
         <p class="bgdesc">Механическая клава. Ближний бой и контроль.</p>
@@ -44,7 +44,7 @@
           <div><b>Q</b> легаси-код — цепь, ментальный урон</div>
         </div>
       </div>
-      <div class="bgcard" id="bmkt" data-cls="mkt">
+      <div class="bgcard" id="bmkt" data-cls="mkt" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-mkt" width="150" height="120"></canvas>
         <h2>МАРКЕТОЛОГ</h2>
         <p class="bgdesc">Твиты и воронки. Дебаффы.</p>
@@ -54,7 +54,7 @@
           <div><b>Q</b> таргетинг — метка +50% урона</div>
         </div>
       </div>
-      <div class="bgcard" id="bdsn" data-cls="dsn">
+      <div class="bgcard" id="bdsn" data-cls="dsn" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-dsn" width="150" height="120"></canvas>
         <h2>ДИЗАЙНЕР</h2>
         <p class="bgdesc">Стремительный стилус. Мобильный мили.</p>
@@ -66,6 +66,7 @@
       </div>
     </div>
     <div class="bgbottom">
+      <button class="bgcorner" id="mCareer">📁 КАРЬЕРА</button>
       <button class="bgcorner" id="mSettings">⚙ НАСТРОЙКИ</button>
       <button class="bgstart" id="mStart">НАЧАТЬ СМЕНУ</button>
       <div class="bgmode">
@@ -89,6 +90,24 @@
   </div>
 </div>
 
+<div class="bgov bghidden" id="bcareer">
+  <div class="bgpanel bgcenter bgcareer">
+    <div class="bgtitle bgsmall" style="color:#ffcf5c">ТРУДОВАЯ КНИЖКА</div>
+    <div class="bgstats">
+      <span>Забегов</span><b id="crRuns">0</b>
+      <span>Лучший спринт</span><b id="crSprint">0</b>
+      <span>Лучший OKR</span><b id="crOkr">0</b>
+      <span>Плашек (рекорд)</span><b id="crCoins">0</b>
+      <span>Стажёров отчислено</span><b id="crInterns">0</b>
+      <span>Аудитов пройдено</span><b id="crBoss">0</b>
+      <span>Мебели разбито</span><b id="crFurn">0</b>
+      <span>Сгораний</span><b id="crDeaths">0</b>
+    </div>
+    <div id="crAch" class="crach"></div>
+    <button class="bgbtn bgwide" id="bcareerBack">Назад</button>
+  </div>
+</div>
+
 <div class="bgov bghidden" id="bcoop">
   <div class="bgpanel bgcenter">
     <div class="bgtitle bgsmall">КООП: КОМНАТА</div>
@@ -102,8 +121,8 @@
 <div class="bgov bghidden" id="bjoin">
   <div class="bgpanel bgcenter">
     <div class="bgtitle bgsmall">ВХОД ПО КОДУ</div>
-    <input id="joinCode" class="bginput" maxlength="5" placeholder="код комнаты" autocomplete="off" inputmode="latin" autocapitalize="off">
-    <div class="bgtag" id="joinErr"></div>
+    <input id="joinCode" class="bginput" maxlength="5" placeholder="код комнаты" autocomplete="off" autocapitalize="off">
+    <div class="bgtag" id="joinErr" role="alert"></div>
     <button class="bgbtn bgwide" id="bjoinGo">Подключиться</button>
     <button class="bgbtn bgwide" id="bBack3">Назад</button>
   </div>
@@ -172,23 +191,31 @@
     <button class="bgbtn bgwide" id="bcontinue">Продолжить спринты</button>
   </div>
 </div>
+
+<div class="bgov bghidden" id="bperk">
+  <div class="bgpanel bgcenter bgperk">
+    <div class="bgtitle bgsmall" style="color:#ffcf5c">ПОВЫШЕНИЕ САМОМНЕНИЯ</div>
+    <div class="bgtag" id="perkSub">выберите один буст</div>
+    <div id="perkCards" class="perkcards"></div>
+  </div>
+</div>
 </div>
 
-<link rel="stylesheet" href="style.css?v=62">
-<script src="src/utils.js?v=62"></script>
-<script src="src/mqtt.js?v=62"></script>
-<script src="src/data.js?v=62"></script>
-<script src="src/audio.js?v=62"></script>
-<script src="src/music.js?v=62"></script>
-<script src="src/map.js?v=62"></script>
-<script src="src/chaos.js?v=62"></script>
-<script src="src/combat.js?v=62"></script>
-<script src="src/abilities.js?v=62"></script>
-<script src="src/sim.js?v=62"></script>
-<script src="src/guest.js?v=62"></script>
-<script src="src/sprites.js?v=62"></script>
-<script src="src/render.js?v=62"></script>
-<script src="src/input.js?v=62"></script>
-<script src="src/ui.js?v=62"></script>
-<script src="src/net.js?v=62"></script>
-<script src="src/main.js?v=62"></script>
+<link rel="stylesheet" href="style.css?v=63">
+<script src="src/utils.js?v=63"></script>
+<script src="src/mqtt.js?v=63"></script>
+<script src="src/data.js?v=63"></script>
+<script src="src/audio.js?v=63"></script>
+<script src="src/music.js?v=63"></script>
+<script src="src/map.js?v=63"></script>
+<script src="src/chaos.js?v=63"></script>
+<script src="src/combat.js?v=63"></script>
+<script src="src/abilities.js?v=63"></script>
+<script src="src/sim.js?v=63"></script>
+<script src="src/guest.js?v=63"></script>
+<script src="src/sprites.js?v=63"></script>
+<script src="src/render.js?v=63"></script>
+<script src="src/input.js?v=63"></script>
+<script src="src/ui.js?v=63"></script>
+<script src="src/net.js?v=63"></script>
+<script src="src/main.js?v=63"></script>

@@ -153,7 +153,7 @@ test('спавн-точки на открытом полу', () => {
 // ---------- v-new: локации/темы/твиты/тайминги/дроп ----------
 load('src/data.js');
 console.log('locations & style:');
-test('карта компактнее: 30x30', () => { eq(GW, 30); eq(GH, 30); });
+test('карта компактнее: 36x36 (опенспейс-план со стеклобоксами)', () => { eq(GW, 36); eq(GH, 36); });
 test('THEMES: 5 непохожих стилей', () => {
   eq(THEMES.length, 5);
   const names = new Set(THEMES.map(t => t.name));
@@ -189,11 +189,13 @@ const fs2 = require('fs');
 test('папок при уроне: 2 (было 8)', () => {
   ok(fs2.readFileSync('src/chaos.js', 'utf8').includes('spawnFolders(x,y,2)'), 'константа');
 });
-test('дроб кофе с мобов: 10% (было 30%)', () => {
-  ok(fs2.readFileSync('src/combat.js', 'utf8').includes("if(R()<0.10)dropPickup(m.x,m.y,'coffee')"), 'кофе 0.10');
+test('дроб кофе с мобов: 5% (было 30%)', () => {
+  ok(fs2.readFileSync('src/combat.js', 'utf8').includes("if(R()<0.05)dropPickup(m.x,m.y,'coffee')"), 'кофе 0.05');
 });
-test('тайминги надписей: 2.4с жизни', () => {
-  ok(fs2.readFileSync('src/combat.js', 'utf8').includes('life:2.4,vy:-15'), 'life 2.4');
+test('тайминги надписей: приоритетные каналы TXLIFE вместо общего 2.4с', () => {
+  const src = fs2.readFileSync('src/combat.js', 'utf8');
+  ok(src.includes('TXLIFE'), 'TXLIFE есть');
+  ok(src.includes("ch:ch,life:TXLIFE[ch]"), 'floatText живёт по каналу');
 });
 test('души: настроение agony|relief', () => {
   const src = fs2.readFileSync('src/combat.js', 'utf8');
@@ -317,6 +319,112 @@ test('аудит раскладки встроен в QA по всем сцен�
   ok(q.includes('__mmRect'), 'QA знает про миникарту');
   ok(q.includes('__hudInfo'), 'QA следит за счётчиком врагов');
   ok(q.includes('__interRect'), 'QA следит за итоговой статистикой');
+});
+
+console.log('perks & career:');
+load('src/combat.js');
+test('PERKS: 14 перков, 10 обычных + 4 редких поведения', () => {
+  eq(PERKS.length, 14);
+  const ids = new Set(PERKS.map(p => p.id));
+  eq(ids.size, 14);
+  eq(PERKS.filter(p => p.r === 'r').length, 4);
+  for (const p of PERKS) eq(typeof p.f, 'function', p.id + '.f');
+});
+test('PERKBY: применение перка к игроку', () => {
+  const p = newPlayer('t', 'dev');
+  eq(p.dmgBonus, 0); eq(p.cdMult, 1); eq(p.perks.length, 0);
+  PERKBY.ot.f(p); eq(p.dmgBonus, 0.12);
+  PERKBY.async.f(p); ok(p.cdMult < 1, 'cdMult<1');
+  PERKBY.dress.f(p); ok(p.drMult < 1, 'drMult<1');
+});
+test('award: однократная выдача достижения', () => {
+  eq(award('boss1'), true);
+  eq(award('boss1'), false);
+  eq(CAREER.ach.boss1, 1);
+});
+test('careerEndRun: рекорды обновляются', () => {
+  G.wave = 6; G.okr = 77; G.level = 4; G.players = []; NET.mode = 'solo';
+  careerEndRun(false);
+  eq(CAREER.bestSprint, 5);
+  ok(CAREER.bestOkr >= 77);
+  eq(CAREER.runs >= 1, true);
+});
+test('addXp: уровень ставит выбор буста в очередь', () => {
+  global.SFX = { levelUp() {}, grade() {}, crit() {}, hit() {} };
+  G.xp = 0; G.xpN = 40; G.level = 1; G.perkQueue = 0; NET.events = [];
+  addXp(95, 0, 0);
+  eq(G.level, 3);
+  eq(G.perkQueue, 2);
+});
+
+console.log('open plan map:');
+test('коридоров нет: вне комнат только дверные тайлы (<4%)', () => {
+  for (let s = 1; s <= 20; s++) {
+    buildMap(s * 777);
+    let floor = 0, corr = 0;
+    const isDoor = (i, j) => DOORT.some(d => i >= d.x && i < d.x + d.w && j >= d.y && j < d.y + d.h);
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+      if (grid[j][i] === 1) {
+        floor++;
+        if (!ROOMS.some(r => i >= r.tx && i < r.tx + r.tw && j >= r.ty && j < r.ty + r.th) && !isDoor(i, j)) corr++;
+      }
+    }
+    ok(corr / floor < 0.01, 'вне комнат (не двери) ' + Math.round(100 * corr / floor) + '%');
+    ok(DOORT.length >= hallsCount(), 'дверей нет: ' + DOORT.length);
+  }
+});
+function hallsCount(){return ROOMS.filter(r=>r.type==='openspace'||r.type==='lobby').length;}
+test('двери связывают все залы (связность через двери)', () => {
+  for (let s = 1; s <= 40; s++) {
+    buildMap(s * 7919 + 13);
+    eq(unreachableRooms().length, 0, 'сид ' + s);
+  }
+});
+test('залов-опенспейсов >= 4 на карту', () => {
+  for (let s = 1; s <= 15; s++) {
+    buildMap(s * 31337);
+    const os = ROOMS.filter(r => r.type === 'openspace').length;
+    ok(os >= 4, 'залов ' + os);
+  }
+});
+test('редкие перки привязаны к классам', () => {
+  for (const p of PERKS.filter(x => x.r === 'r')) {
+    ok(Array.isArray(p.cls) && p.cls.length >= 1, p.id + '.cls');
+  }
+});
+test('кухня настоящая: cstand стоит в pantry-боксе', () => {
+  for (let s = 1; s <= 25; s++) {
+    buildMap(s * 7919 + 13);
+    const pantries = ROOMS.filter(r => r.type === 'pantry');
+    ok(pantries.length >= 1, 'pantry есть');
+    const cs = FURN.filter(f => f.t === 'cstand');
+    ok(cs.length >= 1, 'кофе-стойка стоит');
+    for (const c of cs) {
+      const host = pantries.find(r => c.x >= r.x && c.y >= r.y && c.x + c.w <= r.x + r.w && c.y + c.h <= r.y + r.h);
+      ok(host, 'cstand в pantry');
+    }
+  }
+});
+test('стеклянные стены существуют и помечены', () => {
+  buildMap(7);
+  let glass = 0;
+  for (const w of WALLS) if (w.glass) glass++;
+  ok(glass > 10, 'glass=' + glass);
+});
+test('арена: крупнейший зал без стеклобоксов внутри', () => {
+  for (let s = 1; s <= 15; s++) {
+    buildMap(s * 104729);
+    const arena = ROOMS.find(r => r.arena);
+    ok(arena, 'арена назначена');
+    for (const r of ROOMS)
+      if (r !== arena && r.glass)
+        ok(!(r.tx > arena.tx && r.tx + r.tw < arena.tx + arena.tw && r.ty > arena.ty && r.ty + r.th < arena.ty + arena.th),
+          'бокс внутри арены: ' + r.type);
+  }
+});
+test('каждый зал имеет имя-лейбл для игрока', () => {
+  buildMap(7);
+  for (const r of ROOMS) ok(typeof roomLabel(r) === 'string' && roomLabel(r).length > 2, r.type);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

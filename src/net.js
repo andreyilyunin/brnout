@@ -34,6 +34,7 @@ function resetWorld(){
   G.mobs.length=0;G.projs.length=0;G.fx.length=0;G.texts.length=0;G.pickups.length=0;G.zones.length=0;
   G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;
   G.okr=0;G.grade=1;G.killsI=0;G.killsD=0;G.bossN=0;G.winShown=false;G.winT=0;
+  G.level=1;G.xp=0;G.xpN=40;G.perkQueue=0;
   G.shake=0;G.hitStop=0;G.msg='';G.msgT=0;G.capT=10;G.caption='';
   NET.events=[];
 }
@@ -162,8 +163,8 @@ function hostSweep(){
 function hostOnMsg(c,d){
   if(!d)return;
   var i;
-  if(d.t==='hb'&&(!c||!c.hiDone)){ // hi гостя потерялся (троттлинг брокера) — намекаем повторным hi
-    if(relay)relay.publish(relayH(NET.code),JSON.stringify({to:pid,d:{t:'hb-echo'}}));
+  if(d.t==='hb'&&!c.hiDone){ // hi гостя потерялся (троттлинг брокера) — намекаем повторным hi
+    c.send({t:'hb-echo'});
     return;
   }
   if(d.t==='hi'){
@@ -193,6 +194,12 @@ function hostOnMsg(c,d){
     var pc=null;
     for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pc=G.players[i];
     if(pc)pc.coins=(pc.coins||0)+1;
+  }
+  if(d.t==='perk'){
+    var pp=null;
+    for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pp=G.players[i];
+    var pk=PERKBY[d.p];
+    if(pp&&pk){pk.f(pp);pp.perks.push(pk.id);}
   }
   if(d.t==='leave'){hostDropConn(c);}
 }

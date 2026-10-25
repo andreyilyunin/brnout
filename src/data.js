@@ -19,9 +19,9 @@ var PCOLORS=['#e6edf3','#d29922','#7aa2c8','#3fb950'];
 var G={state:'menu',t:0,players:[],mobs:[],projs:[],fx:[],texts:[],pickups:[],zones:[],
   boss:null,wave:0,waveState:'calm',waveT:1.5,rushT:0,spawnQ:[],spawnT:0,okr:0,grade:1,
   interT:0,fadeT:0,pendSeed:0,nextTheme:'',interStats:null,
-  level:1,xp:0,xpN:40,plan:0,sepT:0,demon:null,ultAt:9,campaign:10,
-  killsI:0,killsD:0,bossN:0,winShown:false,winT:0,shake:0,hitStop:0,msg:'',msgT:0,caption:'',capT:8,
-  combo:0,comboT:0,
+  level:1,xp:0,xpN:40,plan:0,sepT:0,demon:null,ultAt:6,campaign:10,perkQueue:0,
+  killsI:0,killsD:0,bossN:0,winShown:false,winT:0,shake:0,hitStop:0,msg:'',msgT:0,caption:'',capT:8,delays:[],
+  combo:0,comboT:0,hsCd:0,flavorT:0,
   camX:0,camY:0,zoom:1,mobSeq:0,pkSeq:0};
 var COMBONAMES=['','синергия!','пролистал инбокс!','закрыл спринт!','переработал!','тимлид года!','выгорел красиво!','легенда офиса!','машина задач!','БОГ ВЫГОРАНИЯ!'];
 var KILLQUOTES=['отчислен','нашёл работу получше','ушёл на обед','передумал гореть','сбегал в Дубай','отпуск за свой счёт','это не его роль'];
@@ -68,10 +68,69 @@ function newPlayer(id,cls){
   var lb=lobbySpawn();
   return{id:id,cls:cls,x:lb.x+lb.w/2+(R()*120-60),y:lb.y+lb.h/2+(R()*120-60),r:18,spd:210,spdMult:1,dmgMult:1,
     burnout:0,coffee:60,coffeeMax:100,face:0,coins:0,
+    dmgBonus:0,critBonus:0,cdMult:1,costMult:1,dodgeCdMult:1,vamp:0,coffeeRegen:0,superRate:1,drMult:1,perks:[],
     cd1:0,cd2:0,cdQ:0,cdS:0,cdU:0,cdD:0,root:0,ult:false,fk:false,superC:0,shield:0,qT:0,qPulse:0,haste:0,castT:0,inv:0,flash:0,heart:0,kx:0,ky:0,step:0,atkT:0,
     dead:false,respT:0,
     ix:0,iy:0,aim:0,f1:false,f2:false,sk:false,sk2:false,cf:false,
     look:LOOKS[0],moving:false};
+}
+var PERKS=[
+  {id:'vpn',n:'корпоративный VPN',d:'+15% скорость',r:'c',f:function(p){p.spdMult+=0.15;}},
+  {id:'ot',n:'овертайм',d:'+12% урон',r:'c',f:function(p){p.dmgBonus+=0.12;}},
+  {id:'kpi',n:'премия за KPI',d:'+10% шанс крита',r:'c',f:function(p){p.critBonus+=0.10;}},
+  {id:'async',n:'асинхронность',d:'−12% перезарядка приёмов',r:'c',f:function(p){p.cdMult*=0.88;}},
+  {id:'barista',n:'друг баристы',d:'приёмы дешевле на 20%',r:'c',f:function(p){p.costMult*=0.8;}},
+  {id:'dress',n:'дресс-код',d:'−15% выгорания от удара',r:'c',f:function(p){p.drMult*=0.85;}},
+  {id:'iv',n:'капельница кофе',d:'+70% реген кофе',r:'c',f:function(p){p.coffeeRegen+=1.5;}},
+  {id:'dash',n:'дедлайн завтра',d:'рывок чаще на 30%',r:'c',f:function(p){p.dodgeCdMult*=0.7;}},
+  {id:'lunch',n:'обед за счёт фирмы',d:'убийства гасят выгорание',r:'c',f:function(p){p.vamp+=0.5;}},
+  {id:'stock',n:'опционы',d:'СУПЕР заряжается на 30% быстрее',r:'c',f:function(p){p.superRate+=0.3;}},
+  {id:'dbl',n:'двойной тикет',d:'основная атака бьёт двойным выстрелом',r:'r',cls:['mgr'],f:function(p){p.dblShot=1;}},
+  {id:'thread',n:'твит становится тредом',d:'снаряды раздваиваются при первом попадании',r:'r',cls:['mkt'],f:function(p){p.splitShot=1;}},
+  {id:'echo',n:'эхо-коммит',d:'удары клавой повторяются через мгновение',r:'r',cls:['dev'],f:function(p){p.echoSwing=1;}},
+  {id:'trail',n:'след стилуса',d:'рывок оставляет жгучий след правок',r:'r',cls:['dsn'],f:function(p){p.dashTrail=1;}}
+];
+var PERKBY={};
+for(var _pk=0;_pk<PERKS.length;_pk++)PERKBY[PERKS[_pk].id]=PERKS[_pk];
+
+var CAREER={runs:0,deaths:0,bestSprint:0,bestOkr:0,bestCoins:0,bestLevel:0,totalInterns:0,totalDeadlines:0,totalBoss:0,totalFurn:0,wins:0,ach:{}};
+try{var _cr=JSON.parse(localStorage.getItem('brnt_career')||'null');if(_cr)for(var _ck in CAREER)if(_ck!=='ach')CAREER[_ck]=_cr[_ck]||0;if(_cr&&_cr.ach)CAREER.ach=_cr.ach;}catch(e){}
+function saveCareer(){try{localStorage.setItem('brnt_career',JSON.stringify(CAREER));}catch(e){}}
+var ACHS=[
+  {id:'day1',n:'первый рабочий день',d:'пережить спринт 1'},
+  {id:'spr5',n:'пятница близко',d:'дожить до спринта 5'},
+  {id:'boss1',n:'замечаний нет',d:'пройти аудит'},
+  {id:'win',n:'идеальный сотрудник',d:'пройти все 10 спринтов'},
+  {id:'combo9',n:'бог выгорания',d:'комбо ×9'},
+  {id:'grade5',n:'грейд-менеджер',d:'грейд 5'},
+  {id:'lvl10',n:'мидл на минималках',d:'уровень 10'},
+  {id:'k100',n:'сотня отчисленных',d:'100 стажёров за карьеру'},
+  {id:'furn50',n:'ремонт за свой счёт',d:'50 мебели за карьеру'},
+  {id:'dead10',n:'синдром самозванца',d:'сгореть 10 раз'},
+  {id:'coop',n:'тимбилдинг',d:'спринт в коопе'},
+  {id:'rich',n:'осквернитель бюджета',d:'500 плашек за забег'}
+];
+function award(id){
+  if(CAREER.ach[id])return false;
+  var a=null;
+  for(var i=0;i<ACHS.length;i++)if(ACHS[i].id===id)a=ACHS[i];
+  if(!a)return false;
+  CAREER.ach[id]=1;saveCareer();
+  msg('ДОСТИЖЕНИЕ: '+a.n,4);
+  return true;
+}
+function careerEndRun(coopMode){
+  CAREER.runs++;
+  var me=localPlayer();
+  CAREER.bestSprint=Math.max(CAREER.bestSprint,Math.max(0,G.wave-1));
+  CAREER.bestOkr=Math.max(CAREER.bestOkr,G.okr);
+  CAREER.bestCoins=Math.max(CAREER.bestCoins,(me?me.coins:0)||0);
+  CAREER.bestLevel=Math.max(CAREER.bestLevel,G.level);
+  CAREER.totalInterns+=G.killsI;CAREER.totalDeadlines+=G.killsD;
+  if(CAREER.totalInterns>=100)award('k100');
+  if((me&&me.coins>=500))award('rich');
+  if(coopMode)award('coop');
+  saveCareer();
 }
 
 // ---------- имена мобов ----------
