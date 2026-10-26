@@ -3,7 +3,11 @@
 // Любая JS-ошибка на странице, наезд тач-кнопок или неверный layout — фейл CI.
 'use strict';
 const puppeteer = require('puppeteer');
+// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
+// локально кэш бывает пуст — тогда системный chromium, если он есть
 const fs = require('fs');
+const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
+
 
 const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 const OUT = __dirname + '/shots';
@@ -82,7 +86,7 @@ async function auditLayout(page, scene, need) {
 (async () => {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await puppeteer.launch({ executablePath: process.env.QA_CHROME || '/usr/sbin/chromium', args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 
   for (const vp of VIEWPORTS) {
     console.log('\n[' + vp.name + ' ' + vp.width + 'x' + vp.height + ']');

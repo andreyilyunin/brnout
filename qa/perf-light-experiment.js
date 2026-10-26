@@ -3,10 +3,14 @@
 // меряем варианты (baseline vs viewport-culling vs полускейл) на живой игре.
 'use strict';
 const puppeteer = require('puppeteer');
+// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
+// локально кэш бывает пуст — тогда системный chromium, если он есть
+const fs = require('fs');
+const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 const BASE = 'http://127.0.0.1:8099';
 
 (async () => {
-  const browser = await puppeteer.launch({ executablePath: '/usr/sbin/chromium', headless: 'new', args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 700, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

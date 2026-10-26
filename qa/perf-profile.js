@@ -4,6 +4,10 @@
 // render/update (JS-время), плюс итоговое rAF-время кадра.
 'use strict';
 const puppeteer = require('puppeteer');
+// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
+// локально кэш бывает пуст — тогда системный chromium, если он есть
+const fs = require('fs');
+const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 
 const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 
@@ -107,7 +111,7 @@ async function profileScene(page, scene, label) {
 }
 
 (async () => {
-  const browser = await puppeteer.launch({ executablePath: '/usr/sbin/chromium', headless: 'new', args: ['--no-sandbox', '--enable-gpu-rasterization'] });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--enable-gpu-rasterization'] });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 2 });
