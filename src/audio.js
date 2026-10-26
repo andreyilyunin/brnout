@@ -153,3 +153,9 @@ function startAmbient(){
   o1.connect(f);o2.connect(f);f.connect(g);g.connect(musGain||master);
   o1.start();o2.start();amb={o1:o1,o2:o2,g:g};
 }
+// неактивная вкладка не должна орать: музыка на setInterval и эмбиент-дрон живут без rAF
+document.addEventListener('visibilitychange',function(){
+  if(!AC)return;
+  if(document.hidden){if(AC.state==='running')AC.suspend();}
+  else if(AC.state==='suspended')AC.resume();
+});

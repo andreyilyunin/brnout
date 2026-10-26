@@ -337,6 +337,18 @@ test('PERKBY: применение перка к игроку', () => {
   PERKBY.async.f(p); ok(p.cdMult < 1, 'cdMult<1');
   PERKBY.dress.f(p); ok(p.drMult < 1, 'drMult<1');
 });
+test('выбор перка: ровно 2 карточки — договорённость после фокус-группы, не 3', () => {
+  const src = fs2.readFileSync('src/main.js', 'utf8');
+  eq((src.match(/PERKSEL\.length<2/g) || []).length, 2, 'оба цикла добора на 2');
+  ok(!/PERKSEL\.length<3/.test(src), 'вернулись 3 карточки');
+  ok(!src.includes('Digit3'), 'хоткей третьей карточки');
+});
+test('неактивная вкладка молчит: visibilitychange глушит AudioContext', () => {
+  const src = fs2.readFileSync('src/audio.js', 'utf8');
+  ok(src.includes("addEventListener('visibilitychange'"), 'обработчик visibilitychange');
+  ok(src.includes('AC.suspend()'), 'suspend при скрытии вкладки');
+  ok(src.includes('AC.resume()'), 'resume при возврате');
+});
 test('award: однократная выдача достижения', () => {
   eq(award('boss1'), true);
   eq(award('boss1'), false);

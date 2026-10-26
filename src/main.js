@@ -52,11 +52,11 @@ function rollPerks(){
   }
   if(rares.length&&R()<0.45)PERKSEL.push(rares.splice((R()*rares.length)|0,1)[0]);
   var pool=rares.concat(commons);
-  while(PERKSEL.length<3&&pool.length){
+  while(PERKSEL.length<2&&pool.length){
     var idx=(R()*pool.length)|0;
     PERKSEL.push(pool.splice(idx,1)[0]);
   }
-  while(PERKSEL.length<3&&stale.length){ // пул исчерпан — повтор лучше пустой карточки
+  while(PERKSEL.length<2&&stale.length){ // пул исчерпан — повтор лучше пустой карточки
     var si=(R()*stale.length)|0;
     PERKSEL.push(stale.splice(si,1)[0]);
   }
@@ -92,7 +92,6 @@ window.addEventListener('keydown',function(e){
   if(OV_OPEN!=='bperk')return;
   if(e.code==='Digit1')pickPerk(0);
   else if(e.code==='Digit2')pickPerk(1);
-  else if(e.code==='Digit3')pickPerk(2);
 });
 
 // ============================== menu wiring ==============================
@@ -332,6 +331,9 @@ try{
     refreshMenuUI();
   }
 }catch(e){}
+
+// бут: меню открыто по HTML — фиксируем OV_OPEN, иначе тач-HUD рисуется поверх меню
+try{showOv('bmenu');}catch(e){}
 
 // телефон в руках с первого кадра: тач-HUD не ждёт первого касания (гибриды откатит движение мыши)
 try{
