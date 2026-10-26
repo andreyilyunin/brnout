@@ -1,7 +1,7 @@
 'use strict';
 // ============================== procedural office map ==============================
 // Tile dungeon: rooms + corridors, seeded => identical on all peers. Among Us / Diablo vibe.
-var TILE=56,GW=36,GH=36;
+var TILE=56,GW=44,GH=44;
 var MAP_W=GW*TILE,MAP_H=GH*TILE;
 var MAPSEED=1;
 var grid=null;      // 1 = floor
@@ -41,7 +41,7 @@ function buildMap(seed){
   function attachHall(PB){
     // пристройка к PB: стык ≥5 тайлов гарантирован диапазонами; несколько попыток размеров/позиций
     for(var att=0;att<8;att++){
-      var fw=9+((rnd()*4)|0),fh=7+((rnd()*2)|0);
+      var fw=11+((rnd()*3)|0),fh=9+((rnd()*2)|0);
       for(var sd=(rnd()*4)|0,rot=0;rot<4;rot++,sd=(sd+1)&3){
         var lo,hi,fx2,fy2;
         if(sd<2){
@@ -72,7 +72,7 @@ function buildMap(seed){
   for(k=0;k<nH;k++){
     var cand2=null;
     for(t=0;t<240&&!cand2;t++){
-      var hw=9+((rnd()*4)|0),hh2=7+((rnd()*3)|0);
+      var hw=11+((rnd()*4)|0),hh2=9+((rnd()*3)|0);
       var hx=2+((rnd()*(GW-hw-4))|0),hy=2+((rnd()*(GH-hh2-4))|0);
       var C={x:hx,y:hy,w:hw,h:hh2};
       if(!clearOf(C))continue;
@@ -105,26 +105,25 @@ function buildMap(seed){
     var host=false,q;
     for(q=0;q<halls.length;q++){var Hq=halls[q];
       if(Hq.arena||Hq.lobby)continue;
-      // кольцо стен бокса + 1 тайл прохода вокруг: bx-2..bx+bw+1 внутри интерьера зала
-      if(bx-2>=Hq.x&&by-2>=Hq.y&&bx+bw+1<=Hq.x+Hq.w-1+1&&by+bh+1<=Hq.y+Hq.h-1+1)host=true;}
+      // кольцо стен бокса + 2 тайла прохода с каждой стороны: никаких узких коридоров вокруг бокса
+      if(bx-3>=Hq.x&&by-3>=Hq.y&&bx+bw+2<=Hq.x+Hq.w&&by+bh+2<=Hq.y+Hq.h)host=true;}
     if(!host)return false;
     var R2={x:bx-1,y:by-1,w:bw+2,h:bh+2};
     for(q=0;q<BOXES.length;q++){var Bq=BOXES[q];
-      if(R2.x<Bq.x+Bq.w+2&&R2.x+R2.w+2>Bq.x&&R2.y<Bq.y+Bq.h+2&&R2.y+R2.h+2>Bq.y)return false;}
+      if(R2.x<Bq.x+Bq.w+3&&R2.x+R2.w+3>Bq.x&&R2.y<Bq.y+Bq.h+3&&R2.y+R2.h+3>Bq.y)return false;}
     return true;
   }
   function addBox(bw,bh,type){
+    if(bw<5)bw=5; // минимальная комната — 5 клеток в ширину
     var sizes=[[bw,bh]];
-    if(bw>4)sizes.push([bw-1,bh]);
-    if(bh>3)sizes.push([bw,bh-1]);
-    if(bw>4&&bh>3)sizes.push([bw-1,bh-1]);
+    if(bh>3)sizes.push([bw,bh-1]); // ширину не сжимаем: только высота
     for(var sv=0;sv<sizes.length;sv++){
       var bwx=sizes[sv][0],bhx=sizes[sv][1];
       for(var tt=0;tt<200;tt++){
         var Hc=halls[(rnd()*halls.length)|0];
         if(Hc.arena||Hc.lobby)continue;
-        // валидный диапазон: кольцо бокса + 1 тайл прохода внутри зала
-        var xlo=Hc.x+2,xhi=Hc.x+Hc.w-bwx-2,ylo=Hc.y+2,yhi=Hc.y+Hc.h-bhx-2;
+        // валидный диапазон: кольцо бокса + 2 тайла прохода внутри зала
+        var xlo=Hc.x+3,xhi=Hc.x+Hc.w-bwx-3,ylo=Hc.y+3,yhi=Hc.y+Hc.h-bhx-3;
         if(xlo>xhi||ylo>yhi)continue;
         var bx=xlo+((rnd()*(xhi-xlo+1))|0),by=ylo+((rnd()*(yhi-ylo+1))|0);
         if(!boxOK(bx,by,bwx,bhx))continue;
@@ -134,12 +133,12 @@ function buildMap(seed){
     }
     return false;
   }
-  addBox(5,4,'pantry');
-  addBox(4,4,'pantry');
-  addBox(4,3,'wc');addBox(4,3,'wc');
-  addBox(6,5,'meeting');
-  addBox(6,5,'meeting');
-  addBox(5,4,'office');
+  addBox(5,3,'pantry');
+  addBox(5,3,'pantry');
+  addBox(5,3,'wc');addBox(5,3,'wc');
+  addBox(6,3,'meeting');
+  addBox(6,3,'meeting');
+  addBox(5,3,'office');
   for(k=0;k<BOXES.length;k++){var B3=BOXES[k];
     for(j=B3.y-1;j<=B3.y+B3.h;j++)for(i=B3.x-1;i<=B3.x+B3.w;i++)grid[j][i]=0; // кольцо стены
     for(j=B3.y;j<B3.y+B3.h;j++)for(i=B3.x;i<B3.x+B3.w;i++)grid[j][i]=1;       // интерьер

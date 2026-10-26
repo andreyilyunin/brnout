@@ -37,7 +37,7 @@ function startWave(){
   var w=G.wave;
   G.spawnQ.length=0;
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
-  var ni=(w===1)?5:Math.min(4+3*w,34),nd=w>=2?Math.min(2*(w-1),12):0;
+  var ni=(w===1)?8:Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
   var bossWave=(w===5)||(w>5&&(w-5)%5===0);
   var horde=(w%3===0)&&!bossWave&&w>1;
   if(bossWave){ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();}

@@ -234,12 +234,8 @@ function updateBoss(dt){
   b.chgCd-=dt;
   if(b.windup>0){
     b.windup-=dt;b.wuT+=dt;
-    if(b.windup<=0.35&&!b.reTgt){ // ретаргет под конец замаха: уходить надо по второму сигналу
-      b.reTgt=1;b.tx=p.x;b.ty=p.y;
-      floatText(b.x,b.y-70,'!!','#e5534b',18);
-    }
+    // зона удара зафиксирована в начале замаха (b.tx/b.ty) — телеграф честный, увернуться можно всегда
     if(b.windup<=0){
-      b.reTgt=0;
       G.shake+=14;SFX.slam();
       G.hitStop=Math.max(G.hitStop,0.09);
       NET.events.push({k:'hs',v:0.09});
@@ -279,7 +275,7 @@ function updateBoss(dt){
     msg('Аудит получил предписание. Аудит ускорился.',3);
   }
   if(b.atkCd<=0&&dist(b,p)<460){
-    b.windup=1.0;b.wuT=0;b.reTgt=0;b.tx=p.x;b.ty=p.y;
+    b.windup=1.0;b.wuT=0;b.tx=p.x;b.ty=p.y;
     b.atkCd=2.8-0.5*b.phase;
   }
   if(b.phase===2&&b.chgCd<=0&&bDist>260){
