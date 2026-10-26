@@ -88,6 +88,27 @@ function steerMove(m,ux,uy,step){
 function updateMobs(dt){
   for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
     if(m.dead)continue;
+    // анти-застревание: агрессивный моб, который не двигается, пока игрок далеко —
+    // застрял в мебельном кармане. Телепорт к досягаемому тайлу возле игрока.
+    if(!m.dead&&m.aggro){
+      if(m._stuckT===undefined){m._stuckT=0;m._sx=m.x;m._sy=m.y;m._trav=0;}
+      m._trav+=Math.hypot(m.x-m._sx,m.y-m._sy);
+      m._sx=m.x;m._sy=m.y;
+      m._stuckT+=dt;
+      if(m._stuckT>=1.2){
+        var tgtP=nearestPlayerTo(m);
+        if(m._trav<26&&tgtP&&dist(m,tgtP)>90&&m.stun<=0&&m.cf<=0){
+          var tp=freeSpotNear(tgtP.x,tgtP.y,260,420,m.r);
+          if(tp){
+            G.fx.push({type:'flash',x:m.x,y:m.y,r:40,t:0,life:0.2});
+            m.x=tp.x;m.y=tp.y;m.kx=0;m.ky=0;
+            G.fx.push({type:'ring',x:m.x,y:m.y,rad:8,radMax:60,t:0,life:0.3,purple:true});
+          }
+        }
+        m._stuckT=0;m._trav=0;
+      }
+    }
+    if(m.dead)continue;
     m.cd-=dt;
     if(m.fade>0)m.fade-=dt;
     if(m.dmgT>0){ // агрегированный урон: один текст на окно 0.25с вместо потока
@@ -122,7 +143,7 @@ function updateMobs(dt){
     if(!tgt)continue;
     var d=dist(m,tgt);
     if(m.type==='deadline'){
-      var a=(dist>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
+      var a=(d>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
       m.face=angTo(m,tgt);
       steerMove(m,Math.cos(a),Math.sin(a),m.spd*slow*dt);
       m.emb-=dt;
@@ -183,6 +204,32 @@ function updateBoss(dt){
   var b=G.boss;if(!b)return;
   var p=nearestPlayerTo(b);
   if(!p)return;
+  // анти-застревание: босс, упёршийся в мебель, СНОСИТ её; стены — «перепланируется» к игроку
+  if(b.windup<=0&&!(b.chgT>0)&&!(b.chgWind>0)) {
+    if(b._sx===undefined){b._sx=b.x;b._sy=b.y;}
+    var bm=Math.hypot(b.x-b._sx,b.y-b._sy); // пройдено за ОКНО, не за кадр
+    b._stuckT=(b._stuckT||0)+dt;
+    if(b._stuckT>=1.1){
+      b._stuckT=0;b._sx=b.x;b._sy=b.y;
+      if(bm<60&&dist(b,p)>120){
+        b._stuckN=(b._stuckN||0)+1;
+        if(b._stuckN>=2){ // мебель уже снёс, а не идёт — застрял в стене: репланировка
+          b._stuckN=0;
+          var btp=freeSpotNear(p.x,p.y,300,520,b.r);
+          G.fx.push({type:'flash',x:b.x,y:b.y,r:80,t:0,life:0.25});
+          G.fx.push({type:'ring',x:btp.x,y:btp.y,rad:20,radMax:120,t:0,life:0.5,red:true});
+          b.x=btp.x;b.y=btp.y;b.kx=0;b.ky=0;
+          floatText(b.x,b.y-70,'АУДИТ ПЕРЕПЛАНИРОВАЛСЯ','#e5534b',13,'C');
+          G.shake+=6;SFX.demon();
+        }else{
+          aoeFurn(b.x,b.y,110,999);
+          G.shake+=8;SFX.slam();
+          floatText(b.x,b.y-70,'АУДИТ НЕ ЖДЁТ','#e5534b',13,'C');
+          for(var sm2=0;sm2<8;sm2++)G.fx.push({type:'paper',x:b.x,y:b.y,vx:R()*260-130,vy:R()*260-130,rot:R()*3,vr:R()*8-4,t:0,life:0.7});
+        }
+      }else if(bm>=60)b._stuckN=0; // реально идёт — счётчик в ноль; рядом с игроком — замораживаем
+    }
+  }
   b.cd-=dt;b.face=angTo(b,p);b.step+=dt*2;
   b.chgCd-=dt;
   if(b.windup>0){
@@ -414,6 +461,29 @@ function updateWaves(dt){
       msg('Новый офис. Обустраиваемся…',3);
     }
   }else{
+    // зачистка хвостов: когда спавн-очередь пуста и мобов мало, HR «вычисляет» уцелевших —
+    // все агрятся, недосягаемые телепортируются к игроку. Спринт всегда может закончиться.
+    G.sweepT=(G.sweepT||0)-dt;
+    if(G.sweepT<=0&&G.spawnQ.length===0&&G.mobs.length>0&&G.mobs.length<=6){
+      G.sweepT=4;
+      var anchor=null;
+      for(i=0;i<G.players.length;i++)if(!G.players[i].dead)anchor=G.players[i];
+      if(anchor){
+        for(i=0;i<G.mobs.length;i++){var sw=G.mobs[i];
+          if(sw.dead)continue;
+          sw.aggro=true;
+          // хвостов мало: за стеной — телепорт без порога дистанции; далеко или недосягаемо — тоже
+          if(!reachOK(sw.x,sw.y)||dist(sw,anchor)>1100||
+             (G.mobs.length<=3&&!losClear(sw.x,sw.y,anchor.x,anchor.y)&&dist(sw,anchor)>90)||
+             (dist(sw,anchor)>240&&!losClear(sw.x,sw.y,anchor.x,anchor.y))){
+            var sp2=freeSpotNear(anchor.x,anchor.y,240,420,sw.r);
+            G.fx.push({type:'ring',x:sp2.x,y:sp2.y,rad:8,radMax:64,t:0,life:0.35,red:true});
+            sw.x=sp2.x;sw.y=sp2.y;sw.kx=0;sw.ky=0;
+          }
+        }
+        if(G.wave>1)floatText(anchor.x,anchor.y-64,'HR вычислил уцелевших','#e07050',12,'I');
+      }
+    }
     if(G.spawnQ.length>0){
       G.spawnT-=dt;
       if(G.spawnT<=0){

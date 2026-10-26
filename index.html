@@ -18,50 +18,52 @@
 <div id="btnPauseM" class="hidden" role="button" aria-label="Пауза">II</div>
 <div id="btnFS" title="Полный экран" role="button" aria-label="Полный экран">⛶</div>
   <div id="joyHint" class="hidden"></div>
+  <div id="deskHint" class="hidden">WASD / стрелки — движение · мышь — прицел · ПРОБЕЛ — рывок</div>
 
 <div class="bgov" id="bmenu">
   <div class="bgpanel bgmain">
     <div class="bgtitle">brnout<span>:</span> corporate hell</div>
     <div class="bgtag">18:52. Все ушли домой. Кроме вас. И их.</div>
+    <div class="bgtag bgsub">Цель: пережить 10 спринтов и уволиться красиво · <span class="kbdonly"><b>WASD/стрелки</b> — движение, <b>мышь</b> — прицел</span></div>
     <div class="bgcards" id="classCards">
       <div class="bgcard" id="bmgr" data-cls="mgr" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-mgr" width="150" height="120"></canvas>
         <h2>МЕНЕДЖЕР</h2>
         <p class="bgdesc">Дерётся жирой. JIRA-тикеты в дальний бой.</p>
-        <div class="bgfull">
-          <div><b>ЛКМ</b> твит · <b>ПКМ</b> жир панч</div>
-          <div><b>ПРОБЕЛ</b> «созвон» — щит от мобов</div>
-          <div><b>Q</b> АСАП — ускоряет себя и коллег</div>
+        <div class="bgfull bgtkeys">
+          <div><b>ЛКМ</b> тикет · <b>ПКМ</b> жир панч · <b>ПРОБЕЛ</b> рывок</div>
+          <div><b>F</b> «созвон» — щит от мобов · <b>Q</b> АСАП — скорость</div>
+          <div class="bgtouch"><div>Дальнобойный: тикеты летят сами</div><div>УЛЬТА «созвон» — щит · Q АСАП — скорость</div></div>
         </div>
       </div>
       <div class="bgcard" id="bdev" data-cls="dev" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-dev" width="150" height="120"></canvas>
         <h2>ПРОГРАММИСТ</h2>
         <p class="bgdesc">Механическая клава. Ближний бой и контроль.</p>
-        <div class="bgfull">
-          <div><b>ЛКМ</b> клава · <b>ПКМ</b> хоткей</div>
-          <div><b>ПРОБЕЛ</b> «звук клавы» — паралич</div>
-          <div><b>Q</b> легаси-код — цепь, ментальный урон</div>
+        <div class="bgfull bgtkeys">
+          <div><b>ЛКМ</b> клава · <b>ПКМ</b> хоткей · <b>ПРОБЕЛ</b> рывок</div>
+          <div><b>F</b> «звук клавы» — паралич · <b>Q</b> легаси-код — цепь</div>
+          <div class="bgtouch"><div>Ближний бой клавой, контроль</div><div>УЛЬТА «звук клавы» — паралич · Q легаси — цепь</div></div>
         </div>
       </div>
       <div class="bgcard" id="bmkt" data-cls="mkt" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-mkt" width="150" height="120"></canvas>
         <h2>МАРКЕТОЛОГ</h2>
         <p class="bgdesc">Твиты и воронки. Дебаффы.</p>
-        <div class="bgfull">
-          <div><b>ЛКМ</b> твит · <b>ПКМ</b> воронка</div>
-          <div><b>ПРОБЕЛ</b> «ребрендинг» — мобы в ступоре</div>
-          <div><b>Q</b> таргетинг — метка +50% урона</div>
+        <div class="bgfull bgtkeys">
+          <div><b>ЛКМ</b> твит · <b>ПКМ</b> воронка · <b>ПРОБЕЛ</b> рывок</div>
+          <div><b>F</b> «ребрендинг» — мобы в ступоре · <b>Q</b> таргетинг</div>
+          <div class="bgtouch"><div>Дальнобойный: твиты и воронки</div><div>УЛЬТА «ребрендинг» — ступор · Q таргет — +50% урона</div></div>
         </div>
       </div>
       <div class="bgcard" id="bdsn" data-cls="dsn" role="button" tabindex="0" aria-pressed="false">
         <canvas class="bgmodel" id="mdl-dsn" width="150" height="120"></canvas>
         <h2>ДИЗАЙНЕР</h2>
         <p class="bgdesc">Стремительный стилус. Мобильный мили.</p>
-        <div class="bgfull">
-          <div><b>ЛКМ</b> стилус · <b>ПКМ</b> критика</div>
-          <div><b>ПРОБЕЛ</b> «мудборд» — стан с краской</div>
-          <div><b>Q</b> пиксель-перфект — рывок</div>
+        <div class="bgfull bgtkeys">
+          <div><b>ЛКМ</b> стилус · <b>ПКМ</b> критика · <b>ПРОБЕЛ</b> рывок</div>
+          <div><b>F</b> «мудборд» — стан с краской · <b>Q</b> пиксель-рывок</div>
+          <div class="bgtouch"><div>Быстрый стилус, мобильный ближний</div><div>УЛЬТА «мудборд» — стан · Q пиксель — рывок</div></div>
         </div>
       </div>
     </div>
@@ -201,21 +203,21 @@
 </div>
 </div>
 
-<link rel="stylesheet" href="style.css?v=63">
-<script src="src/utils.js?v=63"></script>
-<script src="src/mqtt.js?v=63"></script>
-<script src="src/data.js?v=63"></script>
-<script src="src/audio.js?v=63"></script>
-<script src="src/music.js?v=63"></script>
-<script src="src/map.js?v=63"></script>
-<script src="src/chaos.js?v=63"></script>
-<script src="src/combat.js?v=63"></script>
-<script src="src/abilities.js?v=63"></script>
-<script src="src/sim.js?v=63"></script>
-<script src="src/guest.js?v=63"></script>
-<script src="src/sprites.js?v=63"></script>
-<script src="src/render.js?v=63"></script>
-<script src="src/input.js?v=63"></script>
-<script src="src/ui.js?v=63"></script>
-<script src="src/net.js?v=63"></script>
-<script src="src/main.js?v=63"></script>
+<link rel="stylesheet" href="style.css?v=75">
+<script src="src/utils.js?v=75"></script>
+<script src="src/mqtt.js?v=75"></script>
+<script src="src/data.js?v=75"></script>
+<script src="src/audio.js?v=75"></script>
+<script src="src/music.js?v=75"></script>
+<script src="src/map.js?v=75"></script>
+<script src="src/chaos.js?v=75"></script>
+<script src="src/combat.js?v=75"></script>
+<script src="src/abilities.js?v=75"></script>
+<script src="src/sim.js?v=75"></script>
+<script src="src/guest.js?v=75"></script>
+<script src="src/sprites.js?v=75"></script>
+<script src="src/render.js?v=75"></script>
+<script src="src/input.js?v=75"></script>
+<script src="src/ui.js?v=75"></script>
+<script src="src/net.js?v=75"></script>
+<script src="src/main.js?v=75"></script>

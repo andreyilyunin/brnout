@@ -315,3 +315,8 @@ try{
     refreshMenuUI();
   }
 }catch(e){}
+
+// телефон в руках с первого кадра: тач-HUD не ждёт первого касания (гибриды откатит движение мыши)
+try{
+  if(navigator.maxTouchPoints>0&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)enableTouch();
+}catch(e){}

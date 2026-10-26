@@ -158,3 +158,20 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout .crrow.on b{color:#ffcf5c;}
 #burnout .crrow.on{color:#9aa4af;}
 #burnout .crrow span{font-size:11px;font-style:italic;}
+
+/* тач-устройства: без клавиатурных подсказок (ЛКМ/ПКМ/ПРОБЕЛ) — короткие фразы про приёмы */
+#burnout .bgtouch{display:none;}
+@media (pointer:coarse){
+  #burnout .bgtkeys>div:not(.bgtouch){display:none;}
+  #burnout .bgtouch{display:block;font-size:10.5px;line-height:1.6;}
+}
+/* первые секунды первого боя: подписи над тач-кнопками, чтобы не угадывать иконки */
+#burnout .tb .tlbl{display:none;}
+#burnout.tlearn .tb .tlbl{display:block;}
+
+/* десктоп: подсказка движения в первом бою (аналог тач-joyHint) */
+#burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#cfe6f2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
+#burnout .bgsub{font-size:11.5px;opacity:.85;margin-top:2px;}
+#burnout .bgsub b{color:#ffcf5c;}
+
+@media (pointer:coarse){#burnout .kbdonly{display:none;}}

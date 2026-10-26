@@ -121,7 +121,7 @@ function spawnMob(type){
     G.mobs.push(mm);
   }else{
     G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*pScale*coopScale,hpMax:(9+1.5*w)*pScale*coopScale,spd:150+R()*30,
-      stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,
+      stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,aggro:true,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0});
     if(R()<0.3&&flavorOK())floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12,'F');
   }

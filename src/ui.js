@@ -20,6 +20,21 @@ function tuiSync(){
   var jh=document.getElementById('joyHint');
   if(jh)jh.classList.toggle('hidden',!(show&&!joyHinted));
 }
+// первый бой на таче: 12 секунд подписей над кнопками — иконки учатся на лету
+var LEARN_SHOWN=false;
+function touchLearnStart(){
+  if(LEARN_SHOWN)return;
+  LEARN_SHOWN=true;
+  var root=document.getElementById('burnout');
+  if(!root)return;
+  if(isTouch){
+    root.classList.add('tlearn');
+    setTimeout(function(){root.classList.remove('tlearn');},12000);
+  }else{
+    var dh=document.getElementById('deskHint');
+    if(dh){dh.classList.remove('hidden');setTimeout(function(){dh.classList.add('hidden');},10000);}
+  }
+}
 function showDeadStats(st){
   var meL=localPlayer();
   st=st||{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade,co:(meL?meL.coins:0)||0};

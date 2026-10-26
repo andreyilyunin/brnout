@@ -1160,8 +1160,14 @@ function freeSpotNear(x,y,minD,maxD,r){
   for(var t=0;t<80;t++){
     var px=40+r+R()*(MAP_W-80-2*r),py=40+r+R()*(MAP_H-80-2*r);
     var d=Math.hypot(px-x,py-y);
-    if(d>=minD&&d<=maxD&&!blockedAt(px,py,r+8))return{x:px,y:py};
+    if(d>=minD&&d<=maxD&&!blockedAt(px,py,r+8)&&reachOK(px,py))return{x:px,y:py};
   }
+  // фолбэк: досягаемый тайл из REACH_LIST, ближайший к желаемой дистанции
+  var best=null,bd=1e18;
+  for(var i=0;i<REACH_LIST.length;i++){var tl=REACH_LIST[i];
+    var dd=Math.abs(Math.hypot(tl.x-x,tl.y-y)-minD);
+    if(dd<bd&&!blockedAt(tl.x,tl.y,r+8)){bd=dd;best=tl;}}
+  if(best)return{x:best.x,y:best.y};
   return{x:clamp(x+300,60,MAP_W-60),y:clamp(y,60,MAP_H-60)};
 }
 function lobbySpawn(){
