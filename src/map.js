@@ -136,6 +136,10 @@ function buildMap(seed){
         var xlo=Hc.x+3,xhi=Hc.x+Hc.w-bwx-3,ylo=Hc.y+3,yhi=Hc.y+Hc.h-bhx-3;
         if(xlo>xhi||ylo>yhi)continue;
         var bx=xlo+((rnd()*(xhi-xlo+1))|0),by=ylo+((rnd()*(yhi-ylo+1))|0);
+        if(type==='wc'){ // санузел прижат к стене зала: не плавает по центру опенспейса
+          var sd=(rnd()*4)|0;
+          if(sd===0)bx=xlo;else if(sd===1)bx=xhi;else if(sd===2)by=ylo;else by=yhi;
+        }
         if(!boxOK(bx,by,bwx,bhx))continue;
         BOXES.push({x:bx,y:by,w:bwx,h:bhx,type:type,host:Hc});
         return true;
@@ -162,7 +166,7 @@ function buildMap(seed){
       for(oo=0;oo<opw;oo++)grid[oSt+oo][side===0?B3.x-1:B3.x+B3.w]=1;}
     else{oSt=B3.x+clamp(((B3.w-opw)/2)|0,0,B3.w-opw);
       for(oo=0;oo<opw;oo++)grid[side===2?B3.y-1:B3.y+B3.h][oSt+oo]=1;}
-    ROOMS.push({x:B3.x*TILE,y:B3.y*TILE,w:B3.w*TILE,h:B3.h*TILE,tx:B3.x,ty:B3.y,tw:B3.w,th:B3.h,type:B3.type,glass:1,openSide:side,hostHall:B3.host.hall});
+    ROOMS.push({x:B3.x*TILE,y:B3.y*TILE,w:B3.w*TILE,h:B3.h*TILE,tx:B3.x,ty:B3.y,tw:B3.w,th:B3.h,type:B3.type,glass:B3.type==='wc'?0:1,openSide:side,hostHall:B3.host.hall});
   }
   // двери — единственная связь залов: остовное дерево + петли (степень ≥2), кайт без тупиков
   var edges=[];
