@@ -39,7 +39,7 @@ function startWave(){
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
   var ni=(w===1)?5:Math.min(4+3*w,34),nd=w>=2?Math.min(2*(w-1),12):0;
   var bossWave=(w===5)||(w>5&&(w-5)%5===0);
-  var horde=(w%3===0)&&!bossWave&&w>1;
+  var horde=(w%4===0)&&!bossWave&&w>3;
   if(bossWave){ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();}
   if(horde)ni=Math.round(ni*1.7);
   for(var i=0;i<ni;i++)G.spawnQ.push('intern');
@@ -188,6 +188,13 @@ function addBurnout(p,n,src){
   if(window.__tm&&p===localPlayer())__tm.hurt=(__tm.hurt||0)+n,(__tm.src=__tm.src||{})[src||'mob']=((__tm.src[src||'mob']||0)+n);
   floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14,'I');
   if(p.burnout>=100){
+    if(G.players.length===1&&!p.revived){ // «переработал(а)»: раз за забег соло-смерть превращается в овертайм
+      p.revived=true;p.burnout=55;p.coffee=50;p.inv=2.5;
+      floatText(p.x,p.y-40,'переработал(а) — смену не закрыть','#d29922',16,'S');
+      G.fx.push({type:'ring',x:p.x,y:p.y,rad:14,radMax:150,t:0,life:0.6,gold:true});
+      msg('ОВЕРТАЙМ: вам разрешили «переработать». Один раз.',3.5);
+      return;
+    }
     p.dead=true;p.respT=0;
     floatText(p.x,p.y-40,'сгорел(а)','#e5534b',16);
     if((p.coins||0)>=10){ // соулс-папка: полплашек и заряд СУПЕРа падают на место гибели
@@ -262,7 +269,7 @@ function destroyFurn(f){
     for(j=0;j<24;j++){var pa=R()*TAU,ps2=80+R()*260;
       G.fx.push({type:'paper',x:f.x+f.w/2,y:f.y+f.h/2,vx:Math.cos(pa)*ps2,vy:Math.sin(pa)*ps2-60,rot:R()*3,vr:R()*10-5,t:0,life:1.4+R()*1.2});}
   }
-  if(R()<0.22)dropPickup(f.x+f.w/2,f.y+f.h/2,'coffee');
+  if(R()<0.28)dropPickup(f.x+f.w/2,f.y+f.h/2,'coffee');
   floatText(f.x+f.w/2,f.y-4,'разрушено','#b09a72',11);
 }
 function damageFurn(f,dmg){
@@ -345,7 +352,7 @@ function killMob(m){
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;
   NET.events.push({k:'hs',v:0.02});
-  if(R()<0.05)dropPickup(m.x,m.y,'coffee');
+  if(R()<0.12)dropPickup(m.x,m.y,'coffee');
   if(R()<0.035)dropPickup(m.x,m.y,['espresso','desk','cert'][(R()*3)|0]);
   SFX.splat();
 }

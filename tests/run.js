@@ -189,8 +189,8 @@ const fs2 = require('fs');
 test('папок при уроне: 2 (было 8)', () => {
   ok(fs2.readFileSync('src/chaos.js', 'utf8').includes('spawnFolders(x,y,2)'), 'константа');
 });
-test('дроб кофе с мобов: 5% (было 30%)', () => {
-  ok(fs2.readFileSync('src/combat.js', 'utf8').includes("if(R()<0.05)dropPickup(m.x,m.y,'coffee')"), 'кофе 0.05');
+test('дроб кофе с мобов: 12% (хорды съедают кофе-экономику)', () => {
+  ok(fs2.readFileSync('src/combat.js', 'utf8').includes("if(R()<0.12)dropPickup(m.x,m.y,'coffee')"), 'кофе 0.12');
 });
 test('тайминги надписей: приоритетные каналы TXLIFE вместо общего 2.4с', () => {
   const src = fs2.readFileSync('src/combat.js', 'utf8');
@@ -323,10 +323,10 @@ test('аудит раскладки встроен в QA по всем сцен�
 
 console.log('perks & career:');
 load('src/combat.js');
-test('PERKS: 14 перков, 10 обычных + 4 редких поведения', () => {
-  eq(PERKS.length, 14);
+test('PERKS: 15 перков, 11 обычных + 4 редких поведения', () => {
+  eq(PERKS.length, 15);
   const ids = new Set(PERKS.map(p => p.id));
-  eq(ids.size, 14);
+  eq(ids.size, 15);
   eq(PERKS.filter(p => p.r === 'r').length, 4);
   for (const p of PERKS) eq(typeof p.f, 'function', p.id + '.f');
 });

@@ -517,6 +517,7 @@ function drawHUD(){
   if(!p)return;
   hctx.textAlign='left';
   var narrow=W<640;
+  var okrX=(W<1100)?Math.max(W-280,216):W-160; // узкий экран: панель OKR уходит влево от DOM-кнопок #btnPauseM/#btnFS, но не в sprint-панель (она до x=208)
   var bx=16,by=H-58,bw=narrow?130:210,bh=18;
   if(!isTouch){ // PC-панель выгорания внизу: на таче вместо неё верхняя строка
   hctx.fillStyle='rgba(10,13,18,0.75)';rr(hctx,bx-8,by-26,narrow?bw+96:bw+120,bh+40,6);hctx.fill();
@@ -619,11 +620,11 @@ function drawHUD(){
     hctx.fillStyle=remG===0?'#8bd17c':(hot?('rgba(229,83,75,'+(0.7+0.3*Math.sin(G.t*9)).toFixed(3)+')'):'#e6edf3');
     hctx.fillText('ВРАГОВ: '+remG+(hot&&remG>0?' — зачистка!':''),24,68);
   }
-  hctx.fillStyle='rgba(10,13,18,0.75)';rr(hctx,W-160,12,148,52,6);hctx.fill();
+  hctx.fillStyle='rgba(10,13,18,0.75)';rr(hctx,okrX,12,148,52,6);hctx.fill();
   hctx.font=pixFont(16,true);hctx.fillStyle='#d29922';
-  hctx.fillText('OKR: '+G.okr,W-148,34);
+  hctx.fillText('OKR: '+G.okr,okrX+12,34);
   hctx.font=pixFont(12);hctx.fillStyle='#8b949e';
-  hctx.fillText('грейд '+G.grade+' · ✦ '+(p.coins||0),W-148,52);
+  hctx.fillText('грейд '+G.grade+' · ✦ '+(p.coins||0),okrX+12,52);
   // комбо-счётчик
   if(G.combo>1){
     var cbs=1+0.1*Math.sin(G.t*12);
@@ -690,8 +691,16 @@ function drawHUD(){
     hctx.strokeText(hpTxt,W/2,bby+25);hctx.fillText(hpTxt,W/2,bby+25);hctx.textAlign='left';
   }
   if(G.msgT>0){
-    hctx.globalAlpha=Math.min(1,G.msgT);hctx.font=pixFont(17,true);hctx.fillStyle='#e6edf3';hctx.textAlign='center';
-    hctx.fillText(G.msg,W/2,H*0.24);hctx.textAlign='left';hctx.globalAlpha=1;
+    var msgFs=17,msgMaxW=W-40,msgLines=[G.msg];
+    hctx.globalAlpha=Math.min(1,G.msgT);hctx.font=pixFont(msgFs,true);hctx.fillStyle='#e6edf3';hctx.textAlign='center';
+    if(hctx.measureText(G.msg).width>msgMaxW){ // длинное объявление: рвём у пробела ближе к середине, при нужде ужимаем (не ниже 13px)
+      var msgMid=G.msg.length/2,msgSp=-1;
+      for(var mi=0;mi<G.msg.length;mi++)if(G.msg.charAt(mi)===' '&&(msgSp<0||Math.abs(mi-msgMid)<Math.abs(msgSp-msgMid)))msgSp=mi;
+      if(msgSp>0)msgLines=[G.msg.slice(0,msgSp),G.msg.slice(msgSp+1)];
+      while(msgFs>13&&(hctx.measureText(msgLines[0]).width>msgMaxW||hctx.measureText(msgLines[1]||'').width>msgMaxW)){msgFs--;hctx.font=pixFont(msgFs,true);}
+    }
+    for(var li=0;li<msgLines.length;li++)hctx.fillText(msgLines[li],W/2,H*0.24+li*(msgFs+4));
+    hctx.textAlign='left';hctx.globalAlpha=1;
   }
   if(G.waveState==='calm'&&G.wave>=1&&G.state==='playing'&&G.waveT>0.5){
     hctx.textAlign='center';hctx.font=pixFont(15,true);hctx.fillStyle='rgba(230,237,243,'+(0.55+0.3*Math.sin(G.t*4)).toFixed(3)+')';
@@ -719,7 +728,7 @@ function drawHUD(){
   }
   if(NET.mode!=='solo'){
     hctx.fillStyle='rgba(139,148,158,0.8)';hctx.font='10px Arial';
-    hctx.fillText(NET.mode==='host'?'P2P-ХОСТ · код '+NET.code:'P2P-КЛИЕНТ',W-160,74);
+    hctx.fillText(NET.mode==='host'?'P2P-ХОСТ · код '+NET.code:'P2P-КЛИЕНТ',okrX,74);
   }
   if(VIEW.paused&&NET.mode==='guest'){
     hctx.fillStyle='rgba(5,7,10,0.6)';hctx.fillRect(0,0,W,H);
@@ -802,6 +811,16 @@ function drawMinimap(){
   var mobs=worldPool('mobs');
   hctx.fillStyle='#c23b32';
   for(i=0;i<mobs.length;i++)if(tileVis(mobs[i].x,mobs[i].y))hctx.fillRect(mx+mobs[i].x*sc-1,my+mobs[i].y*sc-1,2.5,2.5);
+  if(G.waveState==='active'&&mobs.length>0&&mobs.length<=3){ // хвост волны: последние стажёры пульсируют сквозь туман — бег не растягивается
+    hctx.fillStyle='#e5534b';
+    for(i=0;i<mobs.length;i++){
+      hctx.beginPath();hctx.arc(mx+mobs[i].x*sc,my+mobs[i].y*sc,2.5+Math.sin(G.t*8),0,TAU);hctx.fill();
+    }
+    var capY=my+mh+17;if(capY>H-2)capY=my+mh-5; // ПК ставит карту в самый низ — тогда подпись внутрь рамки
+    hctx.font=pixFont(9,true);hctx.fillStyle='#e5534b';hctx.textAlign='center';
+    hctx.fillText('осталось: '+mobs.length,mx+mw/2,capY);
+    hctx.textAlign='left';
+  }
   var boss=(NET.mode==='guest')?VIEW.boss:G.boss;
   if(boss){hctx.fillStyle='#e5534b';hctx.beginPath();hctx.arc(mx+boss.x*sc,my+boss.y*sc,4,0,TAU);hctx.fill();}
   var players=worldPool('players');

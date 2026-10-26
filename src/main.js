@@ -31,18 +31,22 @@ function rollPerks(){
   var meL=localPlayer();
   var owned={};
   if(meL)for(var oi=0;oi<meL.perks.length;oi++)owned[meL.perks[oi]]=1;
-  var rares=[],commons=[];
+  var rares=[],commons=[],stale=[];
   for(var pi=0;pi<PERKS.length;pi++){
     var pk=PERKS[pi];
     if(pk.cls&&pk.cls.indexOf(NET.cls)<0)continue; // поведенческие — только своему классу
-    if(pk.r==='r'&&owned[pk.id])continue;
-    (pk.r==='r'?rares:commons).push(pk);
+    if(pk.r==='r'){if(!owned[pk.id])rares.push(pk);}
+    else(owned[pk.id]?stale:commons).push(pk); // взятые обычные — в запас на случай пустого пула
   }
-  if(rares.length&&R()<0.45)PERKSEL.push(rares[(R()*rares.length)|0]);
+  if(rares.length&&R()<0.45)PERKSEL.push(rares.splice((R()*rares.length)|0,1)[0]);
   var pool=rares.concat(commons);
-  while(PERKSEL.length<2&&pool.length){
+  while(PERKSEL.length<3&&pool.length){
     var idx=(R()*pool.length)|0;
     PERKSEL.push(pool.splice(idx,1)[0]);
+  }
+  while(PERKSEL.length<3&&stale.length){ // пул исчерпан — повтор лучше пустой карточки
+    var si=(R()*stale.length)|0;
+    PERKSEL.push(stale.splice(si,1)[0]);
   }
 }
 function perkMaybe(){
@@ -76,6 +80,7 @@ window.addEventListener('keydown',function(e){
   if(OV_OPEN!=='bperk')return;
   if(e.code==='Digit1')pickPerk(0);
   else if(e.code==='Digit2')pickPerk(1);
+  else if(e.code==='Digit3')pickPerk(2);
 });
 
 // ============================== menu wiring ==============================
