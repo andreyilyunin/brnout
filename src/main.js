@@ -1,7 +1,20 @@
 'use strict';
 // ============================== loop ==============================
 var lastT=0;
+var CAP_MS=1000/60-2; // 120Гц ProMotion без капа жгут конвейер вдвое; −2мс — джиттер-запас для честных 60Гц
+// ?fps=1 — маленький счётчик кадров: разницу до/после оптимизаций видно глазами
+var FPS_EL=null,fpsN=0,fpsMark=0;
+try{
+  if(/[?&]fps=1/.test(location.search)){
+    FPS_EL=document.createElement('div');
+    FPS_EL.style.cssText='position:fixed;top:2px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(5,7,10,.75);color:#8bd17c;font:11px "IBM Plex Mono",monospace;padding:2px 7px;border-radius:4px;pointer-events:none';
+    document.body.appendChild(FPS_EL);
+  }
+}catch(e){}
 function loop(ts){
+  requestAnimationFrame(loop);
+  if(FPS_EL){fpsN++;if(ts-fpsMark>=500){FPS_EL.textContent=Math.round(fpsN*1000/(ts-fpsMark))+' fps';fpsN=0;fpsMark=ts;}}
+  if(lastT&&ts-lastT<CAP_MS)return; // ждём свой слот: dt честно накопится к следующему кадру
   var dt=Math.min(0.05,(ts-lastT)/1000||0.016);
   lastT=ts;
   if(G.state==='playing'&&!MUS.on)startMusic();
@@ -21,7 +34,6 @@ function loop(ts){
     var fsB=document.getElementById('btnFS');
     if(fsB)fsB.classList.toggle('hidden',G.state==='playing'); // случайный тап в бою исключён
   }catch(e){console.error('render:',e);}
-  requestAnimationFrame(loop);
 }
 
 // ============================== perks ==============================

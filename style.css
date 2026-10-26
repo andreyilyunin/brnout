@@ -175,3 +175,23 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout .bgsub b{color:#ffcf5c;}
 
 @media (pointer:coarse){#burnout .kbdonly{display:none;}}
+
+/* низкий ландшафт (телефон повернули): меню без воздуха — кнопки не уезжают за экран */
+@media (orientation:landscape) and (max-height:480px){
+  #burnout .bgov .bgpanel{padding:12px 18px;}
+  #burnout .bgtitle{font-size:22px;letter-spacing:1px;}
+  #burnout #bmenu .bgtag,#burnout #bmenu .bgcredit{display:none;}
+  #burnout .bgcard{padding:6px 6px 8px;}
+  #burnout .bgmodel{height:52px;}
+  #burnout .bgcard h2{font-size:12px;margin:4px 0 2px;}
+  #burnout .bgcard .bgdesc{display:none;}
+  #burnout .bgbottom{margin-top:8px;}
+}
+
+/* узкий портрет: строка «карьера/настройки/старт/режим» не лезет по ширине —
+   сетка 2 колонки, НАЧАТЬ СМЕНУ сверху на всю ширину */
+@media (max-width:520px){
+  #bmenu .bgbottom{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  #bmenu .bgstart{order:-1;grid-column:1/-1;}
+  #bmenu .bgmode{display:contents;}
+}

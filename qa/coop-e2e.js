@@ -3,6 +3,10 @@
 // хост создаёт комнату, гость входит по коду, старт, проверка движения гостя.
 'use strict';
 const puppeteer = require('puppeteer');
+// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
+// локально кэш бывает пуст — тогда системный chromium, если он есть
+const fs = require('fs');
+const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 const BASE = process.env.COOP_BASE || 'http://127.0.0.1:8099';
 // COOP_BROKER: ws(s)-url локального брокера — детерминированный прогон без публичных брокеров
 const BROKER = process.env.COOP_BROKER || '';
@@ -12,8 +16,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   let fails = 0;
   const ok = m => console.log('  ✓ ' + m);
   const fail = m => { console.log('  ✗ ' + m); fails++; };
-  const bH = await puppeteer.launch({ args: FLAGS });
-  const bG = await puppeteer.launch({ args: FLAGS });
+  const bH = await puppeteer.launch({ executablePath: CHROME, args: FLAGS });
+  const bG = await puppeteer.launch({ executablePath: CHROME, args: FLAGS });
   const h = await (await bH.createBrowserContext()).newPage();
   const g = await (await bG.createBrowserContext()).newPage();
   for (const p of [h, g]) {
