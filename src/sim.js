@@ -264,7 +264,8 @@ function updateBoss(dt){
   }
   var bDist=dist(b,p);
   var mvA=angTo(b,p);
-  if(bDist>140&&!losClear(b.x,b.y,p.x,p.y)){
+  // стекло прозрачно для взгляда, но не для ходьбы: прямой курс — только когда он проходим
+  if(bDist>140&&!losClear(b.x,b.y,p.x,p.y,true)){
     var fa=flowDir(b.x,b.y);
     if(fa!==null)mvA=fa;
   }

@@ -411,16 +411,28 @@ test('стеклянные стены существуют и помечены',
   for (const w of WALLS) if (w.glass) glass++;
   ok(glass > 10, 'glass=' + glass);
 });
-test('арена: крупнейший зал без стеклобоксов внутри', () => {
+test('арена с боксами: >= 55% пола зала остаётся открытым', () => {
   for (let s = 1; s <= 15; s++) {
     buildMap(s * 104729);
     const arena = ROOMS.find(r => r.arena);
     ok(arena, 'арена назначена');
+    let inBoxes = 0;
     for (const r of ROOMS)
-      if (r !== arena && r.glass)
-        ok(!(r.tx > arena.tx && r.tx + r.tw < arena.tx + arena.tw && r.ty > arena.ty && r.ty + r.th < arena.ty + arena.th),
-          'бокс внутри арены: ' + r.type);
+      if (r.glass && r.tx >= arena.tx && r.tx + r.tw <= arena.tx + arena.tw && r.ty >= arena.ty && r.ty + r.th <= arena.ty + arena.th)
+        inBoxes += r.tw * r.th;
+    ok(inBoxes / (arena.tw * arena.th) <= 0.45, 'боксы занимают ' + Math.round(100 * inBoxes / (arena.tw * arena.th)) + '% арены');
   }
+});
+test('стеклобоксы доходят до больших залов: в среднем >= 4 бокса на карту', () => {
+  let tot = 0, inArena = 0;
+  for (let s = 1; s <= 25; s++) {
+    buildMap(s * 7919 + 13);
+    tot += ROOMS.filter(r => r.glass).length;
+    const arena = ROOMS.find(r => r.arena);
+    inArena += ROOMS.filter(r => r.glass && r.tx > arena.tx && r.tx + r.tw < arena.tx + arena.tw && r.ty > arena.ty && r.ty + r.th < arena.ty + arena.th).length;
+  }
+  ok(tot / 25 >= 4, 'avg=' + (tot / 25).toFixed(1));
+  ok(inArena / 25 >= 1, 'в аренах в среднем ' + (inArena / 25).toFixed(1) + ' бокса');
 });
 test('каждый зал имеет имя-лейбл для игрока', () => {
   buildMap(7);
