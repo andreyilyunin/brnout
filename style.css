@@ -74,6 +74,17 @@
 #burnout .tb-dodge{right:calc(154px + env(safe-area-inset-right,0px));bottom:calc(125px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}  /* РЫВОК 150° */
 #burnout .tb-skill{right:calc(171px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}  /* СКИЛ 177.5° */
 #burnout .tb-ult{right:calc(159px + env(safe-area-inset-right,0px));bottom:calc(7px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}      /* УЛЬТА 205° — конец дуги */
+/* низкий ландшафт (высота ≤520px, телефоны в горизонтали): дугу сжимаем ~15% и прижимаем вниз,
+   чтобы СУПЕР не уезжал за верх, а кнопки с подписями .tlbl не резались нижней кромкой экрана */
+@media (max-height:520px){
+  #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-abs{--cell:min(13vw,50px);right:calc(40px + env(safe-area-inset-right,0px));bottom:calc(154px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(11.5vw,44px);}
+  #burnout .tb-alt{right:calc(92px + env(safe-area-inset-right,0px));bottom:calc(142px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-dodge{right:calc(130px + env(safe-area-inset-right,0px));bottom:calc(105px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-skill{right:calc(145px + env(safe-area-inset-right,0px));bottom:calc(55px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-ult{right:calc(134px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));}
+}
 #burnout #btnFS{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(66px + env(safe-area-inset-right,0px));z-index:6;width:44px;height:44px;border-radius:10px;background:rgba(33,38,45,.72);border:1px solid rgba(110,118,129,.8);color:#e6edf3;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;touch-action:none;}
 #burnout #btnFS:hover{background:rgba(63,185,80,.4);}
 #burnout.zfsfake{position:fixed;inset:0;width:100vw;height:100dvh;aspect-ratio:auto;min-height:0;max-width:none;max-height:none;z-index:9999;border-radius:0;}
