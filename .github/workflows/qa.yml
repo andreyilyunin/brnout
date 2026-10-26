@@ -13,7 +13,9 @@ jobs:
         with:
           node-version: 22
       - name: puppeteer
-        run: npm install puppeteer --no-save
+        run: |
+          npm install puppeteer --no-save
+          npx puppeteer browsers install chrome
       - name: static server
         run: python3 -m http.server 8099 &
       - name: скриншоты и автопроверки

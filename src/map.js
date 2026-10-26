@@ -104,7 +104,7 @@ function buildMap(seed){
     if(bx<3||by<3||bx+bw>GW-3||by+bh>GH-3)return false;
     var host=false,q;
     for(q=0;q<halls.length;q++){var Hq=halls[q];
-      if(Hq.arena||Hq.lobby)continue;
+      if(Hq.lobby)continue; // ресепшн чистый; большие опенспейсы (вкл. арену) принимают боксы
       // кольцо стен бокса + 2 тайла прохода с каждой стороны: никаких узких коридоров вокруг бокса
       if(bx-3>=Hq.x&&by-3>=Hq.y&&bx+bw+2<=Hq.x+Hq.w&&by+bh+2<=Hq.y+Hq.h)host=true;}
     if(!host)return false;
@@ -113,6 +113,17 @@ function buildMap(seed){
       if(R2.x<Bq.x+Bq.w+3&&R2.x+R2.w+3>Bq.x&&R2.y<Bq.y+Bq.h+3&&R2.y+R2.h+3>Bq.y)return false;}
     return true;
   }
+  function pickHostHall(){
+    // вес = площадь: большие опенспейсы чаще получают стеклянный бокс
+    var tot=0,q;
+    for(q=0;q<halls.length;q++)if(!halls[q].lobby)tot+=halls[q].w*halls[q].h;
+    var r=rnd()*tot;
+    for(q=0;q<halls.length;q++){var H=halls[q];
+      if(H.lobby)continue;
+      r-=H.w*H.h;
+      if(r<=0)return H;}
+    return halls[0];
+  }
   function addBox(bw,bh,type){
     if(bw<5)bw=5; // минимальная комната — 5 клеток в ширину
     var sizes=[[bw,bh]];
@@ -120,12 +131,15 @@ function buildMap(seed){
     for(var sv=0;sv<sizes.length;sv++){
       var bwx=sizes[sv][0],bhx=sizes[sv][1];
       for(var tt=0;tt<200;tt++){
-        var Hc=halls[(rnd()*halls.length)|0];
-        if(Hc.arena||Hc.lobby)continue;
+        var Hc=pickHostHall();
         // валидный диапазон: кольцо бокса + 2 тайла прохода внутри зала
         var xlo=Hc.x+3,xhi=Hc.x+Hc.w-bwx-3,ylo=Hc.y+3,yhi=Hc.y+Hc.h-bhx-3;
         if(xlo>xhi||ylo>yhi)continue;
         var bx=xlo+((rnd()*(xhi-xlo+1))|0),by=ylo+((rnd()*(yhi-ylo+1))|0);
+        if(type==='wc'){ // санузел прижат к стене зала: не плавает по центру опенспейса
+          var sd=(rnd()*4)|0;
+          if(sd===0)bx=xlo;else if(sd===1)bx=xhi;else if(sd===2)by=ylo;else by=yhi;
+        }
         if(!boxOK(bx,by,bwx,bhx))continue;
         BOXES.push({x:bx,y:by,w:bwx,h:bhx,type:type,host:Hc});
         return true;
@@ -152,7 +166,7 @@ function buildMap(seed){
       for(oo=0;oo<opw;oo++)grid[oSt+oo][side===0?B3.x-1:B3.x+B3.w]=1;}
     else{oSt=B3.x+clamp(((B3.w-opw)/2)|0,0,B3.w-opw);
       for(oo=0;oo<opw;oo++)grid[side===2?B3.y-1:B3.y+B3.h][oSt+oo]=1;}
-    ROOMS.push({x:B3.x*TILE,y:B3.y*TILE,w:B3.w*TILE,h:B3.h*TILE,tx:B3.x,ty:B3.y,tw:B3.w,th:B3.h,type:B3.type,glass:1,openSide:side,hostHall:B3.host.hall});
+    ROOMS.push({x:B3.x*TILE,y:B3.y*TILE,w:B3.w*TILE,h:B3.h*TILE,tx:B3.x,ty:B3.y,tw:B3.w,th:B3.h,type:B3.type,glass:B3.type==='wc'?0:1,openSide:side,hostHall:B3.host.hall});
   }
   // двери — единственная связь залов: остовное дерево + петли (степень ≥2), кайт без тупиков
   var edges=[];
@@ -1087,10 +1101,10 @@ function segHitsRect(x1,y1,x2,y2,r){
   }
   return true;
 }
-function losClear(x1,y1,x2,y2){
+function losClear(x1,y1,x2,y2,solid){
   if(!WBUCK){
     for(var i0=0;i0<WALLS.length;i0++){
-      if(WALLS[i0].glass)continue;
+      if(WALLS[i0].glass&&!solid)continue;
       if(segHitsRect(x1,y1,x2,y2,WALLS[i0]))return false;
     }
     return true;
@@ -1106,7 +1120,7 @@ function losClear(x1,y1,x2,y2){
       var bk=WBUCK[bx+by*GW];
       if(!bk)continue;
       for(var wi=0;wi<bk.length;wi++){var W2=bk[wi];
-        if(W2.glass||W2._st===_losStamp)continue;
+        if((W2.glass&&!solid)||W2._st===_losStamp)continue;
         W2._st=_losStamp;
         if(segHitsRect(x1,y1,x2,y2,W2))return false;
       }

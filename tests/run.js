@@ -411,16 +411,39 @@ test('стеклянные стены существуют и помечены',
   for (const w of WALLS) if (w.glass) glass++;
   ok(glass > 10, 'glass=' + glass);
 });
-test('арена: крупнейший зал без стеклобоксов внутри', () => {
+test('арена с боксами: >= 55% пола зала остаётся открытым', () => {
   for (let s = 1; s <= 15; s++) {
     buildMap(s * 104729);
     const arena = ROOMS.find(r => r.arena);
     ok(arena, 'арена назначена');
+    let inBoxes = 0;
     for (const r of ROOMS)
-      if (r !== arena && r.glass)
-        ok(!(r.tx > arena.tx && r.tx + r.tw < arena.tx + arena.tw && r.ty > arena.ty && r.ty + r.th < arena.ty + arena.th),
-          'бокс внутри арены: ' + r.type);
+      if (r.glass && r.tx >= arena.tx && r.tx + r.tw <= arena.tx + arena.tw && r.ty >= arena.ty && r.ty + r.th <= arena.ty + arena.th)
+        inBoxes += r.tw * r.th;
+    ok(inBoxes / (arena.tw * arena.th) <= 0.45, 'боксы занимают ' + Math.round(100 * inBoxes / (arena.tw * arena.th)) + '% арены');
   }
+});
+test('стеклобоксы в больших залах; санузлы глухие и у стены', () => {
+  let glass = 0, inArena = 0, wc = 0, wcBad = 0;
+  for (let s = 1; s <= 25; s++) {
+    buildMap(s * 7919 + 13);
+    const arena = ROOMS.find(r => r.arena);
+    glass += ROOMS.filter(r => r.glass).length;
+    inArena += ROOMS.filter(r => r.glass && r.tx > arena.tx && r.tx + r.tw < arena.tx + arena.tw && r.ty > arena.ty && r.ty + r.th < arena.ty + arena.th).length;
+    for (const r of ROOMS) {
+      if (r.type !== 'wc') continue;
+      wc++;
+      if (r.glass) { wcBad++; continue; }
+      // прижат к стене зала: хотя бы одна сторона кольца в 3 тайлах от стены хоста
+      const hug = ROOMS.some(h => (h.type === 'openspace' || h.type === 'lobby') &&
+        r.tx >= h.tx && r.tx + r.tw <= h.tx + h.tw && r.ty >= h.ty && r.ty + r.th <= h.ty + h.th &&
+        (r.tx - 3 <= h.tx || r.tx + r.tw + 3 >= h.tx + h.tw || r.ty - 3 <= h.ty || r.ty + r.th + 3 >= h.ty + h.th));
+      if (!hug) wcBad++;
+    }
+  }
+  ok(glass / 25 >= 3, 'стекла avg=' + (glass / 25).toFixed(1));
+  ok(wcBad === 0, 'санузлов не у стены/стеклянных: ' + wcBad);
+  ok(wc / 25 >= 1.5, 'санузлов avg=' + (wc / 25).toFixed(1));
 });
 test('каждый зал имеет имя-лейбл для игрока', () => {
   buildMap(7);
