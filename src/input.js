@@ -46,7 +46,10 @@ window.addEventListener('keydown',function(e){
   keys[e.code]=true;
   if(e.repeat)return;
   if(e.code==='Enter'&&G.state==='playing'&&G.waveState==='cleared')G.interT=0.05; // запуск следующего спринта
-  if(e.code==='Escape')togglePause();
+  if(e.code==='Escape'){
+    if(OV_OPEN&&OV_BACK[OV_OPEN]){showOv(OV_BACK[OV_OPEN]);return;}
+    togglePause();
+  }
   if(e.code==='Space'&&G.state==='playing')INPUT.sk=true;
   if(e.code==='KeyQ'&&G.state==='playing')INPUT.sk2=true;
   if(e.code==='KeyF'&&G.state==='playing')INPUT.fk=true;

@@ -16,12 +16,67 @@ function loop(ts){
     try{update(dt);updateCamera(dt,false);}
     catch(e){console.error('update:',e);}
   }
+  perkMaybe();
   try{render();
     var fsB=document.getElementById('btnFS');
     if(fsB)fsB.classList.toggle('hidden',G.state==='playing'); // случайный тап в бою исключён
   }catch(e){console.error('render:',e);}
   requestAnimationFrame(loop);
 }
+
+// ============================== perks ==============================
+var PERKSEL=[];
+function rollPerks(){
+  PERKSEL=[];
+  var meL=localPlayer();
+  var owned={};
+  if(meL)for(var oi=0;oi<meL.perks.length;oi++)owned[meL.perks[oi]]=1;
+  var rares=[],commons=[];
+  for(var pi=0;pi<PERKS.length;pi++){
+    var pk=PERKS[pi];
+    if(pk.cls&&pk.cls.indexOf(NET.cls)<0)continue; // поведенческие — только своему классу
+    if(pk.r==='r'&&owned[pk.id])continue;
+    (pk.r==='r'?rares:commons).push(pk);
+  }
+  if(rares.length&&R()<0.45)PERKSEL.push(rares[(R()*rares.length)|0]);
+  var pool=rares.concat(commons);
+  while(PERKSEL.length<2&&pool.length){
+    var idx=(R()*pool.length)|0;
+    PERKSEL.push(pool.splice(idx,1)[0]);
+  }
+}
+function perkMaybe(){
+  if(G.perkQueue<=0||G.state!=='playing'||OV_OPEN)return;
+  rollPerks();
+  var el=$('perkCards');
+  el.innerHTML='';
+  for(var i=0;i<PERKSEL.length;i++)(function(i,pk){
+    var b=document.createElement('button');
+    b.className='perkcard'+(pk.r==='r'?' rare':'');
+    b.innerHTML='<b>'+pk.n+'</b><span>'+pk.d+'</span>'+(pk.r==='r'?'<i>РЕДКИЙ</i>':'');
+    b.addEventListener('click',function(){pickPerk(i);});
+    el.appendChild(b);
+  })(i,PERKSEL[i]);
+  $('perkSub').textContent='уровень '+G.level+' · '+clsName(NET.cls)+(G.perkQueue>1?' · осталось выборов: '+G.perkQueue:'');
+  showOv('bperk');
+}
+function pickPerk(i){
+  var pk=PERKSEL[i];if(!pk||OV_OPEN!=='bperk')return;
+  var me=localPlayer();
+  if(me){pk.f(me);me.perks.push(pk.id);}
+  if(NET.mode==='guest'&&NET.hostConn){try{NET.hostConn.send({t:'perk',p:pk.id});}catch(e){}}
+  G.perkQueue=Math.max(0,G.perkQueue-1);
+  SFX.grade();
+  if(me)floatText(me.x,me.y-40,pk.n,'#ffcf5c',14);
+  if(G.perkQueue>0){showOv(null);perkMaybe();}
+  else showOv(null);
+}
+function clsName(c){return CLS[c]?CLS[c].name:'???';}
+window.addEventListener('keydown',function(e){
+  if(OV_OPEN!=='bperk')return;
+  if(e.code==='Digit1')pickPerk(0);
+  else if(e.code==='Digit2')pickPerk(1);
+});
 
 // ============================== menu wiring ==============================
 function $(id){return document.getElementById(id);}
@@ -44,11 +99,33 @@ function selectClass(cls){
   selCls=cls;
   NET.cls=cls;
   refreshMenuUI();
+  syncAria();
 }
 var _cards=[['bmgr','mgr'],['bdev','dev'],['bmkt','mkt'],['bdsn','dsn']];
 for(var _ci=0;_ci<_cards.length;_ci++)(function(cid,cls){
-  document.getElementById(cid).addEventListener('click',function(){selectClass(cls);});
+  var el=document.getElementById(cid);
+  el.addEventListener('click',function(){selectClass(cls);});
+  el.addEventListener('keydown',function(e){
+    if(e.code==='Enter'||e.code==='Space'){e.preventDefault();selectClass(cls);}
+  });
 })(_cards[_ci][0],_cards[_ci][1]);
+document.getElementById('classCards').addEventListener('keydown',function(e){
+  var idx=-1;
+  for(var i=0;i<_cards.length;i++)if(_cards[i][0]==='b'+selCls)idx=i;
+  if(e.code==='ArrowRight'||e.code==='ArrowLeft'){
+    e.preventDefault();
+    var ni=(idx+(e.code==='ArrowRight'?1:_cards.length-1))%_cards.length;
+    selectClass(_cards[ni][1]);
+    var nel=document.getElementById(_cards[ni][0]);
+    if(nel)nel.focus();
+  }else if(e.code==='Enter'&&OV_OPEN==='bmenu'){document.getElementById('mStart').click();}
+});
+function syncAria(){
+  for(var i=0;i<_cards.length;i++){
+    var el=document.getElementById(_cards[i][0]);
+    if(el)el.setAttribute('aria-pressed',_cards[i][1]===selCls?'true':'false');
+  }
+}
 $('mSolo').addEventListener('click',function(){menuMode='solo';refreshMenuUI();});
 $('mCoop').addEventListener('click',function(){menuMode='coop';refreshMenuUI();});
 function connectGuest(code){
@@ -76,6 +153,25 @@ $('mStart').addEventListener('click',function(){
 });
 $('mSettings').addEventListener('click',function(){showOv('bset');});
 $('bsetBack').addEventListener('click',function(){showOv('bmenu');});
+$('mCareer').addEventListener('click',function(){careerRender();showOv('bcareer');});
+$('bcareerBack').addEventListener('click',function(){showOv('bmenu');});
+function careerRender(){
+  $('crRuns').textContent=CAREER.runs;
+  $('crSprint').textContent=CAREER.bestSprint;
+  $('crOkr').textContent=CAREER.bestOkr;
+  $('crCoins').textContent=CAREER.bestCoins;
+  $('crInterns').textContent=CAREER.totalInterns+CAREER.totalDeadlines;
+  $('crBoss').textContent=CAREER.totalBoss;
+  $('crFurn').textContent=CAREER.totalFurn;
+  $('crDeaths').textContent=CAREER.deaths;
+  var got=0;
+  for(var k in CAREER.ach)if(CAREER.ach[k])got++;
+  var html='<div class="crtitle">ДОСТИЖЕНИЯ · '+got+'/'+ACHS.length+'</div>';
+  for(var i=0;i<ACHS.length;i++){var a=ACHS[i],on=CAREER.ach[a.id];
+    html+='<div class="crrow'+(on?' on':'')+'"><b>'+(on?a.n:'???')+'</b><span>'+a.d+'</span></div>';
+  }
+  $('crAch').innerHTML=html; /*safe: имена/описания только из констант ACHS*/
+}
 refreshMenuUI();
 renderClassPreviews();
 $('cHost').addEventListener('click',function(){
@@ -218,4 +314,9 @@ try{
     if(_tag)_tag.textContent='вас позвали в комнату '+PENDING_JOIN.toUpperCase()+' — выберите класс';
     refreshMenuUI();
   }
+}catch(e){}
+
+// телефон в руках с первого кадра: тач-HUD не ждёт первого касания (гибриды откатит движение мыши)
+try{
+  if(navigator.maxTouchPoints>0&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)enableTouch();
 }catch(e){}

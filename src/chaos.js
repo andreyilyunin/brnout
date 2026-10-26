@@ -29,7 +29,7 @@ function drawHoverTag(){
 var STONEWORDS=['Я ВАС УСЛЫШАЛ','ЭТО НЕ БЛОКЕР','ДАВАЙ СИНХРОНИЗИРУЕМСЯ','АСАП ПО ЭТОМУ'];
 function spawnDebris(d){
   d.t=0;d.vx=d.vx||0;d.vy=d.vy||0;d.rot=d.rot||0;d.vr=d.vr||0;
-  if(DEBRIS.length>150)DEBRIS.shift();
+  if(DEBRIS.length>220)DEBRIS.shift();
   DEBRIS.push(d);
 }
 // горсть монет: физика, отскок, сбор
@@ -70,8 +70,7 @@ function spawnStone(x,y,tx,ty,word,hostDmg,tgtId){
   NET.events.push({k:'stone',x:Math.round(x),y:Math.round(y),tx:Math.round(tx),ty:Math.round(ty),w:word});
 }
 function stoneImpact(x,y){
-  G.shake+=6;G.hitStop=Math.max(G.hitStop,0.05);
-  NET.events.push({k:'hs',v:0.05});
+  G.shake+=6;hitStopFx(0.05);
   spawnFolders(x,y,2);
   SFX.slam();SFX.thump();
 }
@@ -128,8 +127,8 @@ function updateChaos(dt){
           if(dd2<18){
             DEBRIS.splice(i,1);
             me.coins=(me.coins||0)+1;
+            me._coinAcc=(me._coinAcc||0)+1;me._coinT=0.5;
             G.fx.push({type:'flash',x:d.x,y:d.y,r:18,t:0,life:0.14});
-            floatText(d.x,d.y-8,'+1','#ffcf5c',10);
             SFX.pickup();
             if(NET.mode==='guest'&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'coin'});
             continue;
@@ -153,6 +152,14 @@ function updateChaos(dt){
         var a=R()*TAU,sp=60+R()*220;
         G.fx.push({type:'paper',st:1,x:pf.x,y:pf.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,rot:R()*3,vr:R()*10-5,t:0,life:1.4+R()*1.2});
       }
+    }
+  }
+  var meC=localPlayer();
+  if(meC&&meC._coinAcc){
+    meC._coinT-=dt;
+    if(meC._coinT<=0){
+      floatText(meC.x,meC.y-30,'+'+meC._coinAcc+' ✦','#ffcf5c',11,'D');
+      meC._coinAcc=0;
     }
   }
   for(i=STONES.length-1;i>=0;i--){var st=STONES[i];

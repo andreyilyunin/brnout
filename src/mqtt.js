@@ -4,9 +4,9 @@
 // а MQTT-брокеры живут — они и есть наш «сигнальный сервер + релей».
 // Реализовано ровно столько протокола, сколько нужно: CONNECT/SUBSCRIBE/PUBLISH(QoS0)/PINGREQ.
 var MQTT_BROKERS=[
-  {url:'wss://test.mosquitto.org:8081/',name:'mosquitto'}, // стабильнее всех и не шейпит
-  {url:'wss://broker.emqx.io:8084/mqtt',name:'emqx'},
-  {url:'wss://mqtt.hsl.fi:8883/',name:'hsl'}
+  {url:'wss://broker.hivemq.com:8884/mqtt',name:'hivemq'},
+  {url:'wss://test.mosquitto.org:8081/',name:'mosquitto'},
+  {url:'wss://broker.emqx.io:8084/mqtt',name:'emqx'}
 ];
 function mqttBytes(str){
   if(window.TextEncoder)return Array.from(new TextEncoder().encode(str));
@@ -37,7 +37,9 @@ function mqttBrokerList(){
 }
 function mqttClient(opts){
   var list=opts.urls||mqttBrokerList();
-  var idx=0,ws=null,alive=false,stopped=false,pingIv=null;
+  var DBG=window.__mqttDbg; // E2E-диагностика: журнал событий соединения
+  function dbg(ev){if(DBG)DBG.push(Date.now()%100000+' '+ev);}
+  var idx=0,ws=null,alive=false,stopped=false,pingIv=null,lastPing=0,lastPong=1;
   function cleanup(){
     clearInterval(pingIv);pingIv=null;
     try{if(ws){ws.onclose=ws.onerror=ws.onmessage=ws.onopen=null;ws.close();}}catch(e){}
@@ -52,6 +54,7 @@ function mqttClient(opts){
     var connack=false;
     var to=setTimeout(function(){if(!connack){cleanup();tryNext();}},9000);
     ws.onopen=function(){
+      dbg('open '+(list[idx-1].name));
       // CONNECT: clean session + опциональный Last Will (мгновенное «меня не стало» при обрыве)
       var flags=0x02;
       var body=[].concat(mqttStr('MQTT'),[4,flags,0,60],mqttStr(opts.clientId));
@@ -65,14 +68,24 @@ function mqttClient(opts){
       var arr=new Uint8Array(ev.data);
       var type=arr[0]>>4;
       if(type===2&&!connack){ // CONNACK
+        dbg('connack '+(arr.length>3?arr[3]:'?'));
         if(arr.length<4||arr[3]!==0){clearTimeout(to);cleanup();tryNext();return;}
         connack=true;clearTimeout(to);alive=true;
         var body=[0,1].concat(mqttStr(opts.sub),[0]); // SUBSCRIBE qos0, id=1, +байт QoS подписки
         try{ws.send(mqttPacket(0x82,body));}catch(e){}
-        pingIv=setInterval(function(){if(alive){try{ws.send(new Uint8Array([0xC0,0]));}catch(e){}}},30000);
+        // живость сессии: PINGREQ каждые 5с, два неотвеченных подряд = зомби-коннект
+        lastPong=Date.now();lastPing=0;
+        pingIv=setInterval(function(){
+          if(!alive)return;
+          try{ws.send(new Uint8Array([0xC0,0]));}catch(e){return;}
+          lastPing=Date.now();
+          if(lastPong<lastPing-6000){alive=false;cleanup();opts.onDown('ping');}
+        },5000);
         opts.onReady(list[idx-1].name);
         return;
       }
+      if(type===13){lastPong=Date.now();return;} // PINGRESP
+      if(type===9)dbg('suback '+(arr[arr.length-1])); // 0=ok, 0x80=отказ
       if(type===3){ // PUBLISH
         var p=1,mul=1,rem=0,d;
         do{d=arr[p];p++;rem+=(d&127)*mul;mul*=128;}while((d&128)&&p<5);
@@ -83,7 +96,8 @@ function mqttClient(opts){
         if(plen>0)opts.onMsg(topic,mqttUtf8(arr,p,plen));
       }
     };
-    ws.onclose=function(){
+    ws.onclose=function(ev){
+      dbg('close '+(ev&&ev.code));
       if(alive){alive=false;cleanup();opts.onDown('closed');}
       else{clearTimeout(to);cleanup();tryNext();}
     };
@@ -92,8 +106,8 @@ function mqttClient(opts){
   tryNext();
   return {
     publish:function(topic,str){
-      if(!alive||stopped)return;
-      try{ws.send(mqttPacket(0x30,mqttStr(topic).concat(mqttBytes(str))));}catch(e){}
+      if(!alive||stopped){dbg('pub-skip alive='+alive);return;}
+      try{ws.send(mqttPacket(0x30,mqttStr(topic).concat(mqttBytes(str))));dbg('pub '+(str.length));}catch(e){dbg('pub-err');}
     },
     destroy:function(){stopped=true;alive=false;cleanup();}
   };

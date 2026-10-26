@@ -42,6 +42,8 @@ function guestApplySnapshot(s){
   VIEW.coffee=s.cf;
   G.wave=s.w;G.waveState=s.ws;G.okr=s.okr;G.grade=s.gr;G.bossN=s.bn||1;
   G.combo=s.cb||0;G.comboT=s.cbt||0;
+  if(s.lv&&s.lv>G.level)G.perkQueue=Math.min(3,G.perkQueue+(s.lv-G.level));
+  G.level=s.lv||G.level;G.xp=s.xp||0;G.xpN=s.xpN||40;
   if(s.msg&&s.msgT>0){G.msg=s.msg;G.msgT=Math.min(G.msgT+0.2,1.5);}
   else G.msgT-=0.066;
   G.caption=s.cap||'';VIEW.paused=!!s.pz;
@@ -70,11 +72,17 @@ function guestEvent(e){
   }else if(e.k==='stamp'){
     G.fx.push({type:'stamp',x:x,y:y,rad:e.rad,t:0,life:5});G.shake+=10;
   }else if(e.k==='txt'){
-    if(G.texts.length>40)G.texts.shift();
-    G.texts.push({x:x,y:y,text:e.t,color:e.c,size:e.s,t:0,life:2.4,vy:-15});
+    if(G.texts.length>=40){
+      var lowI=0;
+      for(var ti=1;ti<G.texts.length;ti++){
+        var pf=TXPRIO[G.texts[ti].ch]||0,pl=TXPRIO[G.texts[lowI].ch]||0;
+        if(pf<pl||(pf===pl&&G.texts[ti].t>G.texts[lowI].t))lowI=ti;
+      }
+      G.texts.splice(lowI,1);
+    }
+    G.texts.push({x:x,y:y,text:e.t,color:e.c,size:e.s,t:0,life:TXLIFE[e.ch]||1.4,vy:-15,ch:e.ch});
   }else if(e.k==='spawn'){
-    if(G.texts.length>40)G.texts.shift();
-    G.texts.push({x:x,y:y-26,text:'(из '+e.tag+')',color:'#6e7681',size:10,t:0,life:1.4,vy:-20});
+    G.fx.push({type:'ring',x:x,y:y,rad:26,radMax:8,t:0,life:0.5,purple:1});
   }else if(e.k==='furn'){
     for(var j2=0;j2<12;j2++)G.fx.push({type:'paper',x:x,y:y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.8+R()*0.5});
     G.shake+=5;
@@ -197,6 +205,7 @@ function sendSnapshot(){
   var ev=NET.events;NET.events=[];
   var snap={t:'st',p:p,m:m,b:b,pr:pr,pk:pk,z:z,cf:cf,fu:fu,ev:ev,
     w:G.wave,ws:G.waveState,okr:G.okr,gr:G.grade,bn:G.bossN,cb:G.combo,cbt:G.comboT,
+    lv:G.level,xp:G.xp,xpN:G.xpN,
     msg:(G.msgT>0&&G.msg)?G.msg:null,msgT:G.msgT,cap:G.caption,st:G.state,pz:(G.state==='paused')?1:0};
   broadcast(snap);
 }

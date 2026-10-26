@@ -10,18 +10,29 @@ function nearestPlayerTo(e){
   return best;
 }
 function updatePlayer(p,dt){
-  if(p.dead){p.respT+=dt;return;}
+  if(p.dead){
+    p.respT+=dt;
+    if(p.respT>=9){
+      p.dead=false;p.burnout=55;p.coffee=50;p.inv=1.5;p.kx=0;p.ky=0;
+      var lb=lobbySpawn();
+      var sp=snapReachable({x:lb.x+lb.w/2,y:lb.y+lb.h/2});
+      p.x=sp.x;p.y=sp.y;
+      floatText(p.x,p.y-40,'вышел из отпуска','#8bd17c',13);
+    }
+    return;
+  }
   var l=Math.hypot(p.ix,p.iy);
   p.moving=l>0.01;
   if(p.haste>0)p.haste-=dt;
   if(p.castT>0)p.castT-=dt;
   // адреналин: на пороге выгорания — быстрее и злее (самоирония: работает только на износ)
   p.adr=p.burnout>80;
-  p.dmgMult=(1+0.08*(G.grade-1))*(1+0.1*(G.level-1))*(G.plan>0?1.5:1)*(p.adr?1.25:1)*(1+0.04*(G.combo||0));
+  p.dmgMult=(1+0.08*(G.grade-1))*(1+0.07*(G.level-1))*(1+(p.dmgBonus||0))*(G.plan>0?1.5:1)*(p.adr?1:1)*(1+0.03*(G.combo||0));
+  if(p.adr)p.burnout=Math.min(100,p.burnout+1.0*dt);
   if(p.root>0)p.root-=dt;
   if(p.cdU>0)p.cdU-=dt;
   if(p.moving&&!(p.root>0)){
-    var spd=p.spd*p.spdMult*(p.haste>0?1.55:1)*(p.adr?1.2:1)*(G.plan>0?1.15:1)*(inZone(p.x,p.y)?0.55:1)*Math.min(1,l);
+    var spd=p.spd*p.spdMult*(p.haste>0?1.55:1)*(p.adr?1.15:1)*(G.plan>0?1.15:1)*(inZone(p.x,p.y)?0.55:1)*Math.min(1,l);
     collideMove(p,p.ix/l*spd*dt,p.iy/l*spd*dt);
     p.step+=dt*spd*0.012;
   }
@@ -29,8 +40,7 @@ function updatePlayer(p,dt){
   p.x=clamp(p.x,p.r,MAP_W-p.r);p.y=clamp(p.y,p.r,MAP_H-p.r);
   p.face=p.aim;
   p.cd1-=dt;p.cd2-=dt;p.cdQ-=dt;p.cdS-=dt;p.inv-=dt;p.atkT=Math.max(0,p.atkT-dt);p.flash=Math.max(0,p.flash-dt*3);
-  p.coffee=Math.min(p.coffeeMax,p.coffee+2.2*dt);
-  p.burnout=Math.max(0,p.burnout-0.3*dt);
+  p.coffee=Math.min(p.coffeeMax,p.coffee+(2.2+(p.coffeeRegen||0))*dt);
   if(p.shield>0){
     p.shield-=dt;
     for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
@@ -78,18 +88,49 @@ function steerMove(m,ux,uy,step){
 function updateMobs(dt){
   for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
     if(m.dead)continue;
+    // анти-застревание: агрессивный моб, который не двигается, пока игрок далеко —
+    // застрял в мебельном кармане. Телепорт к досягаемому тайлу возле игрока.
+    if(!m.dead&&m.aggro){
+      if(m._stuckT===undefined){m._stuckT=0;m._sx=m.x;m._sy=m.y;m._trav=0;}
+      m._trav+=Math.hypot(m.x-m._sx,m.y-m._sy);
+      m._sx=m.x;m._sy=m.y;
+      m._stuckT+=dt;
+      if(m._stuckT>=1.2){
+        var tgtP=nearestPlayerTo(m);
+        if(m._trav<26&&tgtP&&dist(m,tgtP)>90&&m.stun<=0&&m.cf<=0){
+          var tp=freeSpotNear(tgtP.x,tgtP.y,260,420,m.r);
+          if(tp){
+            G.fx.push({type:'flash',x:m.x,y:m.y,r:40,t:0,life:0.2});
+            m.x=tp.x;m.y=tp.y;m.kx=0;m.ky=0;
+            G.fx.push({type:'ring',x:m.x,y:m.y,rad:8,radMax:60,t:0,life:0.3,purple:true});
+          }
+        }
+        m._stuckT=0;m._trav=0;
+      }
+    }
+    if(m.dead)continue;
     m.cd-=dt;
     if(m.fade>0)m.fade-=dt;
+    if(m.dmgT>0){ // агрегированный урон: один текст на окно 0.25с вместо потока
+      m.dmgT-=dt;
+      if(m.dmgT<=0&&m.dmgAcc>0){
+        floatText(m.x+(R()*14-7),m.y-m.r-6,m.dmgHits>1?Math.round(m.dmgAcc)+'×'+m.dmgHits:''+Math.round(m.dmgAcc),'#dfe6ee',12,'D');
+        SFX.hit();
+        m.dmgAcc=0;m.dmgHits=0;
+      }
+    }
     if(m.aggro||m.type==='deadline')m.step=(m.step||0)+dt*m.spd*0.055;
     if(m.mk>0)m.mk-=dt;
     if(m.ch>0){
       m.ch-=dt;m.chTick-=dt;
-      if(m.chTick<=0){m.chTick=0.5;m.hp-=m.chDmg;floatText(m.x,m.y-14,'-'+Math.round(m.chDmg),'#a08c5a',10);
+      if(m.chTick<=0){m.chTick=0.5;
+        m.hp-=m.chDmg;
+        m.dmgAcc=(m.dmgAcc||0)+m.chDmg;m.dmgHits=(m.dmgHits||0)+1;m.dmgT=0.25;
         if(m.hp<=0&&!m.dead){m.dead=true;killMob(m);continue;}}
     }
     if(m.stun>0){m.stun-=dt;continue;}
     collideMove(m,m.kx*dt,m.ky*dt);m.kx*=Math.exp(-8*dt);m.ky*=Math.exp(-8*dt);
-    var slow=(m.ch>0?0.4:1)*(inWater(m.x,m.y)?0.55:1)*(G.rushT>0?1.3:1);
+    var slow=(m.ch>0?0.4:1)*(inWater(m.x,m.y)?0.55:1)*(G.rushT>0?1.3:1)*(G.wave>=4&&G.mobs.length>6?1.08:1);
     if(m.cf>0){ // ребрендинг:/confused wander
       m.cf-=dt;m.aggro=false;
       m.wt-=dt;
@@ -102,7 +143,7 @@ function updateMobs(dt){
     if(!tgt)continue;
     var d=dist(m,tgt);
     if(m.type==='deadline'){
-      var a=(dist>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
+      var a=(d>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
       m.face=angTo(m,tgt);
       steerMove(m,Math.cos(a),Math.sin(a),m.spd*slow*dt);
       m.emb-=dt;
@@ -110,7 +151,7 @@ function updateMobs(dt){
         G.fx.push({type:'ember',x:m.x+R()*10-5,y:m.y+R()*10-5,vx:R()*20-10,vy:-30-R()*20,t:0,life:0.5,r:2+R()*3});
       }
       if(d<m.r+tgt.r+4){
-        addBurnout(tgt,16,'deadline');
+        addBurnout(tgt,12+1.1*G.wave,'deadline');
         G.fx.push({type:'ring',x:m.x,y:m.y,rad:6,radMax:76,t:0,life:0.35,orange:true});
         G.fx.push({type:'flash',x:m.x,y:m.y,r:60,t:0,life:0.22});
         for(var e2=0;e2<14;e2++)G.fx.push({type:'ember',x:m.x,y:m.y,vx:R()*260-130,vy:R()*260-130,t:0,life:0.6,r:2+R()*4});
@@ -132,16 +173,16 @@ function updateMobs(dt){
             m.cd=1.4; // реже бросают
             var inFlight=0;
             for(var si=0;si<STONES.length;si++)if(STONES[si].tgtId===tgt.id)inFlight++;
-            if(inFlight<2){ // потолок: не более 2 слов в воздухе на игрока
+          if(inFlight<2+(G.wave>=6?1:0)+(G.wave>=9?1:0)){ // потолок слов растёт со спринтами
               var snapx=tgt.x,snapy=tgt.y; // снапшот в момент БРОСКА — увернуться можно
-              spawnStone(m.x,m.y-12,snapx,snapy,STONEWORDS[(R()*STONEWORDS.length)|0],(6+0.5*G.wave)|0,tgt.id);
+              spawnStone(m.x,m.y-12,snapx,snapy,STONEWORDS[(R()*STONEWORDS.length)|0],(7+0.7*G.wave)|0,tgt.id);
               SFX.swish&&SFX.swish();
             }
           }
         }else if(m.cd<=0&&G.wave>=2){ // спринт-1 — стажёры ещё не выучили слова
           m.wu=0.5;
         }
-        if(!m.said&&d<300){m.said=true;if(R()<0.5)floatText(m.x,m.y-24,['а дизайн уже согласовали?','у меня один вопрос…','а куда нажимать?'][(R()*3)|0],'#8b949e',11);}
+        if(!m.said&&d<300){m.said=true;if(R()<0.5&&flavorOK())floatText(m.x,m.y-24,['а дизайн уже согласовали?','у меня один вопрос…','а куда нажимать?'][(R()*3)|0],'#8b949e',11,'F');}
       }else{
         m.wt-=dt;
         if(m.wt<=0){m.wt=1+R()*2;m.wx=R()*2-1;m.wy=R()*2-1;}
@@ -163,10 +204,42 @@ function updateBoss(dt){
   var b=G.boss;if(!b)return;
   var p=nearestPlayerTo(b);
   if(!p)return;
+  // анти-застревание: босс, упёршийся в мебель, СНОСИТ её; стены — «перепланируется» к игроку
+  if(b.windup<=0&&!(b.chgT>0)&&!(b.chgWind>0)) {
+    if(b._sx===undefined){b._sx=b.x;b._sy=b.y;}
+    var bm=Math.hypot(b.x-b._sx,b.y-b._sy); // пройдено за ОКНО, не за кадр
+    b._stuckT=(b._stuckT||0)+dt;
+    if(b._stuckT>=1.1){
+      b._stuckT=0;b._sx=b.x;b._sy=b.y;
+      if(bm<60&&dist(b,p)>120){
+        b._stuckN=(b._stuckN||0)+1;
+        if(b._stuckN>=2){ // мебель уже снёс, а не идёт — застрял в стене: репланировка
+          b._stuckN=0;
+          var btp=freeSpotNear(p.x,p.y,300,520,b.r);
+          G.fx.push({type:'flash',x:b.x,y:b.y,r:80,t:0,life:0.25});
+          G.fx.push({type:'ring',x:btp.x,y:btp.y,rad:20,radMax:120,t:0,life:0.5,red:true});
+          b.x=btp.x;b.y=btp.y;b.kx=0;b.ky=0;
+          floatText(b.x,b.y-70,'АУДИТ ПЕРЕПЛАНИРОВАЛСЯ','#e5534b',13,'C');
+          G.shake+=6;SFX.demon();
+        }else{
+          aoeFurn(b.x,b.y,110,999);
+          G.shake+=8;SFX.slam();
+          floatText(b.x,b.y-70,'АУДИТ НЕ ЖДЁТ','#e5534b',13,'C');
+          for(var sm2=0;sm2<8;sm2++)G.fx.push({type:'paper',x:b.x,y:b.y,vx:R()*260-130,vy:R()*260-130,rot:R()*3,vr:R()*8-4,t:0,life:0.7});
+        }
+      }else if(bm>=60)b._stuckN=0; // реально идёт — счётчик в ноль; рядом с игроком — замораживаем
+    }
+  }
   b.cd-=dt;b.face=angTo(b,p);b.step+=dt*2;
+  b.chgCd-=dt;
   if(b.windup>0){
     b.windup-=dt;b.wuT+=dt;
+    if(b.windup<=0.35&&!b.reTgt){ // ретаргет под конец замаха: уходить надо по второму сигналу
+      b.reTgt=1;b.tx=p.x;b.ty=p.y;
+      floatText(b.x,b.y-70,'!!','#e5534b',18);
+    }
     if(b.windup<=0){
+      b.reTgt=0;
       G.shake+=14;SFX.slam();
       G.hitStop=Math.max(G.hitStop,0.09);
       NET.events.push({k:'hs',v:0.09});
@@ -181,15 +254,38 @@ function updateBoss(dt){
     }
     return;
   }
-  collideMove(b,Math.cos(b.face)*b.spd*dt,Math.sin(b.face)*b.spd*dt);
+  if(b.chgT>0){ // чардж фазы 2: рывок по прямой, телеграф 0.6с «ПЕРЕПЛАНИРОВКА»
+    b.chgT-=dt;
+    collideMove(b,Math.cos(b.chgA)*320*dt,Math.sin(b.chgA)*320*dt);
+    if(dist(b,p)<b.r+p.r+4&&b.cd<=0){b.cd=1.1;addBurnout(p,18,'boss');}
+    if(b.chgT<=0)b.atkCd=Math.max(b.atkCd,1.2);
+    return;
+  }
+  if(b.chgWind>0){
+    b.chgWind-=dt;
+    if(b.chgWind<=0){b.chgT=0.55;b.chgA=angTo(b,p);SFX.whoosh();}
+    return;
+  }
+  var bDist=dist(b,p);
+  var mvA=angTo(b,p);
+  if(bDist>140&&!losClear(b.x,b.y,p.x,p.y)){
+    var fa=flowDir(b.x,b.y);
+    if(fa!==null)mvA=fa;
+  }
+  if(bDist>b.r+p.r+2)steerMove(b,Math.cos(mvA),Math.sin(mvA),b.spd*dt);
   b.atkCd-=dt;b.summonCd-=dt;b.tapeCd-=dt;
   if(b.hp<b.hpMax/2&&b.phase===1){
-    b.phase=2;b.spd=56;
+    b.phase=2;b.spd=95;
     msg('Аудит получил предписание. Аудит ускорился.',3);
   }
   if(b.atkCd<=0&&dist(b,p)<460){
-    b.windup=1.0;b.wuT=0;b.tx=p.x;b.ty=p.y;
-    b.atkCd=3.4-0.6*b.phase;
+    b.windup=1.0;b.wuT=0;b.reTgt=0;b.tx=p.x;b.ty=p.y;
+    b.atkCd=2.8-0.5*b.phase;
+  }
+  if(b.phase===2&&b.chgCd<=0&&bDist>260){
+    b.chgCd=5;
+    b.chgWind=0.6;
+    floatText(b.x,b.y-70,'ПЕРЕПЛАНИРОВКА!','#e5534b',14);
   }
   if(b.summonCd<=0){
     b.summonCd=b.phase===2?7:9;
@@ -201,11 +297,17 @@ function updateBoss(dt){
     b.tapeCd=12;
     for(i=0;i<3;i++){
       var zx=clamp(p.x+(R()*300-150),60,MAP_W-160),zy=clamp(p.y+(R()*300-150),60,MAP_H-100);
-      G.zones.push({id:++G.pkSeq,x:zx,y:zy,w:120+R()*80,h:46+R()*30,t:0,life:7});
+      var stacked=false; // контракт: зоны не перекрываются и не заменяют живые
+      for(var zk=0;zk<G.zones.length;zk++){var zE=G.zones[zk];
+        if(zE.friendly)continue;
+        if(Math.hypot(zE.x+zE.w/2-zx,zE.y+zE.h/2-zy)<170){stacked=true;break;}
+      }
+      if(stacked)continue;
+      G.zones.push({id:++G.pkSeq,x:zx,y:zy,w:120+R()*80,h:46+R()*30,t:0,life:5});
     }
-    floatText(b.x,b.y-60,'красная лента','#e5534b',12);
+    floatText(b.x,b.y-60,'красная лента','#e5534b',12,'I');
   }
-  if(dist(b,p)<b.r+p.r+2&&b.cd<=0){b.cd=1.1;addBurnout(p,12,'boss');}
+  if(dist(b,p)<b.r+p.r+2&&b.cd<=0){b.cd=1.1;addBurnout(p,13,'boss');}
 }
 function updateProjs(dt){
   for(var i=0;i<G.projs.length;i++){var pr=G.projs[i];
@@ -221,7 +323,17 @@ function updateProjs(dt){
     }
     if(!dead){
       for(var m=0;m<G.mobs.length;m++){var mob=G.mobs[m];
-        if(dist(pr,mob)<mob.r+5){damageMob(mob,pr.dmg,pr.vx*0.3,pr.vy*0.3,0);dead=true;break;}
+        if(dist(pr,mob)<mob.r+5){
+          damageMob(mob,pr.dmg,pr.vx*0.3,pr.vy*0.3,0);
+          if(pr.split&&!pr.didSplit){ // «твит становится тредом»: развилка при первом попадании
+            pr.didSplit=1;
+            for(var sp2=0;sp2<2;sp2++){
+              var na=Math.atan2(pr.vy,pr.vx)+(sp2?0.55:-0.55);
+              G.projs.push({id:++G.pkSeq,kind:pr.kind,x:pr.x,y:pr.y,vx:Math.cos(na)*Math.hypot(pr.vx,pr.vy),vy:Math.sin(na)*Math.hypot(pr.vx,pr.vy),dmg:pr.dmg*0.5,life:0.8,rot:R()*TAU});
+            }
+          }
+          dead=true;break;
+        }
       }
       if(!dead&&G.boss&&dist(pr,G.boss)<G.boss.r+6){damageMob(G.boss,pr.dmg,0,0,0);dead=true;}
     }
@@ -237,23 +349,33 @@ function updateFx(dt){
       if(Math.hypot(pk.x-me.x,pk.y-me.y)<22){
         G.pickups.splice(pi4,1);
         NET.events.push({k:'pkup',id:pk.id});
-        if(pk.kind==='coffee'){me.burnout=Math.max(0,me.burnout-25);me.coffee=Math.min(me.coffeeMax,me.coffee+45);SFX.slurp();}
+        if(pk.kind==='coffee'){me.burnout=Math.max(0,me.burnout-16);me.coffee=Math.min(me.coffeeMax,me.coffee+40);SFX.slurp();}
         else if(pk.kind==='espresso'){me.coffee=me.coffeeMax;me.burnout=Math.max(0,me.burnout-15);SFX.slurp();SFX.pickup();}
         else if(pk.kind==='desk'){me.coins=(me.coins||0)+25;SFX.pickup();}
         else if(pk.kind==='cert'){me.coins=(me.coins||0)+50;SFX.grade();}
+        else if(pk.kind==='folder'){me.coins=(me.coins||0)+(pk.n||0);me.superC=Math.min(1,(me.superC||0)+(pk.s||0));SFX.grade();floatText(me.x,me.y-40,'папка возвращена','#8bd17c',14);}
         G.fx.push({type:'flash',x:pk.x,y:pk.y,r:24,t:0,life:0.18});
       }
     }
   }
+  // имя зоны при входе (Among Us-читаемость): троттл от мерцания на швах
+  if(me&&!me.dead){
+    G.roomT=(G.roomT||0)-dt;
+    var rmNow=roomAtTile(clamp((me.x/TILE)|0,0,GW-1),clamp((me.y/TILE)|0,0,GH-1));
+    if(rmNow&&rmNow!==G.lastRoom&&G.roomT<=0&&roomLabel(rmNow)!==roomLabel(G.lastRoom)){
+      G.lastRoom=rmNow;G.roomT=2.5;
+      floatText(me.x,me.y-34,'«'+roomLabel(rmNow)+'»','#42e0ff',13,'S');
+    }else if(rmNow)G.lastRoom=rmNow;
+  }
   // 5. пыль из-под ног + случайные реплики героев
   if(me&&me.moving&&R()<0.12)
     G.fx.push({type:'paper',x:me.x+(R()*10-5),y:me.y+12,vx:R()*20-10,vy:-R()*14,rot:R()*3,vr:R()*2-1,t:0,life:0.35});
-  if(me&&R()<0.0012){
+  if(me&&R()<0.0012&&flavorOK()){
     var Q={mgr:['давайте синхронизируемся','это не блокер, это возможность','у меня созвон про созвон'],
            dev:['не трогайте мой бранч','работает — не трогай','это фича, не баг','мой код компилируется с первого раза'],
            mkt:['это не фича, это гипотеза','CAC окупится к четвертому тарифу','давайте захейтим конкурентов'],
            dsn:['кегель поехал на полпикселя','это не белый, это сверхбелый','шрифт сам просит кернинг']}[me.cls];
-    if(Q)floatText(me.x,me.y-44,Q[(R()*Q.length)|0],'#8bd17c',11);
+    if(Q)floatText(me.x,me.y-44,Q[(R()*Q.length)|0],'#8bd17c',11,'F');
   }
   FOG.t-=dt;
   if(FOG.t<=0){
@@ -311,9 +433,11 @@ function updateFx(dt){
     }
     if(dm.t<=0)G.demon=null;
   }
-  for(i=0;i<COFFEES.length;i++){var cp=COFFEES[i];if(cp.charges<3){cp.t-=dt;if(cp.t<=0){cp.charges++;if(cp.charges<3)cp.t=45;}}}
+  for(i=0;i<COFFEES.length;i++){var cp=COFFEES[i];if(cp.charges<2){cp.t-=dt;if(cp.t<=0){cp.charges++;if(cp.charges<2)cp.t=90;}}}
   if(NET.mode==='solo')NET.events.length=0;
-  G.shake=Math.max(0,G.shake-dt*30);
+  if(G.hsCd>0)G.hsCd-=dt;
+  if(G.flavorT>0)G.flavorT-=dt;
+  G.shake=Math.min(10,Math.max(0,G.shake-dt*45));
   G.msgT-=dt;G.capT-=dt;
   if(G.fadeT>0)G.fadeT-=dt;
   if(G.capT<=0){
@@ -326,13 +450,6 @@ function updateWaves(dt){
   for(i=0;i<G.players.length;i++)if(!G.players[i].dead)anyPlayer=true;
   if(G.waveState==='calm'){
     G.waveT-=dt;
-    for(i=0;i<G.players.length;i++){var p=G.players[i];
-      if(p.dead){
-        var cp=COFFEES.length?COFFEES[(R()*COFFEES.length)|0]:{x:MAP_W/2,y:MAP_H/2};
-        p.dead=false;p.burnout=45;p.coffee=50;p.x=cp.x;p.y=cp.y+40;p.inv=2;
-        floatText(p.x,p.y-40,'вернулся(ась) из отпуска','#8bd17c',13);
-      }
-    }
     if(G.waveT<=0&&anyPlayer){G.waveState='active';startWave();}
   }else if(G.waveState==='cleared'){
     // осязаемая пауза между спринтами: итоги + следующая локация, скип любой клавишей
@@ -344,14 +461,39 @@ function updateWaves(dt){
       msg('Новый офис. Обустраиваемся…',3);
     }
   }else{
+    // зачистка хвостов: когда спавн-очередь пуста и мобов мало, HR «вычисляет» уцелевших —
+    // все агрятся, недосягаемые телепортируются к игроку. Спринт всегда может закончиться.
+    G.sweepT=(G.sweepT||0)-dt;
+    if(G.sweepT<=0&&G.spawnQ.length===0&&G.mobs.length>0&&G.mobs.length<=6){
+      G.sweepT=4;
+      var anchor=null;
+      for(i=0;i<G.players.length;i++)if(!G.players[i].dead)anchor=G.players[i];
+      if(anchor){
+        for(i=0;i<G.mobs.length;i++){var sw=G.mobs[i];
+          if(sw.dead)continue;
+          sw.aggro=true;
+          // хвостов мало: за стеной — телепорт без порога дистанции; далеко или недосягаемо — тоже
+          if(!reachOK(sw.x,sw.y)||dist(sw,anchor)>1100||
+             (G.mobs.length<=3&&!losClear(sw.x,sw.y,anchor.x,anchor.y)&&dist(sw,anchor)>90)||
+             (dist(sw,anchor)>240&&!losClear(sw.x,sw.y,anchor.x,anchor.y))){
+            var sp2=freeSpotNear(anchor.x,anchor.y,240,420,sw.r);
+            G.fx.push({type:'ring',x:sp2.x,y:sp2.y,rad:8,radMax:64,t:0,life:0.35,red:true});
+            sw.x=sp2.x;sw.y=sp2.y;sw.kx=0;sw.ky=0;
+          }
+        }
+        if(G.wave>1)floatText(anchor.x,anchor.y-64,'HR вычислил уцелевших','#e07050',12,'I');
+      }
+    }
     if(G.spawnQ.length>0){
       G.spawnT-=dt;
-      if(G.spawnT<=0){G.spawnT=0.45;spawnMob(G.spawnQ.shift());}
+      if(G.spawnT<=0){
+        if(G.hordeBatch){G.spawnT=1.1;for(var hs=0;hs<8&&G.spawnQ.length;hs++)spawnMob(G.spawnQ.shift());}
+        else{G.spawnT=0.7;for(var bs=0;bs<5&&G.spawnQ.length;bs++)spawnMob(G.spawnQ.shift());}
+      }
     }else if(G.mobs.length===0&&!G.boss){
       G.waveState='cleared';G.interT=20;
       G.pendSeed=(R()*1e9)|0;
       G.nextTheme=themeNameFor(G.pendSeed);
-      for(i=0;i<G.players.length;i++)G.players[i].burnout=Math.max(0,G.players[i].burnout-6);
       var meI=localPlayer();
       G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,co:(meI?meI.coins:0)||0};
       broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats});
@@ -359,14 +501,23 @@ function updateWaves(dt){
   }
   if(G.winT>0){
     G.winT-=dt;
-    if(G.winT<=0){G.state='win';showOv('bwin');broadcast({t:'stt',s:'win'});}
+    if(G.winT<=0){
+      G.state='win';showOv('bwin');broadcast({t:'stt',s:'win'});
+      if(NET.mode!=='guest'){CAREER.wins++;award('win');careerEndRun(NET.mode!=='solo');saveCareer();}
+    }
   }
 }
+function schedule(fn,delay){G.delays.push({t:delay,fn:fn});}
 function update(dt){
   if(G.hitStop>0){G.hitStop-=dt;return;}
   G.t+=dt;
+  for(var di=0;di<G.delays.length;di++){G.delays[di].t-=dt;}
+  for(di=G.delays.length-1;di>=0;di--){
+    if(G.delays[di].t<=0){var fn=G.delays[di].fn;G.delays.splice(di,1);try{fn();}catch(e){}}
+  }
   if(NET.mode==='guest'){guestUpdate(dt);return;}
   if(G.state!=='playing')return;
+  if(OV_OPEN==='bperk'&&NET.mode==='solo')return; // выбор буста: соло-мир ждёт
   // flow-field к ближайшему живому игроку
   FLOW.t-=dt;
   var fp=null;
@@ -384,6 +535,11 @@ function update(dt){
 function gameOver(){
   if(G.state==='dead')return;
   G.state='dead';SFX.die();
+  if(NET.mode!=='guest'){
+    CAREER.deaths++;
+    if(CAREER.deaths>=10)award('dead10');
+    careerEndRun(NET.mode!=='solo');
+  }
   showDeadStats();
   var meD=localPlayer();
   broadcast({t:'stt',s:'dead',stats:{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade,co:(meD?meD.coins:0)||0}});

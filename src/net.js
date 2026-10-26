@@ -16,6 +16,7 @@ function startLocal(){
   resetWorld();
   NET.mode='solo';NET.myId='me';
   G.state='playing';showOv(null);G.fadeT=0.9;
+  if(window.touchLearnStart)touchLearnStart();
   updateCamera(0.016,true);
 }
 function hostStartGame(){
@@ -34,7 +35,10 @@ function resetWorld(){
   G.mobs.length=0;G.projs.length=0;G.fx.length=0;G.texts.length=0;G.pickups.length=0;G.zones.length=0;
   G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;
   G.okr=0;G.grade=1;G.killsI=0;G.killsD=0;G.bossN=0;G.winShown=false;G.winT=0;
+  G.level=1;G.xp=0;G.xpN=40;G.perkQueue=0;
   G.shake=0;G.hitStop=0;G.msg='';G.msgT=0;G.capT=10;G.caption='';
+  G.t=0;G.delays.length=0;G.combo=0;G.comboT=0;G.sweepT=0;G.hordeBatch=0;
+  DEBRIS.length=0;STONES.length=0;
   NET.events=[];
 }
 function guestStart(seed){
@@ -53,15 +57,17 @@ function guestStart(seed){
 // Топики: RELAY_PRE+code/h — хост→гости, RELAY_PRE+code/g — гости→хост.
 var RELAY_PRE='brnt4/';
 var relay=null,guestPid=null;
-var hostHbIv=null,hostSweepIv=null,hostSnapIv=null,guestHbIv=null,guestInIv=null,guestWatchIv=null;
+var hostHbIv=null,hostSweepIv=null,hostSnapIv=null,hostWatchIv=null,guestHbIv=null,guestInIv=null,guestHiIv=null,guestWatchIv=null;
 function relayH(code){return RELAY_PRE+code+'/h';}
 function relayG(code){return RELAY_PRE+code+'/g';}
 function relayKill(){
   if(hostHbIv){clearInterval(hostHbIv);hostHbIv=null;}
   if(hostSweepIv){clearInterval(hostSweepIv);hostSweepIv=null;}
   if(hostSnapIv){clearInterval(hostSnapIv);hostSnapIv=null;}
+  if(hostWatchIv){clearInterval(hostWatchIv);hostWatchIv=null;}
   if(guestHbIv){clearInterval(guestHbIv);guestHbIv=null;}
   if(guestInIv){clearInterval(guestInIv);guestInIv=null;}
+  if(guestHiIv){clearInterval(guestHiIv);guestHiIv=null;}
   if(guestWatchIv){clearInterval(guestWatchIv);guestWatchIv=null;}
   if(relay){try{relay.cli.destroy();}catch(e){}relay=null;}
 }
@@ -105,7 +111,18 @@ function hostConnect(code,cb,first){
         hostHbIv=setInterval(function(){relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});},1500);
         hostSweepIv=setInterval(hostSweep,3000);
         hostSnapIv=setInterval(function(){if(NET.mode==='host'&&NET.started&&G.state==='playing')sendSnapshot();},125);
-        cb(null,code);
+        if(!hostWatchIv)hostWatchIv=setInterval(function(){ // зомби-коннект: гости пишут, а мы не слышим
+          if(NET.mode!=='host'||!relay||!NET.conns.length)return;
+          var last=0;
+          for(var wi=0;wi<NET.conns.length;wi++)last=Math.max(last,NET.conns[wi].last);
+          if(performance.now()-last>8000&&hostRetries<3){
+            hostRetries++;
+            try{relay.cli.destroy();}catch(e){}
+            relay=null;
+            hostConnect(NET.code,null,false);
+          }
+        },2000);
+        if(cb)cb(null,code);
       }else{
         msg('Связь восстановлена',2);
         relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});
@@ -117,7 +134,7 @@ function hostConnect(code,cb,first){
       if(o&&o.pid&&o.d)hostOnRelay(o.pid,o.d);
     },
     onDown:function(reason){
-      if(!relay){cb(reason==='nobroker'?'nobroker':'broker-down');return;}
+      if(!relay){if(cb)cb(reason==='nobroker'?'nobroker':'broker-down');return;}
       if(NET.mode==='host'&&hostRetries<3){
         hostRetries++;
         setTimeout(function(){hostConnect(code,cb,false);},1000);
@@ -149,7 +166,12 @@ function hostSweep(){
 function hostOnMsg(c,d){
   if(!d)return;
   var i;
+  if(d.t==='hb'&&!c.hiDone){ // hi гостя потерялся (троттлинг брокера) — намекаем повторным hi
+    c.send({t:'hb-echo'});
+    return;
+  }
   if(d.t==='hi'){
+    c.hiDone=true;
     for(i=0;i<LOBBY.length;i++)if(LOBBY[i].id===c.peer)LOBBY.splice(i,1);
     if(LOBBY.length>=4){c.send({t:'full'});return;}
     var ncls=CLS[d.cls]?d.cls:'mgr';
@@ -175,6 +197,12 @@ function hostOnMsg(c,d){
     var pc=null;
     for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pc=G.players[i];
     if(pc)pc.coins=(pc.coins||0)+1;
+  }
+  if(d.t==='perk'){
+    var pp=null;
+    for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pp=G.players[i];
+    var pk=PERKBY[d.p];
+    if(pp&&pk){pk.f(pp);pp.perks.push(pk.id);}
   }
   if(d.t==='leave'){hostDropConn(c);}
 }
@@ -231,8 +259,13 @@ function guestConnect(code,cb){
             a:Math.round(INPUT.aim*100)/100,f1:(INPUT.f1||INPUT.f1Tap)?1:0,f2:INPUT.f2?1:0,sk:INPUT.sk?1:0,s2:INPUT.sk2?1:0,fk:INPUT.fk?1:0,cf:INPUT.cf?1:0,u:(INPUT.ultTap?1:0)});
           INPUT.f1Tap=false;INPUT.ultTap=false;
         },125);
-        setTimeout(function(){if(!NET.started&&!LOBBY.length&&NET.hostConn)NET.hostConn.send({t:'hi',cls:NET.cls});},1200);
-        setTimeout(function(){if(!NET.started&&!LOBBY.length&&NET.hostConn)NET.hostConn.send({t:'hi',cls:NET.cls});},2800);
+        // брокер троттлит: hi повторяем каждые 2с, пока не придёт лобби (до 12 раз)
+        var hiN=0;
+        if(guestHiIv)clearInterval(guestHiIv);
+        guestHiIv=setInterval(function(){
+          if(NET.started||LOBBY.length||hiN++>12||!NET.hostConn){clearInterval(guestHiIv);guestHiIv=null;return;}
+          NET.hostConn.send({t:'hi',cls:NET.cls});
+        },2000);
         if(!cbCalled){cbCalled=true;cb(null,'connected');}
         timer=setTimeout(function(){
           if(done||heard||NET.started)return;
@@ -246,6 +279,7 @@ function guestConnect(code,cb){
         if(!o)return;
         if(o.to&&o.to!==guestPid)return;
         heard=true;NET.lastRecv=performance.now();clearTimeout(timer);
+        if(o.d&&o.d.t==='hb-echo'&&NET.hostConn&&!LOBBY.length)NET.hostConn.send({t:'hi',cls:NET.cls});
         if(NET.reconnecting){NET.reconnecting=false;NET.reconnectTries=0;msg('Связь восстановлена',2);}
         if(!guestWatchIv)guestWatchIv=setInterval(function(){
           // после сворачивания приложения очередь сообщений обрабатывается не мгновенно:

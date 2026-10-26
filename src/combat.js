@@ -1,7 +1,36 @@
 'use strict';
 // ============================== waves & combat ==============================
 function msg(t,d){G.msg=t;G.msgT=d||4.5;NET.events.push({k:'msg',t:t,d:d||4.5});}
-function floatText(x,y,text,color,size){if(G.texts.length>40)G.texts.shift();G.texts.push({x:x,y:y,text:text,color:color||'#dfe6ee',size:size||13,t:0,life:2.4,vy:-15});NET.events.push({k:'txt',x:Math.round(x),y:Math.round(y),t:text,c:color||'#dfe6ee',s:size||13});}
+var TXPRIO={F:0,D:1,C:2,I:3,S:4};
+var TXLIFE={F:0.9,D:1.4,C:1.1,I:1.6,S:2.4};
+function floatText(x,y,text,color,size,ch){
+  ch=ch||'D';
+  var o={x:x,y:y,text:text,color:color||'#dfe6ee',size:size||13,t:0,vy:-15,ch:ch,life:TXLIFE[ch]||1.4};
+  if(G.texts.length>=40){
+    var lowI=0;
+    for(var fi=1;fi<G.texts.length;fi++){
+      var pf=TXPRIO[G.texts[fi].ch]||0,pl=TXPRIO[G.texts[lowI].ch]||0;
+      if(pf<pl||(pf===pl&&G.texts[fi].t>G.texts[lowI].t))lowI=fi;
+    }
+    if((TXPRIO[ch]||0)<=(TXPRIO[G.texts[lowI].ch]||0))return;
+    G.texts.splice(lowI,1);
+  }
+  G.texts.push(o);
+  if(ch!=='F')NET.events.push({k:'txt',x:Math.round(x),y:Math.round(y),t:text,c:color||'#dfe6ee',s:size||13,ch:ch});
+}
+function hitStopFx(v){
+  if((G.hsCd||0)>0)return;
+  G.hsCd=0.25;
+  G.hitStop=Math.max(G.hitStop,v);
+  NET.events.push({k:'hs',v:v});
+}
+function flavorOK(){
+  if((G.flavorT||0)>0)return false;
+  G.flavorT=3;
+  return true;
+}
+var WSCALE=[1,1,1.15,1.32,1.5,1.7,1.95,2.3,2.7,3.1,3.5];
+function waveScale(w){return WSCALE[Math.max(1,Math.min(10,w))];}
 function startWave(){
   try{
   G.wave++;
@@ -10,22 +39,32 @@ function startWave(){
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
   var ni=(w===1)?5:Math.min(4+3*w,34),nd=w>=2?Math.min(2*(w-1),12):0;
   var bossWave=(w===5)||(w>5&&(w-5)%5===0);
+  var horde=(w%3===0)&&!bossWave&&w>1;
   if(bossWave){ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();}
+  if(horde)ni=Math.round(ni*1.7);
   for(var i=0;i<ni;i++)G.spawnQ.push('intern');
   for(i=0;i<nd;i++)G.spawnQ.push('deadline');
   for(i=G.spawnQ.length-1;i>0;i--){var j=(R()*(i+1))|0;var tmp=G.spawnQ[i];G.spawnQ[i]=G.spawnQ[j];G.spawnQ[j]=tmp;}
   G.spawnT=0.14;
+  G.hordeBatch=horde;
   if(w===2)msg('Стажёры выучили новые слова — уходи с линии броска!',5);
-  if(bossWave)msg('СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ',4);
+  if(w===4)msg('Стажёры ходят пачками — держи дистанцию!',4);
+  if(w===6)msg('Элитных стажёров стало больше. Они считают себя мидлами.',4);
+  if(w===2)award('day1');
+  if(w===5)award('spr5');
+  if(horde)msg('СПРИНТ '+w+' · ХАКАТОН: все стажёры разом ('+ni+'). Держи двери!',4.5);
+  else if(bossWave)msg('СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ',4);
   else msg('Спринт '+w+' · «'+MAPTHEME.name+'» · '+sprintName+': '+ni+' стажёров'+(nd?', '+nd+' дедлайнов':'')+'. ДЕДЛАЙН УСКОРЯЕТСЯ!');
   G.rushT=4;
   }catch(e){window.__swerr=(window.__swerr||[]).concat(e.message+' :: '+(e.stack||'').split('\n')[1]);console.error('startWave:',e);}
 }
 function spawnMob(type){
-  var elite=type==='intern'&&R()<0.12;
-  // спавн на ресепшене/в уборных/у кофепоинтов: вне зоны видимости, в дистанции 320-900
+  var elite=type==='intern'&&R()<(G.wave>=6?0.18:0.12);
   var p0=null;
-  if(SPAWNS.length){
+  var spPool=[];
+  for(var spi=0;spi<SPAWNS.length;spi++)if(SPAWNS[spi].sp)spPool.push(SPAWNS[spi]);
+  var pool=spPool.length?spPool:SPAWNS;
+  if(pool.length){
     var tries=0,pick=null;
     var vw=cv.width/(DPR*G.zoom),vh=cv.height/(DPR*G.zoom);
     function bandOK(c){
@@ -41,20 +80,20 @@ function spawnMob(type){
       var sx=c.x-G.camX,sy=c.y-G.camY;
       return sx<-80||sx>vw+80||sy<-80||sy>vh+80;
     }
-    while(tries<24&&!pick){ // сперва — за кадром
+    while(tries<24&&!pick){
       tries++;
-      var cand=SPAWNS[(R()*SPAWNS.length)|0];
+      var cand=pool[(R()*pool.length)|0];
       if(bandOK(cand)&&offscreen(cand)&&reachOK(cand.x,cand.y))pick=cand;
     }
     tries=0;
-    while(tries<20&&!pick){ // не вышло — хоть в дистанции
+    while(tries<20&&!pick){
       tries++;
-      var cand2=SPAWNS[(R()*SPAWNS.length)|0];
+      var cand2=pool[(R()*pool.length)|0];
       if(bandOK(cand2)&&reachOK(cand2.x,cand2.y))pick=cand2;
     }
-    if(!pick){ // крайний случай: гарантированно досягаемый тайл
+    if(!pick){
       var rc=REACH_LIST.length?REACH_LIST[(R()*REACH_LIST.length)|0]:null;
-      pick=rc?{x:rc.x,y:rc.y,tag:'офис'}:SPAWNS[(R()*SPAWNS.length)|0];
+      pick=rc?{x:rc.x,y:rc.y,tag:'офис'}:pool[(R()*pool.length)|0];
     }
     p0={x:pick.x+(R()*70-35),y:pick.y+(R()*70-35)};
     if(blockedAt(p0.x,p0.y,18))p0=freeSpotNear(pick.x,pick.y,0,200,16);
@@ -67,9 +106,10 @@ function spawnMob(type){
     p0=freeSpotNear((near2||anyP).x,(near2||anyP).y,430,900,16);
   }
   var w=G.wave;
+  var pScale=waveScale(w);
+  var coopScale=1+0.35*Math.max(0,G.players.length-1);
   if(type==='intern'){
-    var lvMul=1+0.16*(G.level-1);
-    var mm={id:++G.mobSeq,type:'intern',x:p0.x,y:p0.y,r:elite?19:15,hp:(16+2*w)*(elite?2.5:1)*lvMul,hpMax:(16+2*w)*(elite?2.5:1)*lvMul,spd:(55+R()*22+w*2)*(elite?0.92:1),elite:elite?1:0,
+    var mm={id:++G.mobSeq,type:'intern',x:p0.x,y:p0.y,r:elite?19:15,hp:(16+2*w)*(elite?2.5:1)*pScale*coopScale,hpMax:(16+2*w)*(elite?2.5:1)*pScale*coopScale,spd:(55+R()*22+w*2)*(elite?0.92:1),elite:elite?1:0,
       stun:0,kx:0,ky:0,cd:R(),wt:0,wx:0,wy:0,face:0,aggro:false,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0};
     if(mm.elite){ // супер-мобы: три характера
@@ -80,10 +120,10 @@ function spawnMob(type){
     }
     G.mobs.push(mm);
   }else{
-    G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*(1+0.16*(G.level-1)),hpMax:(9+1.5*w)*(1+0.16*(G.level-1)),spd:150+R()*30,
-      stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,
+    G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*pScale*coopScale,hpMax:(9+1.5*w)*pScale*coopScale,spd:150+R()*30,
+      stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,aggro:true,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0});
-    if(R()<0.3)floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12);
+    if(R()<0.3&&flavorOK())floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12,'F');
   }
   if(elite){
     floatText(p0.x,p0.y-38,'ЭЛИТНЫЙ стажёр-«скала»','#c88a4a',12);
@@ -92,44 +132,71 @@ function spawnMob(type){
 }
 function spawnBoss(){
   var arena=bossArena();
-  var cx=arena.x+arena.w/2,cy=arena.y+arena.h/2,p=null,bd=1e18;
-  // досягаемый свободный тайл внутри арены, ближайший к её центру — никакой пустоты между комнатами
-  for(var bi=0;bi<REACH_LIST.length;bi++){var t=REACH_LIST[bi];
-    if(t.x<arena.x||t.x>arena.x+arena.w||t.y<arena.y||t.y>arena.y+arena.h)continue;
-    var dd=(t.x-cx)*(t.x-cx)+(t.y-cy)*(t.y-cy);
-    if(dd<bd){bd=dd;p=t;}
+  var cx=arena.x+arena.w/2,cy=arena.y+arena.h/2,p=null;
+  // точка арены, максимально дальняя от живых игроков: босс не падает на голову
+  var bestScore=-1;
+  for(var bi=0;bi<REACH_LIST.length;bi++){var t2=REACH_LIST[bi];
+    if(t2.x<arena.x||t2.x>arena.x+arena.w||t2.y<arena.y||t2.y>arena.y+arena.h)continue;
+    if(blockedAt(t2.x,t2.y,46))continue;
+    var minD=1e9;
+    for(var pj=0;pj<G.players.length;pj++){
+      if(G.players[pj].dead)continue;
+      minD=Math.min(minD,Math.hypot(G.players[pj].x-t2.x,G.players[pj].y-t2.y));
+    }
+    var score=minD-Math.hypot(t2.x-cx,t2.y-cy)*0.25; // но не в углу: тянем к центру
+    if(score>bestScore){bestScore=score;p=t2;}
   }
   if(!p)p=snapReachable({x:cx,y:cy});
+  if(blockedAt(p.x,p.y,46)){ // босс ⌀88: тайл из REACH(r16) может быть мебельным карманом
+    var bb=null,bbd=1e18;
+    for(var bi2=0;bi2<REACH_LIST.length;bi2++){var rt=REACH_LIST[bi2];
+      if(blockedAt(rt.x,rt.y,46))continue;
+      var rdd=(rt.x-p.x)*(rt.x-p.x)+(rt.y-p.y)*(rt.y-p.y);
+      if(rdd<bbd){bbd=rdd;bb=rt;}
+    }
+    if(bb)p=bb;
+  }
   G.bossN++;
   bossStinger();
-  var bh=550*(1+0.4*(G.bossN-1))*(1+0.25*(G.level-1));
-  G.boss={type:'boss',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:40,phase:1,
-    atkCd:2.5,summonCd:8,tapeCd:11,windup:0,wuT:0,tx:0,ty:0,face:0,cd:0,step:0};
+  var bh=680*(1+0.4*(G.bossN-1))*waveScale(G.wave)*(1+0.35*Math.max(0,G.players.length-1));
+  G.boss={type:'boss',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
+    atkCd:2.5,summonCd:8,tapeCd:12,windup:0,wuT:0,tx:0,ty:0,face:0,cd:0,step:0,chgCd:5};
 }
 function addXp(n,x,y){
   G.xp+=n;
   while(G.xp>=G.xpN){
     G.xp-=G.xpN;G.level++;G.xpN=Math.round(G.xpN*1.35);
-    floatText(x,y-58,'УРОВЕНЬ '+G.level,'#ffcf5c',17);
+    if(G.level<=5||G.level%2===0)G.perkQueue++;
+    if(G.level>=10)award('lvl10');
+    floatText(x,y-58,'УРОВЕНЬ '+G.level+(G.level<=5||G.level%2===0?' — БУСТ':''),'#ffcf5c',17,'S');
     G.fx.push({type:'ring',x:x,y:y,rad:14,radMax:130,t:0,life:0.55,gold:true});
     SFX.levelUp();G.shake+=2;
   }
 }
 function spendCoffee(p,n){
-  if(p.coffee<n){floatText(p.x,p.y-30,'НЕ ХВАТАЕТ КОФЕ','#d29922',12);return false;}
-  p.coffee-=n;return true;
+  var c=Math.ceil(n*(p.costMult||1));
+  if(p.coffee<c){floatText(p.x,p.y-30,'НЕ ХВАТАЕТ КОФЕ','#d29922',12,'I');return false;}
+  p.coffee-=c;return true;
 }
 function addBurnout(p,n,src){
-  if(p.shield>0){floatText(p.x,p.y-30,'заблокировано созвоном','#7aa2c8',12);return;}
+  if(p.shield>0){floatText(p.x,p.y-30,'заблокировано созвоном','#7aa2c8',12,'I');return;}
   if(p.inv>0)return;
-  if(G.combo>2)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10);
+  n*=(p.drMult||1);
+  if(G.combo>=5)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10,'I');
   G.combo=0;G.comboT=0;
-  p.burnout+=n;p.inv=0.4;p.flash=1;G.shake+=4;SFX.thump();
+  p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();
   if(window.__tm&&p===localPlayer())__tm.hurt=(__tm.hurt||0)+n,(__tm.src=__tm.src||{})[src||'mob']=((__tm.src[src||'mob']||0)+n);
-  floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14);
+  floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14,'I');
   if(p.burnout>=100){
     p.dead=true;p.respT=0;
     floatText(p.x,p.y-40,'сгорел(а)','#e5534b',16);
+    if((p.coins||0)>=10){ // соулс-папка: полплашек и заряд СУПЕРа падают на место гибели
+      var dropN=Math.floor(p.coins*0.5);
+      p.coins-=dropN;
+      var dropS=p.superC||0;p.superC=0;
+      G.pickups.push({id:++G.pkSeq,x:p.x,y:p.y,kind:'folder',t:0,life:99999,n:dropN,s:dropS});
+      floatText(p.x,p.y-58,'папка задач выпала!','#d29922',13);
+    }
     var anyAlive=false,i;
     for(i=0;i<G.players.length;i++)if(!G.players[i].dead)anyAlive=true;
     if(!anyAlive)gameOver();
@@ -137,8 +204,9 @@ function addBurnout(p,n,src){
 }
 function damageMob(m,dmg,kx,ky,stun){
   if(m.mk>0)dmg*=1.5; // «в таргете»
-  dmg*=(1+0.04*(G.combo||0)); // комбо разгоняет урон
-  var crit=R()<0.15;
+  var cb=0;
+  for(var ci=0;ci<G.players.length;ci++)cb=Math.max(cb,G.players[ci].critBonus||0);
+  var crit=R()<(0.15+cb);
   if(crit)dmg*=2.2;
   m.hp-=dmg;
   if(m.type!=='boss'){m.kx+=(kx||0);m.ky+=(ky||0);if(stun)m.stun=Math.max(m.stun,stun);}
@@ -148,15 +216,13 @@ function damageMob(m,dmg,kx,ky,stun){
       critBurst(m.x,m.y-20,pn);
       NET.events.push({k:'plates',x:Math.round(m.x),y:Math.round(m.y-20),n:pn});
     }else{
-      floatText(m.x+(R()*14-7),m.y-m.r-8,'КРИТ '+Math.round(dmg),'#ff8a5c',15);
+      floatText(m.x+(R()*14-7),m.y-m.r-8,'КРИТ '+Math.round(dmg),'#ff8a5c',15,'C');
     }
-    G.shake+=2;G.hitStop=Math.max(G.hitStop,0.045);
-    NET.events.push({k:'hs',v:0.045});
+    G.shake+=2;hitStopFx(0.03);
     G.fx.push({type:'flash',x:m.x,y:m.y,r:36,t:0,life:0.18});
     SFX.crit();
   }else{
-    floatText(m.x+(R()*14-7),m.y-m.r-6,''+Math.round(dmg),'#dfe6ee',12);
-    SFX.hit();
+    m.dmgAcc=(m.dmgAcc||0)+dmg;m.dmgHits=(m.dmgHits||0)+1;m.dmgT=0.25;
   }
   if(m.hp<=0&&!m.dead){m.dead=true;killMob(m);}
 }
@@ -178,9 +244,10 @@ function paintDestroy(f){
 function destroyFurn(f){
   if(f.dead)return;
   f.dead=true;rebuildObst();
-  G.shake+=5;G.hitStop=Math.max(G.hitStop,0.06);
+  CAREER.totalFurn++;
+  if(CAREER.totalFurn>=50)award('furn50');
+  G.shake+=5;hitStopFx(0.05);
   NET.events.push({k:'furn',x:Math.round(f.x+f.w/2),y:Math.round(f.y+f.h/2),tp:f.t});
-  NET.events.push({k:'hs',v:0.06});
   SFX.explode();
   paintDestroy(f);
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:f.x+f.w/2,y:f.y+f.h/2,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.8+R()*0.5});
@@ -201,7 +268,6 @@ function destroyFurn(f){
 function damageFurn(f,dmg){
   if(f.dead||FPROPS[f.t].hp<=0)return;
   f.hp-=dmg;
-  floatText(f.x+f.w/2+(R()*10-5),f.y-2,'-'+Math.round(dmg),'#b09a72',11);
   SFX.crack();
   if(f.t==='printer'&&!f.jet){f.jet=1;spawnPrinterJet(f.x+f.w/2,f.y+f.h/2);}
   if(f.hp<=0)destroyFurn(f);
@@ -236,16 +302,20 @@ function dramaOfDeath(x,y,tp,elite){
 }
 function killMob(m){
   addXp((m.type==='deadline'?9:6)*(m.elite?2:1),m.x,m.y);
-  for(var sci=0;sci<G.players.length;sci++)G.players[sci].superC=Math.min(1,(G.players[sci].superC||0)+(m.elite?0.5:0.22)); // СУПЕР-заряд (BS)
+  for(var sci=0;sci<G.players.length;sci++){var pl=G.players[sci];
+    pl.superC=Math.min(1,(pl.superC||0)+(m.elite?0.5:0.22)*(pl.superRate||1));
+    if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
+  }
   NET.events.push({k:'die',x:Math.round(m.x),y:Math.round(m.y),tp:m.type,elite:m.elite?1:0});
   // комбо: серия убийств без получения урона
   G.combo=Math.min(9,(G.combo||0)+1);G.comboT=3;
-  if(G.combo>=2){
+  if(G.combo>=9)award('combo9');
+  if(G.combo===5||G.combo===7||G.combo===9){
     var cn=COMBONAMES[G.combo];
-    floatText(m.x,m.y-46,'×'+G.combo+' '+cn,'#ffcf5c',13);
+    floatText(m.x,m.y-46,'×'+G.combo+' '+cn,'#ffcf5c',13,'C');
     if(G.combo>=3)spawnDebris({kind:'coin',x:m.x,y:m.y-8,vx:R()*120-60,vy:-140,vr:0,floorY:m.y+16,g:900,phys:1,coined:1,t:0,life:8});
   }
-  if(R()<0.25)floatText(m.x+R()*20-10,m.y-28,KILLQUOTES[(R()*KILLQUOTES.length)|0],'#8b949e',10);
+  if(R()<0.10&&G.texts.length<20&&flavorOK())floatText(m.x+R()*20-10,m.y-28,KILLQUOTES[(R()*KILLQUOTES.length)|0],'#8b949e',10,'F');
   if(m.elite){
     for(var ek=0;ek<3;ek++)spawnDebris({kind:'coin',x:m.x+R()*24-12,y:m.y-10,vx:R()*180-90,vy:-160-R()*120,vr:0,floorY:m.y+20+R()*20,g:900,phys:1,coined:1,t:0,life:8});
     if(R()<0.25)dropPickup(m.x,m.y,'coffee');
@@ -255,6 +325,7 @@ function killMob(m){
   else if(m.type==='deadline'){G.killsD++;addOkr(2);}
   else if(m.type==='boss'){
     SFX.deathCry(0.5);
+    CAREER.totalBoss++;award('boss1');
     spawnDebris({kind:'soul',x:m.x,y:m.y-10,pitch:0.55,elite:1,mood:R()<0.5?'agony':'relief',t:0,life:2.4});
     setTimeout(function(){if(R()<0.5)SFX.soulAgony(0.55);else SFX.soulSigh(0.55);},150);
   }
@@ -272,9 +343,9 @@ function killMob(m){
   }
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
-  G.shake+=2;G.hitStop=Math.max(G.hitStop,0.04);
-  NET.events.push({k:'hs',v:0.04});
-  if(R()<0.10)dropPickup(m.x,m.y,'coffee');
+  G.shake+=2;
+  NET.events.push({k:'hs',v:0.02});
+  if(R()<0.05)dropPickup(m.x,m.y,'coffee');
   if(R()<0.035)dropPickup(m.x,m.y,['espresso','desk','cert'][(R()*3)|0]);
   SFX.splat();
 }
@@ -284,13 +355,14 @@ function dropPickup(x,y,kind){
 }
 function addOkr(n){
   G.okr+=n;
-  var i;
-  for(i=0;i<G.players.length;i++){var p=G.players[i];
-    while(G.okr>=15*G.grade){
-      G.grade++;p.spdMult+=0.04;
-      floatText(p.x,p.y-40,'ПОВЫШЕНИЕ! ГРЕЙД '+G.grade,'#3fb950',15);
-      SFX.grade();
+  while(G.okr>=15*G.grade){
+    G.grade++;
+    if(G.grade>=5)award('grade5');
+    for(var i=0;i<G.players.length;i++){var p=G.players[i];
+      p.spdMult+=0.04;
+      floatText(p.x,p.y-40,'ПОВЫШЕНИЕ! ГРЕЙД '+G.grade,'#3fb950',15,'S');
     }
+    SFX.grade();
   }
 }
 function meleeArc(pl,arc,rad,dmg,knock,stun){

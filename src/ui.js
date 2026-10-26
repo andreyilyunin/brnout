@@ -1,6 +1,7 @@
 'use strict';
 // ============================== overlays ==============================
-var OVERLAYS=['bmenu','bset','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin'];
+var OVERLAYS=['bmenu','bset','bcareer','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin','bperk'];
+var OV_BACK={bset:'bmenu',bcareer:'bmenu',bcoop:'bmenu',bjoin:'bcoop',bhost:'bcoop',bwait:'bmenu',bpause:'bmenu'};
 var OV_OPEN=null;
 function showOv(id){
   for(var i=0;i<OVERLAYS.length;i++){var el=document.getElementById(OVERLAYS[i]);if(el)el.classList.add('bghidden');}
@@ -18,6 +19,21 @@ function tuiSync(){
   if(pm)pm.classList.toggle('hidden',!show);
   var jh=document.getElementById('joyHint');
   if(jh)jh.classList.toggle('hidden',!(show&&!joyHinted));
+}
+// первый бой на таче: 12 секунд подписей над кнопками — иконки учатся на лету
+var LEARN_SHOWN=false;
+function touchLearnStart(){
+  if(LEARN_SHOWN)return;
+  LEARN_SHOWN=true;
+  var root=document.getElementById('burnout');
+  if(!root)return;
+  if(isTouch){
+    root.classList.add('tlearn');
+    setTimeout(function(){root.classList.remove('tlearn');},12000);
+  }else{
+    var dh=document.getElementById('deskHint');
+    if(dh){dh.classList.remove('hidden');setTimeout(function(){dh.classList.add('hidden');},10000);}
+  }
 }
 function showDeadStats(st){
   var meL=localPlayer();
