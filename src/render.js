@@ -322,8 +322,31 @@ function drawFx(f){
     ctx.lineTo(f.x+Math.cos(f.a)*rr3,f.y+Math.sin(f.a)*rr3);ctx.stroke();
   }
 }
+// свет: статичные лампы «пекутся» в слой карты (ре-бейк 2 раза в секунду — переживает
+// и переезд в новый офис), в кадре остаются только живые дырки: герои, кофе, дедлайны.
+// ?light=legacy — старый покадровый путь для A/B-сравнения глазами.
+var LIGHT_LEGACY=/[?&]light=legacy/.test(location.search);
+var bakeCv=document.createElement('canvas'),bakeCtx=bakeCv.getContext('2d'),bakeT=-9;
+function rebakeLights(){
+  bakeT=G.t;
+  var bs=0.0625; // 1/16 мирового пикселя: свет и так радиальная размытость
+  var bw=Math.max(2,Math.round(MAP_W*bs)),bh=Math.max(2,Math.round(MAP_H*bs));
+  if(bakeCv.width!==bw||bakeCv.height!==bh){bakeCv.width=bw;bakeCv.height=bh;}
+  bakeCtx.setTransform(1,0,0,1,0,0);
+  bakeCtx.clearRect(0,0,bw,bh);
+  bakeCtx.globalCompositeOperation='source-over'; // заготовка — прозрачный фон + альфа-дырки
+  bakeCtx.setTransform(bs,0,0,bs,0,0);
+  for(var i=0;i<LIGHTS.length;i++){var L=LIGHTS[i];
+    if(L.dead)continue;
+    var inten=L.dim; // мерцание ламп оставлено легаси-пути: разница глазу не читается
+    if(inten<=0.03)continue;
+    bakeCtx.globalAlpha=Math.min(1,inten+0.3);
+    bakeCtx.drawImage(holeCv,L.x-215,L.y-215,430,430);
+  }
+  bakeCtx.globalAlpha=1;
+}
 function drawLighting(){
-  var sc=0.5;
+  var sc=LIGHT_LEGACY?0.5:0.25; // четверть-разрешение: свет мягкий, пикселей хватит
   if(lightCv.width!==Math.max(2,Math.round(cv.width*sc))||lightCv.height!==Math.max(2,Math.round(cv.height*sc))){lightCv.width=Math.max(2,Math.round(cv.width*sc));lightCv.height=Math.max(2,Math.round(cv.height*sc));}
   lctx.setTransform(1,0,0,1,0,0);
   lctx.clearRect(0,0,lightCv.width,lightCv.height);
@@ -336,12 +359,17 @@ function drawLighting(){
     lctx.globalAlpha=1;
   }
   var i;
-  for(i=0;i<LIGHTS.length;i++){var L=LIGHTS[i];
-    if(L.dead)continue;
-    var inten=L.dim*(0.82+0.18*Math.sin(G.t*7+L.ph)+0.08*Math.sin(G.t*23+L.sd*7));
-    if(L.sput>0){L.sput-=1/60;inten*=(Math.sin(G.t*60+L.sd)>0?1:0.15);}
-    else if(R()<0.0015)L.sput=0.25+R()*0.3;
-    if(inten>0.03)hole(L.x,L.y,215*Math.min(1,inten+0.3),Math.min(1,inten+0.3));
+  if(LIGHT_LEGACY){
+    for(i=0;i<LIGHTS.length;i++){var L=LIGHTS[i];
+      if(L.dead)continue;
+      var inten=L.dim*(0.82+0.18*Math.sin(G.t*7+L.ph)+0.08*Math.sin(G.t*23+L.sd*7));
+      if(L.sput>0){L.sput-=1/60;inten*=(Math.sin(G.t*60+L.sd)>0?1:0.15);}
+      else if(R()<0.0015)L.sput=0.25+R()*0.3;
+      if(inten>0.03)hole(L.x,L.y,215*Math.min(1,inten+0.3),Math.min(1,inten+0.3));
+    }
+  }else{
+    if(G.t-bakeT>0.5)rebakeLights();
+    lctx.drawImage(bakeCv,0,0,MAP_W,MAP_H); // весь статичный свет одной командой
   }
   var players=worldPool('players');
   for(i=0;i<players.length;i++)if(!players[i].dead)hole(players[i].x,players[i].y,230,0.95);
@@ -503,6 +531,8 @@ function drawCup(x,y,s,fill){
       hctx.textAlign='left';
       window.__interRect={x:cx,y:cy,w:cw,h:64}; // тесты следят за итогами и на таче
       var bw=Math.min(340,W-40),bx=W/2-bw/2,by=cy+72;
+      var mmR=window.__mmRect; // узкий портрет: миникарта сверху-справа — кнопку под неё
+      if(mmR&&by<mmR.y+mmR.h&&by+44>mmR.y&&bx+bw>mmR.x&&bx<mmR.x+mmR.w)by=Math.ceil(mmR.y+mmR.h)+8;
       root.classList.add('noatk'); // боевые кнопки гаснут — главный герой «ДАЛЬШЕ»
       hctx.fillStyle='rgba(63,185,80,0.95)';rr(hctx,bx,by,bw,44,10);hctx.fill();
       hctx.strokeStyle='#8effc0';hctx.lineWidth=2.5;rr(hctx,bx,by,bw,44,10);hctx.stroke();

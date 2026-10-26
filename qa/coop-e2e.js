@@ -12,8 +12,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   let fails = 0;
   const ok = m => console.log('  ✓ ' + m);
   const fail = m => { console.log('  ✗ ' + m); fails++; };
-  const bH = await puppeteer.launch({ args: FLAGS });
-  const bG = await puppeteer.launch({ args: FLAGS });
+  const bH = await puppeteer.launch({ executablePath: process.env.QA_CHROME || '/usr/sbin/chromium', args: FLAGS });
+  const bG = await puppeteer.launch({ executablePath: process.env.QA_CHROME || '/usr/sbin/chromium', args: FLAGS });
   const h = await (await bH.createBrowserContext()).newPage();
   const g = await (await bG.createBrowserContext()).newPage();
   for (const p of [h, g]) {

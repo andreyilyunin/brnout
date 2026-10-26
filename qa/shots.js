@@ -5,7 +5,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
-const BASE = 'http://127.0.0.1:8099';
+const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 const OUT = __dirname + '/shots';
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 720, mobile: false },
@@ -82,7 +82,7 @@ async function auditLayout(page, scene, need) {
 (async () => {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ executablePath: process.env.QA_CHROME || '/usr/sbin/chromium', args: ['--no-sandbox'] });
 
   for (const vp of VIEWPORTS) {
     console.log('\n[' + vp.name + ' ' + vp.width + 'x' + vp.height + ']');
