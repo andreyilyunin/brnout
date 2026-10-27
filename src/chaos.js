@@ -129,6 +129,10 @@ function updateChaos(dt){
             me.coins=(me.coins||0)+1;
             me._coinAcc=(me._coinAcc||0)+1;me._coinT=0.5;
             G.fx.push({type:'flash',x:d.x,y:d.y,r:18,t:0,life:0.14});
+            for(var ci=0;ci<3;ci++){
+              var ca=-Math.PI/2+(R()*1.6-0.8);
+              G.fx.push({type:'coinpop',x:d.x,y:d.y,t:0,life:0.4+R()*0.15,a:ca,sp:26+R()*30});
+            }
             SFX.pickup();
             if(NET.mode==='guest'&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'coin'});
             continue;
@@ -158,7 +162,7 @@ function updateChaos(dt){
   if(meC&&meC._coinAcc){
     meC._coinT-=dt;
     if(meC._coinT<=0){
-      floatText(meC.x,meC.y-30,'+'+meC._coinAcc+' ✦','#ffcf5c',11,'D');
+      floatText(meC.x,meC.y-30,'+'+meC._coinAcc+' ₽','#ffcf5c',11,'D');
       meC._coinAcc=0;
     }
   }
