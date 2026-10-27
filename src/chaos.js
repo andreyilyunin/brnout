@@ -33,25 +33,8 @@ function spawnDebris(d){
   DEBRIS.push(d);
 }
 
-function spawnCoinBurst(x,y,n){
-  if(n<=0)return;
-  if(n===1){
-    spawnDebris({kind:'coin',x:x+R()*20-10,y:y-10,vx:R()*220-110,vy:-150-R()*170,vr:0,
-      floorY:y+18+R()*30,g:980,phys:1,coined:1,t:0,life:7+R()*2});
-    return;
-  }
-  var left=n;
-  while(left>0){
-    var pc=Math.min(left,2+((R()*3)|0));
-    left-=pc;
-    spawnDebris({kind:'pile',n:pc,x:x+R()*30-15,y:y-10,vx:R()*170-85,vy:-140-R()*140,vr:0,
-      floorY:y+18+R()*26,g:980,phys:1,coined:1,t:0,life:7+R()*2});
-  }
-}
-
 function critBurst(x,y,n){
   floatText(x+R()*30-15,y-30,CRITWORDS[(R()*CRITWORDS.length)|0],'#ff6a5c',16);
-  spawnCoinBurst(x,y,n);
 }
 function spawnFolders(x,y,n){
   for(var i=0;i<n;i++){
@@ -122,34 +105,9 @@ function updateChaos(dt){
         if(Math.abs(d.vy)>60){d.vy*=-0.42;d.vx*=0.65;d.vr*=0.5;SFX.clack();}
         else{
           d.vy=0;d.vx*=0.82;d.vr=0;
-
-          if(d.kind==='plate'&&!d.coined){d.coined=1;d.kind='coin';d.life=d.t+8;SFX.clack();}
         }
       }
       if(blockedAt(d.x,d.y,3)&&d.kind==='plate'){d.vx*=-0.55;d.vr*=-0.6;d.x+=d.vx*dt*2;}
-
-      if(d.kind==='coin'||d.kind==='pile'){
-        var me=localPlayer();
-        if(me&&!me.dead){
-          var pr=d.kind==='pile'?24:18;
-          var dd2=Math.hypot(d.x-me.x,d.y-me.y);
-          if(dd2<74){d.x+=(me.x-d.x)*10*dt;d.y+=(me.y-d.y)*10*dt;}
-          if(dd2<pr){
-            var got=d.kind==='pile'?d.n:1;
-            DEBRIS.splice(i,1);
-            me.coins=(me.coins||0)+got;
-            me._coinAcc=(me._coinAcc||0)+got;me._coinT=0.5;
-            G.fx.push({type:'flash',x:d.x,y:d.y,r:16+got*2,t:0,life:0.14});
-            for(var ci=0;ci<Math.min(2+got,8);ci++){
-              var ca=-Math.PI/2+(R()*1.6-0.8);
-              G.fx.push({type:'coinpop',x:d.x,y:d.y,t:0,life:0.4+R()*0.15,a:ca,sp:26+R()*30});
-            }
-            SFX.pickup();
-            if(NET.mode==='guest'&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'coin',n:got});
-            continue;
-          }
-        }
-      }
     }
     if(d.t>d.life)DEBRIS.splice(i,1);
   }
@@ -167,14 +125,6 @@ function updateChaos(dt){
         var a=R()*TAU,sp=60+R()*220;
         G.fx.push({type:'paper',st:1,x:pf.x,y:pf.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,rot:R()*3,vr:R()*10-5,t:0,life:1.4+R()*1.2});
       }
-    }
-  }
-  var meC=localPlayer();
-  if(meC&&meC._coinAcc){
-    meC._coinT-=dt;
-    if(meC._coinT<=0){
-      floatText(meC.x,meC.y-30,'+'+meC._coinAcc+' ₽','#ffcf5c',11,'D');
-      meC._coinAcc=0;
     }
   }
   for(i=STONES.length-1;i>=0;i--){var st=STONES[i];
@@ -217,58 +167,12 @@ function drawChaos(){
   }
 }
 function prnd(d,i){var s=Math.sin((d.x*0.7+d.y*1.3)*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);}
-function drawFlatCoin(c2,x,y,sc,t,ph){
-  c2.save();c2.translate(x,y);c2.scale(sc,sc);
-  c2.fillStyle='rgba(0,0,0,0.3)';c2.beginPath();c2.ellipse(0,1.6,5,2.4,0,0,TAU);c2.fill();
-  c2.fillStyle='#8a6a1e';c2.beginPath();c2.ellipse(0,0,5,3.4,0,0,TAU);c2.fill();
-  c2.fillStyle='#ffcf5c';c2.beginPath();c2.ellipse(0,-0.5,4.2,2.7,0,0,TAU);c2.fill();
-  c2.fillStyle='#e3b04b';c2.beginPath();c2.ellipse(0,-0.5,2.2,1.3,0,0,TAU);c2.fill();
-  if(((t*1.2+(ph||0)*0.37)%1)<0.08){c2.fillStyle='#fff3c4';c2.fillRect(2.6,-2.2,1.6,1.6);}
-  c2.restore();
-}
-function drawWorldCoin(c2,ox,oy,t,withFace,sc){
-  c2.save();c2.translate(ox,oy);c2.scale(sc||1,sc||1);
-  c2.fillStyle='#8a6a1e';c2.beginPath();c2.arc(0,0,4.4,0,TAU);c2.fill();
-  c2.fillStyle='#ffcf5c';c2.beginPath();c2.arc(-0.5,-0.5,3.6,0,TAU);c2.fill();
-  if(withFace){
-    c2.fillStyle='#8a6a1e';c2.font='bold 6px Arial';c2.textAlign='center';
-    c2.fillText('₽',0,2);c2.textAlign='left';
-    if(Math.sin(t*4)>0.92){c2.fillStyle='#fff3c4';c2.fillRect(2,-4,1.6,1.6);}
-  }
-  c2.restore();
-}
 function drawDebris(){
   var i;
   for(i=0;i<DEBRIS.length;i++){var d=DEBRIS[i];
     if(d.kind!=='stone'&&!tileVis(d.x,d.y))continue;
     ctx.save();ctx.translate(d.x,d.y);
-    if(d.kind==='coin'){
-      ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,5,5,2.4,0,0,TAU);ctx.fill();
-      var bob2=Math.sin(d.t*6+d.x)*1.2;
-      ctx.translate(0,bob2);
-      drawWorldCoin(ctx,0,0,d.t,true);
-    }else if(d.kind==='pile'){
-      var bob3=Math.sin(d.t*2.4+d.x*0.1)*0.7;
-      ctx.translate(0,bob3);
-      var vis=Math.min(d.n,4),nl=d.n>2?2:1;
-      ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,4,12,5.5,0,0,TAU);ctx.fill();
-      ctx.globalCompositeOperation='lighter';
-      var gl4=ctx.createRadialGradient(0,-2,2,0,-2,18);
-      gl4.addColorStop(0,'rgba(255,207,92,0.15)');gl4.addColorStop(1,'rgba(255,207,92,0)');
-      ctx.fillStyle=gl4;ctx.beginPath();ctx.arc(0,-2,18,0,TAU);ctx.fill();
-      ctx.globalCompositeOperation='source-over';
-      for(var pi4=0;pi4<nl;pi4++){
-        var ja=prnd(d,pi4)*TAU,jr=8+prnd(d,pi4+5)*4;
-        drawFlatCoin(ctx,Math.cos(ja)*jr,Math.sin(ja)*jr*0.5+2,0.8+prnd(d,pi4+9)*0.3,d.t,pi4);
-      }
-      for(var si4=0;si4<vis;si4++){
-        var sy4=2-si4*2.6,sx4=(prnd(d,si4+20)-0.5)*1.4;
-        ctx.fillStyle=si4%2?'#8a6a1e':'#a5812a';
-        ctx.beginPath();ctx.ellipse(sx4,sy4,5.1,3.6,0,0,TAU);ctx.fill();
-        if(si4<vis-1){ctx.fillStyle='#ffcf5c';ctx.beginPath();ctx.ellipse(sx4,sy4-1.1,5.1,2.2,0,0,TAU);ctx.fill();}
-      }
-      drawWorldCoin(ctx,(prnd(d,31)-0.5)*1.2,2-(vis-1)*2.6-1.5,d.t,true,1.2);
-    }else if(d.kind==='plate'){
+    if(d.kind==='plate'){
       ctx.rotate(Math.sin(d.t*3)*0.08+d.rot*0.06);
       var wdt=26+d.word.length*6.4;
       ctx.fillStyle='#2c3540';rr(ctx,-wdt/2,-9,wdt,18,3);ctx.fill();

@@ -344,25 +344,6 @@ function drawPickup(pk){
   }
   ctx.globalAlpha=1;
 }
-function drawCoinIcon(c2,x,y,r){
-  c2.save();c2.translate(x,y);
-  c2.fillStyle='#8a6a1e';c2.beginPath();c2.arc(0,0,r,0,TAU);c2.fill();
-  c2.fillStyle='#ffcf5c';c2.beginPath();c2.arc(-r*0.12,-r*0.12,r*0.8,0,TAU);c2.fill();
-  c2.fillStyle='#8a6a1e';c2.font='bold '+Math.round(r*1.35)+'px Arial';c2.textAlign='center';
-  c2.fillText('₽',0,r*0.48);c2.restore();
-}
-function drawCoinStatLine(c2,x,y,pre,co,post,center){
-  var wPre=c2.measureText(pre).width,wCo=c2.measureText(''+co).width,wPost=c2.measureText(post||'').width;
-  var r=6,gap=3,total=wPre+r*2+gap+wCo+wPost;
-  if(center)x-=total/2;
-  var oldAlign=c2.textAlign;c2.textAlign='left';
-  c2.fillText(pre,x,y);
-  drawCoinIcon(c2,x+wPre+r,y-4,r);
-  c2.fillText(''+co,x+wPre+r*2+gap,y);
-  if(post)c2.fillText(post,x+wPre+r*2+gap+wCo,y);
-  c2.textAlign=oldAlign;
-  return total;
-}
 function drawFx(f){
   var k=f.t/f.life;
   if(f.type==='slash'){
@@ -401,15 +382,6 @@ function drawFx(f){
     g3.addColorStop(1,'rgba(255,120,40,0)');
     ctx.fillStyle=g3;ctx.beginPath();ctx.arc(f.x,f.y,f.r*(0.5+k),0,TAU);ctx.fill();
     ctx.globalCompositeOperation='source-over';
-  }else if(f.type==='coinpop'){
-    var cp3=f.y-f.sp*k*Math.sin(Math.min(1,k*1.1)*Math.PI);
-    var cx3=f.x+Math.cos(f.a)*10*k;
-    var spin3=f.a+k*16;
-    ctx.save();ctx.translate(cx3,cp3);ctx.scale(Math.max(0.18,Math.abs(Math.cos(spin3))),1);
-    ctx.globalAlpha=1-k;
-    ctx.fillStyle='#8a6a1e';ctx.beginPath();ctx.arc(0,0,4.2,0,TAU);ctx.fill();
-    ctx.fillStyle='#ffcf5c';ctx.beginPath();ctx.arc(-0.5,-0.5,3.4,0,TAU);ctx.fill();
-    ctx.restore();ctx.globalAlpha=1;
   }else if(f.type==='spark2'){
     ctx.strokeStyle='rgba(235,240,248,'+(0.8*(1-k))+')';ctx.lineWidth=2;
     var rr3=20+k*46;
@@ -780,7 +752,7 @@ function drawCup(x,y,s,fill){
     }
 
     if(G.waveState==='cleared'&&G.state==='playing'){
-      var st=G.interStats||{w:G.wave,ki:0,kd:0,okr:G.okr,co:(p.coins||0)};
+      var st=G.interStats||{w:G.wave,ki:0,kd:0,okr:G.okr};
       var left=Math.max(0,Math.ceil(G.interT));
       var cw=Math.min(370,W-24),cx=W/2-cw/2,cy=by+bh+66;
       var mmC=window.__mmRect;
@@ -791,7 +763,7 @@ function drawCup(x,y,s,fill){
       hctx.font=pixFont(15,true);hctx.fillStyle='#e6edf3';
       hctx.fillText('СПРИНТ '+st.w+' ЗАКРЫТ',W/2,cy+18);
       hctx.font=pixFont(11);hctx.fillStyle='#dfe6ee';
-      drawCoinStatLine(hctx,W/2,cy+37,'уволено '+st.ki+' · дедлайны '+st.kd+' · OKR '+st.okr+' · ',st.co,' · ур.'+G.level,true);
+      hctx.textAlign='center';hctx.fillText('уволено '+st.ki+' · дедлайны '+st.kd+' · OKR '+st.okr,W/2,cy+37);hctx.textAlign='left';
       hctx.font=pixFont(11,true);hctx.fillStyle='#1fc4ae';
       hctx.fillText('→ «'+(G.nextTheme||'офис')+'» · соберите лут',W/2,cy+54);
       hctx.textAlign='left';
@@ -940,7 +912,7 @@ function drawHUD(){
   hctx.font=pixFont(16,true);hctx.fillStyle='#d29922';
   hctx.fillText('OKR: '+G.okr,okrX+12,34);
   hctx.font=pixFont(12);hctx.fillStyle='#8b949e';
-  drawCoinStatLine(hctx,okrX+12,52,'грейд '+G.grade+' · ',(p.coins||0),'',false);
+  hctx.fillText('грейд '+G.grade,okrX+12,52);
 
   if(drawHUD.pc===undefined)drawHUD.pc=0;
   if(G.combo>drawHUD.pc&&G.combo>1)drawHUD.popT=0.1;
@@ -1073,7 +1045,7 @@ function drawHUD(){
   if(isTouch){drawHudTouch(p,W);return;}
 
   if(G.waveState==='cleared'&&G.state==='playing'){
-    var st=G.interStats||{w:G.wave,ki:0,kd:0,okr:G.okr,co:(p.coins||0)};
+    var st=G.interStats||{w:G.wave,ki:0,kd:0,okr:G.okr};
     var pw=Math.min(620,W-40),px0=W/2-pw/2,py0=10;
     hctx.fillStyle='rgba(13,10,24,0.93)';rr(hctx,px0,py0,pw,218,14);hctx.fill();
     hctx.strokeStyle='rgba(232,58,156,0.8)';hctx.lineWidth=2.5;rr(hctx,px0,py0,pw,218,14);hctx.stroke();
@@ -1088,7 +1060,7 @@ function drawHUD(){
     hctx.font=pixFont(18,true);hctx.fillStyle='#dfe6ee';
     hctx.fillText('стажёров уволено: '+st.ki+'    ·    дедлайнов сгорело: '+st.kd,W/2,py0+106);
     hctx.fillStyle='#ffcf5c';
-    drawCoinStatLine(hctx,W/2,py0+132,'OKR: '+st.okr+'    ·    ',st.co,'    ·    ур.'+G.level,true);
+    hctx.fillText('OKR: '+st.okr+'    ·    ур.'+G.level,W/2,py0+132);
     hctx.font=pixFont(17,true);hctx.fillStyle='#1fc4ae';
     hctx.fillText('→ следующая локация: «'+(G.nextTheme||'офис')+'»',W/2,py0+160);
     var left=Math.max(0,Math.ceil(G.interT));

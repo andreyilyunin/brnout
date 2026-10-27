@@ -195,7 +195,6 @@ function careerRender(){
   $('crRuns').textContent=CAREER.runs;
   $('crSprint').textContent=CAREER.bestSprint;
   $('crOkr').textContent=CAREER.bestOkr;
-  $('crCoins').textContent=CAREER.bestCoins;
   $('crInterns').textContent=CAREER.totalInterns+CAREER.totalDeadlines;
   $('crBoss').textContent=CAREER.totalBoss;
   $('crFurn').textContent=CAREER.totalFurn;
