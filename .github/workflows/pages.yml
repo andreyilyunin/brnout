@@ -1,0 +1,48 @@
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: purge stale github-pages artifacts of this run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // re-run jobs плодят одноимённые артефакты — deploy-pages требует ровно один
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+            for (const a of artifacts.data.artifacts) {
+              if (a.name === 'github-pages') {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: a.id
+                });
+                core.info('deleted stale artifact ' + a.id);
+              }
+            }
+      - name: nojekyll
+        run: printf '' > .nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

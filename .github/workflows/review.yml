@@ -1,0 +1,82 @@
+name: review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: синтаксис всех модулей
+        run: |
+          st=0
+          for f in src/*.js tests/*.js scripts/*.js; do
+            node --check "$f" || { echo "::error file=$f::синтаксическая ошибка"; st=1; }
+          done
+          exit $st
+
+      - name: тесты
+        run: node tests/run.js
+
+      - name: security scan
+        run: node scripts/security-check.js
+
+      - name: статистика изменений
+        id: diff
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          {
+            echo 'stats<<EOF'
+            git diff --stat "$base" "$head" | tail -5
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          big=$(git diff "$base" "$head" --numstat | awk '{if ($1+$2 > 400) print $3}' | head -5)
+          if [ -n "$big" ]; then
+            echo "bigfiles=$big" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: отчёт ревью-бота
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stats = `${{ steps.diff.outputs.stats }}`.trim();
+            const big = `${{ steps.diff.outputs.bigfiles || '' }}`.trim();
+            const verdict = big
+              ? '⚠️ Изменения крупные — просмотрите вручную:\n' + big.split('\n').map(f => '- `' + f + '` (>400 строк)').join('\n')
+              : '✅ Автопроверки пройдены, изменений-гигантов нет.';
+            const body = [
+              '### 🤖 Ревью-бот',
+              '',
+              '| Проверка | Статус |',
+              '|---|---|',
+              '| Синтаксис модулей | ✅ |',
+              '| Тесты (35) | ✅ |',
+              '| Security-скан | ✅ |',
+              '',
+              '**Дифф:**',
+              '```',
+              stats || '—',
+              '```',
+              verdict,
+              '',
+              '_Проверки: eval/Function, XSS-паттерны innerHTML, внешние http-ресурсы, секреты в коде, target=_blank. Исключения помечаются `/*safe` после ручного аудита._'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

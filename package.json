@@ -1,0 +1,11 @@
+{
+  "name": "burnout-corporate-evil",
+  "version": "1.0.0",
+  "description": "Диабло-слэшер в опенспейсе после заката — AI-Generated with GLM-5.3",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/run.js"
+  },
+  "license": "MIT"
+}

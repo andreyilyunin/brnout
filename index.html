@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>brnout: corporate hell</title>
+<div id="burnout">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+<canvas id="bcv"></canvas>
+<canvas id="bhud"></canvas>
+
+<div id="tui" class="hidden">
+  <div id="joy"><div id="joyk"></div></div>
+  <div id="btnAtk" class="tbtn tbig" aria-label="атака"><svg viewBox="0 0 24 24"><path d="M4 20l3-1 11-11-2-2L5 17l-1 3Z" fill="currentColor"/><path d="M15 3l6 6-2.5 2.5L12.5 5.5 15 3Z" fill="currentColor" opacity=".75"/><path d="M3 21l1.8-4L7 19.2 3 21Z" fill="#fff"/></svg><span class="tlbl">УДАР</span></div>
+  <div id="btnAlt" class="tbtn tb tb-alt" aria-label="приём"><svg viewBox="0 0 24 24"><path d="M6 12a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="14" r="4" fill="currentColor"/></svg><span class="tlbl">ПРИЁМ</span></div>
+  <div id="btnSkill" class="tbtn tb tb-dodge" aria-label="рывок"><svg viewBox="0 0 24 24"><path d="M14 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/></svg><span class="tlbl">РЫВОК</span></div>
+  <div id="btnSkill2" class="tbtn tb tb-skill" aria-label="скил"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg><span class="tlbl">СКИЛ</span></div>
+  <div id="btnFU" class="tbtn tb tb-ult" aria-label="ульта"><svg viewBox="0 0 24 24"><path d="M12 2c1.2 4.2-1.4 5.4-1.4 8.4 1.8-1 2.8-2.8 3-4.8 2.6 2.2 3.9 5 3.9 8a6.5 6.5 0 0 1-13 0c0-5.4 4.6-6.4 7.5-11.6Z" fill="currentColor"/></svg><span class="tlbl">УЛЬТА</span></div>
+  <div id="btnR" class="tbtn tb tb-abs" aria-label="абсолют"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2Z" fill="currentColor"/></svg><span class="tlbl">СУПЕР</span></div>
+</div>
+<div id="btnPauseM" class="hidden" role="button" aria-label="Пауза">II</div>
+<div id="btnFS" title="Полный экран" role="button" aria-label="Полный экран">⛶</div>
+  <div id="joyHint" class="hidden"></div>
+  <div id="deskHint" class="hidden">WASD / стрелки — движение · мышь — прицел · ПРОБЕЛ — рывок</div>
+
+<div class="bgov" id="bmenu">
+  <div class="bgpanel bgmain">
+    <div class="bgtitle">brnout<span>:</span> corporate hell</div>
+    <div class="bgtag">18:52. Все ушли домой. Кроме вас. И их.</div>
+    <div class="bgtag bgsub">Цель: пережить 10 спринтов и уволиться красиво · <span class="kbdonly"><b>WASD/стрелки</b> — движение, <b>мышь</b> — прицел</span></div>
+    <div class="bgselect" id="classCards">
+      <div class="bgrail" role="group" aria-label="выбор класса">
+        <button class="brail" id="rmgr" data-cls="mgr" aria-pressed="false"><img class="rpimg" id="rp-mgr" alt="" draggable="false"><span>менеджер</span></button>
+        <button class="brail" id="rdev" data-cls="dev" aria-pressed="false"><img class="rpimg" id="rp-dev" alt="" draggable="false"><span>программист</span></button>
+        <button class="brail" id="rmkt" data-cls="mkt" aria-pressed="false"><img class="rpimg" id="rp-mkt" alt="" draggable="false"><span>маркетолог</span></button>
+        <button class="brail" id="rdsn" data-cls="dsn" aria-pressed="false"><img class="rpimg" id="rp-dsn" alt="" draggable="false"><span>дизайнер</span></button>
+      </div>
+      <div class="bgdetail">
+        <div class="bgphotoframe"><img id="bgPhoto" alt="" draggable="false"></div>
+        <div class="bginfo">
+          <h2 id="detName">МЕНЕДЖЕР</h2>
+          <div class="bgrole" id="detRole"></div>
+          <p class="bgbio" id="detBio"></p>
+          <div class="bgskills" id="detSkills"></div>
+          <div class="bgcommon">у всех: рывок с мгновенной неуязвимостью · кофе — ресурс приёмов · СУПЕР заряжается убийствами</div>
+        </div>
+      </div>
+    </div>
+    <div class="bgbottom">
+      <button class="bgcorner" id="mCareer">📁 КАРЬЕРА</button>
+      <button class="bgcorner" id="mSettings">⚙ НАСТРОЙКИ</button>
+      <button class="bgstart" id="mStart">НАЧАТЬ СМЕНУ</button>
+      <div class="bgmode">
+        <button class="bgmodebtn" id="mSolo">СОЛО</button>
+        <button class="bgmodebtn" id="mCoop">ОНЛАЙН</button>
+      </div>
+    </div>
+    <div class="bgcredit"><a href="https://github.com/AndreyIlyunin/brnout" target="_blank" rel="noopener">исходники на GitHub ↗</a></div>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bset">
+  <div class="bgpanel bgcenter bgset">
+    <div class="bgtitle bgsmall">НАСТРОЙКИ</div>
+    <div class="bgsnd">
+      <div class="sndrow"><span class="sndlab">звук</span><input type="range" id="sndMaster" min="0" max="100" value="80"><span class="sndval" id="sndMasterV">80%</span></div>
+      <div class="sndrow"><span class="sndlab">музыка</span><input type="range" id="sndMusic" min="0" max="100" value="55"><span class="sndval" id="sndMusicV">55%</span></div>
+      <div class="sndrow"><span class="sndlab">эффекты</span><input type="range" id="sndSfx" min="0" max="100" value="100"><span class="sndval" id="sndSfxV">100%</span></div>
+    </div>
+    <button class="bgbtn bgwide" id="bsetBack">Назад</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bcareer">
+  <div class="bgpanel bgcenter bgcareer">
+    <div class="bgtitle bgsmall" style="color:#ffcf5c">ТРУДОВАЯ КНИЖКА</div>
+    <div class="bgstats">
+      <span>Забегов</span><b id="crRuns">0</b>
+      <span>Лучший спринт</span><b id="crSprint">0</b>
+      <span>Лучший OKR</span><b id="crOkr">0</b>
+      <span>Стажёров отчислено</span><b id="crInterns">0</b>
+      <span>Аудитов пройдено</span><b id="crBoss">0</b>
+      <span>Мебели разбито</span><b id="crFurn">0</b>
+      <span>Сгораний</span><b id="crDeaths">0</b>
+    </div>
+    <div id="crAch" class="crach"></div>
+    <button class="bgbtn bgwide" id="bcareerBack">Назад</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bcoop">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall">КООП: КОМНАТА</div>
+    <div class="bgtag">P2P WebRTC. Сервер игры не нужен — только сигнальный брокер.</div>
+    <button class="bgbtn bgwide" id="cHost">Создать комнату</button>
+    <button class="bgbtn bgwide" id="cJoin">Войти по коду</button>
+    <button class="bgbtn bgwide" id="bBack2">Назад</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bjoin">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall">ВХОД ПО КОДУ</div>
+    <input id="joinCode" class="bginput" maxlength="5" placeholder="код комнаты" autocomplete="off" autocapitalize="off">
+    <div class="bgtag" id="joinErr" role="alert"></div>
+    <button class="bgbtn bgwide" id="bjoinGo">Подключиться</button>
+    <button class="bgbtn bgwide" id="bBack3">Назад</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bhost">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall">ЛОББИ</div>
+    <div class="bgtag">Код комнаты:</div>
+    <div id="roomCode">-----</div>
+    <button class="bgbtn bgwide bshare" id="bshare">Поделиться ссылкой</button>
+    <div class="bgtag" id="shareHint">ссылка сама введёт код другу · или продиктуйте код</div>
+    <div id="lobbyList" class="bglobby"></div>
+    <button class="bgbtn bgwide" id="bstart">Начать спринт</button>
+    <button class="bgbtn bgwide" id="bBack4">Выйти</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bwait">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall">КОМНАТА</div>
+    <div class="bgtag" id="netStatus">Подключение…</div>
+    <div class="bgtag hidden" id="waitCode" style="color:#3fb950;letter-spacing:3px;font-weight:700"></div>
+    <div id="lobbyList2" class="bglobby"></div>
+    <button class="bgbtn bgwide" id="bLeaveWait">Покинуть</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bpause">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall" style="color:#d29922">ПАУЗА</div>
+    <div class="bgtag">Отдых — это тоже задача. Неоплачиваемая.</div>
+    <div id="pauseNet" class="bgtag hidden">Комната: <b id="pauseCode" style="color:#3fb950;letter-spacing:3px"></b></div>
+    <button class="bgbtn bgwide hidden" id="pauseShare">Поделиться ссылкой</button>
+    <button class="bgbtn bgwide" id="bresume">Продолжить</button>
+    <button class="bgbtn bgwide" id="bfsToggle">Полный экран</button>
+    <button class="bgbtn bgwide" id="brestart">Заново</button>
+    <button class="bgbtn bgwide" id="bmute">Звук: вкл</button>
+    <button class="bgbtn bgwide" id="bleave">Выйти в меню</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bdead">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall" style="color:#e5534b">ПОЛНОЕ ВЫГОРАНИЕ</div>
+    <div class="bgtag">HR выразит соболезнования в следующем спринте. В письме попросят закрыть задачи.</div>
+    <div class="bgstats">
+      <span>Спринтов пройдено</span><b id="dSprint">0</b>
+      <span>OKR собрано</span><b id="dOkr">0</b>
+      <span>Стажёров отчитано</span><b id="dIntern">0</b>
+      <span>Дедлайнов потушено</span><b id="dDeadline">0</b>
+      <span>Финальный грейд</span><b id="dGrade">1</b>
+    </div>
+    <div id="dBoard" class="bgboard hidden"></div>
+    <div id="dHr" class="bghr"></div>
+    <button class="bgbtn bgwide" id="bagain">Устроиться заново</button>
+    <button class="bgbtn bgwide" id="bmenu2">В меню</button>
+    <div class="bgcredit"><a href="https://github.com/AndreyIlyunin/brnout" target="_blank" rel="noopener">исходники на GitHub ↗</a></div>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bwin">
+  <div class="bgpanel bgcenter">
+    <div class="bgtitle bgsmall" style="color:#3fb950">АУДИТ ПРОЙДЕН</div>
+    <div class="bgtag">«Замечаний нет». Так не бывает. Но сегодня — бывает.</div>
+    <button class="bgbtn bgwide" id="bcontinue">Продолжить спринты</button>
+  </div>
+</div>
+
+<div class="bgov bghidden" id="bperk">
+  <div class="bgpanel bgcenter bgperk">
+    <div class="bgtitle bgsmall" style="color:#ffcf5c">ПОВЫШЕНИЕ САМОМНЕНИЯ</div>
+    <div class="bgtag" id="perkSub">выберите один буст</div>
+    <div id="perkCards" class="perkcards"></div>
+  </div>
+</div>
+</div>
+
+<link rel="stylesheet" href="style.css?v=102">
+<script src="src/utils.js?v=102"></script>
+<script src="src/neonfx.js?v=102"></script>
+<script src="lib/trystero-torrent.min.js?v=102"></script>
+<script src="lib/trystero-nostr.min.js?v=102"></script>
+<script src="src/data.js?v=102"></script>
+<script src="src/audio.js?v=102"></script>
+<script src="src/music.js?v=102"></script>
+<script src="src/map.js?v=102"></script>
+<script src="src/chaos.js?v=102"></script>
+<script src="src/combat.js?v=102"></script>
+<script src="src/abilities.js?v=102"></script>
+<script src="src/sim.js?v=102"></script>
+<script src="src/guest.js?v=102"></script>
+<script src="src/sprites.js?v=102"></script>
+<script src="src/render.js?v=102"></script>
+<script src="src/input.js?v=102"></script>
+<script src="src/ui.js?v=102"></script>
+<script src="src/net.js?v=102"></script>
+<script src="src/main.js?v=102"></script>
+
