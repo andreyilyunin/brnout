@@ -77,12 +77,12 @@
 #burnout .tbig{--cell:min(26vw,104px);right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));}
 
 #burnout .tbig{border-color:#ffce00;background:radial-gradient(circle at 35% 30%,rgba(255,206,0,.34),rgba(60,50,10,.8));color:#ffe566;box-shadow:0 0 12px rgba(255,206,0,.28);}
-#burnout .tb-abs{--cell:min(15vw,58px);right:calc(50px + env(safe-area-inset-right,0px));bottom:calc(183px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);}
+#burnout .tb-abs{--cell:min(13.5vw,50px);right:calc(56px + env(safe-area-inset-right,0px));bottom:calc(175px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);}
 #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(13.5vw,50px);font-size:7px;border-color:rgba(150,158,168,.8);color:#cfd6dd;}
-#burnout .tb-alt{right:calc(111px + env(safe-area-inset-right,0px));bottom:calc(167px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}
-#burnout .tb-dodge{right:calc(152px + env(safe-area-inset-right,0px));bottom:calc(124px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}
-#burnout .tb-skill{right:calc(169px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}
-#burnout .tb-ult{right:calc(157px + env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
+#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(156px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}
+#burnout .tb-dodge{right:calc(151px + env(safe-area-inset-right,0px));bottom:calc(115px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}
+#burnout .tb-skill{right:calc(164px + env(safe-area-inset-right,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}
+#burnout .tb-ult{right:calc(153px + env(safe-area-inset-right,0px));bottom:calc(2px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
 
 @media (max-height:520px){
   #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));}
