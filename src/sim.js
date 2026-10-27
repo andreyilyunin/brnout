@@ -39,6 +39,7 @@ function updatePlayer(p,dt){
   collideMove(p,p.kx*dt,p.ky*dt);p.kx*=Math.exp(-7*dt);p.ky*=Math.exp(-7*dt);
   p.x=clamp(p.x,p.r,MAP_W-p.r);p.y=clamp(p.y,p.r,MAP_H-p.r);
   p.face=p.aim;
+  p.hintT=Math.max(0,(p.hintT||0)-dt);
   p.cd1-=dt;p.cd2-=dt;p.cdQ-=dt;p.cdS-=dt;p.inv-=dt;p.atkT=Math.max(0,p.atkT-dt);p.flash=Math.max(0,p.flash-dt*3);
   p.coffee=Math.min(p.coffeeMax,p.coffee+(2.2+(p.coffeeRegen||0))*dt);
   if(p.shield>0){
@@ -347,9 +348,7 @@ function updateFx(dt){
         NET.events.push({k:'pkup',id:pk.id});
         if(pk.kind==='coffee'){me.burnout=Math.max(0,me.burnout-16);me.coffee=Math.min(me.coffeeMax,me.coffee+40);SFX.slurp();}
         else if(pk.kind==='espresso'){me.coffee=me.coffeeMax;me.burnout=Math.max(0,me.burnout-15);SFX.slurp();SFX.pickup();}
-        else if(pk.kind==='desk'){me.coins=(me.coins||0)+25;SFX.pickup();}
-        else if(pk.kind==='cert'){me.coins=(me.coins||0)+50;SFX.grade();}
-        else if(pk.kind==='folder'){me.coins=(me.coins||0)+(pk.n||0);me.superC=Math.min(1,(me.superC||0)+(pk.s||0));SFX.grade();floatText(me.x,me.y-40,'папка возвращена','#8bd17c',14);}
+        else if(pk.kind==='folder'){me.superC=Math.min(1,(me.superC||0)+(pk.s||0.5));SFX.grade();floatText(me.x,me.y-40,'папка возвращена','#8bd17c',14);}
         G.fx.push({type:'flash',x:pk.x,y:pk.y,r:24,t:0,life:0.18});
       }
     }
@@ -489,8 +488,7 @@ function updateWaves(dt){
       G.waveState='cleared';G.interT=20;
       G.pendSeed=(R()*1e9)|0;
       G.nextTheme=themeNameFor(G.pendSeed);
-      var meI=localPlayer();
-      G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,co:(meI?meI.coins:0)||0};
+      G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr};
       broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats});
     }
   }
@@ -536,8 +534,7 @@ function gameOver(){
     careerEndRun(NET.mode!=='solo');
   }
   showDeadStats();
-  var meD=localPlayer();
-  broadcast({t:'stt',s:'dead',stats:{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade,co:(meD?meD.coins:0)||0}});
+  broadcast({t:'stt',s:'dead',stats:{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade}});
 }
 
 function regenLocation(seed){

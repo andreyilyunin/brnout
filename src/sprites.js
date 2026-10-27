@@ -2,7 +2,7 @@
 
 var SPRCV=document.createElement('canvas');SPRCV.width=160;SPRCV.height=160;
 var SPRC=SPRCV.getContext('2d');
-var SPR_SCALE=0.38;
+var SPR_SCALE=0.7;
 function pixWrap(o,fn){
   var sc=o.scale||1;
   SPRC.setTransform(1,0,0,1,0,0);
@@ -16,6 +16,8 @@ function pixWrap(o,fn){
   SPRC.restore();
   ctx.save();
   ctx.imageSmoothingEnabled=false;
+  ctx.shadowColor='rgba(0,0,0,0.85)';
+  ctx.shadowBlur=5;
   ctx.drawImage(SPRCV,Math.round(o.x-80),Math.round(o.y-80));
   ctx.restore();
 }
@@ -335,9 +337,9 @@ function drawWeapon(c,o,s){
     c.save();
     c.translate(0,-5*s);
     c.rotate(-0.62-(atk?wsum*0.5:0));
-    c.fillStyle='#1c1214';rr(c,-13*s,-19*s,26*s,19*s,2*s);c.fill();
-    c.fillStyle='#2a1518';rr(c,-10.5*s,-16.5*s,21*s,14*s,1.5*s);c.fill();
-    c.strokeStyle='#B3232B';c.lineWidth=1.6;
+    c.fillStyle='#101820';rr(c,-13*s,-19*s,26*s,19*s,2*s);c.fill();
+    c.fillStyle='#182634';rr(c,-10.5*s,-16.5*s,21*s,14*s,1.5*s);c.fill();
+    c.strokeStyle='#5fa8d8';c.lineWidth=1.6;
     c.beginPath();
     for(var gp=0;gp<5;gp++){
       var gx=-8*s+gp*4*s,gy=-13*s+gp*2.4*s+Math.sin(G.t*7-gp)*1.2*s;
@@ -345,7 +347,7 @@ function drawWeapon(c,o,s){
     }
     c.stroke();
     if(atk&&wsum>0.5){c.fillStyle='rgba(255,252,244,0.85)';rr(c,-10.5*s,-16.5*s,21*s,14*s,1.5*s);c.fill();}
-    c.strokeStyle='rgba(163,38,38,0.9)';c.lineWidth=2;rr(c,-13*s,-19*s,26*s,19*s,2*s);c.stroke();
+    c.strokeStyle='rgba(95,168,216,0.9)';c.lineWidth=2;rr(c,-13*s,-19*s,26*s,19*s,2*s);c.stroke();
     c.restore();
 
     c.fillStyle='#2b3038';rr(c,-14*s,-8*s,28*s,17*s,2*s);c.fill();
@@ -448,7 +450,7 @@ function drawPlayer(p,isMe){
     ctx.strokeStyle=PCOLORS[pi%4];ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(p.x,p.y,21,0,TAU);ctx.stroke();
   }
-  if(p.flash>0){ctx.fillStyle='rgba(229,83,75,'+(p.flash*0.5)+')';ctx.beginPath();ctx.arc(p.x,p.y,18,0,TAU);ctx.fill();}
+  if(p.flash>0){ctx.strokeStyle='rgba(229,83,75,'+(p.flash*0.7)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,21+p.flash*6,0,TAU);ctx.stroke();}
   if(p.shield>0){
     var al=0.25+0.1*Math.sin(G.t*8);
     ctx.strokeStyle='rgba(122,162,200,'+(p.shield<1?p.shield*(al+0.15):(al+0.15))+')';ctx.lineWidth=3;

@@ -77,23 +77,23 @@
 #burnout .tbig{--cell:min(26vw,104px);right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));}
 
 #burnout .tbig{border-color:#ffce00;background:radial-gradient(circle at 35% 30%,rgba(255,206,0,.34),rgba(60,50,10,.8));color:#ffe566;box-shadow:0 0 12px rgba(255,206,0,.28);}
-#burnout .tb-abs{--cell:min(15vw,58px);right:calc(48px + env(safe-area-inset-right,0px));bottom:calc(182px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);}
+#burnout .tb-abs{--cell:min(13.5vw,50px);right:calc(56px + env(safe-area-inset-right,0px));bottom:calc(175px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);}
 #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(13.5vw,50px);font-size:7px;border-color:rgba(150,158,168,.8);color:#cfd6dd;}
-#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(169px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}
-#burnout .tb-dodge{right:calc(154px + env(safe-area-inset-right,0px));bottom:calc(125px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}
-#burnout .tb-skill{right:calc(171px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}
-#burnout .tb-ult{right:calc(159px + env(safe-area-inset-right,0px));bottom:calc(7px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
+#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(156px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}
+#burnout .tb-dodge{right:calc(151px + env(safe-area-inset-right,0px));bottom:calc(115px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}
+#burnout .tb-skill{right:calc(164px + env(safe-area-inset-right,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}
+#burnout .tb-ult{right:calc(153px + env(safe-area-inset-right,0px));bottom:calc(2px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
 
 @media (max-height:520px){
-  #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-abs{--cell:min(13vw,50px);right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(170px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(11.5vw,44px);}
-  #burnout .tb-alt{right:calc(84px + env(safe-area-inset-right,0px));bottom:calc(176px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-dodge{right:calc(178px + env(safe-area-inset-right,0px));bottom:calc(100px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-skill{right:calc(160px + env(safe-area-inset-right,0px));bottom:calc(40px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-ult{right:calc(138px + env(safe-area-inset-right,0px));bottom:calc(148px + env(safe-area-inset-bottom,0px));}
+  #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(38px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-abs,#burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(9vw,40px);}
+  #burnout .tb-abs{right:calc(49px + env(safe-area-inset-right,0px));bottom:calc(183px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-alt{right:calc(104px + env(safe-area-inset-right,0px));bottom:calc(165px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-dodge{right:calc(144px + env(safe-area-inset-right,0px));bottom:calc(123px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-skill{right:calc(160px + env(safe-area-inset-right,0px));bottom:calc(68px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-ult{right:calc(149px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));}
 }
-#burnout #btnFS{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(66px + env(safe-area-inset-right,0px));z-index:6;width:44px;height:44px;border-radius:10px;background:rgba(33,38,45,.72);border:1px solid rgba(110,118,129,.8);color:#e6edf3;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;touch-action:none;}
+#burnout #btnFS{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(64px + env(safe-area-inset-right,0px));z-index:6;width:46px;height:46px;border-radius:8px;background:rgba(33,38,45,.72);border:1px solid rgba(110,118,129,.8);color:#e6edf3;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;touch-action:none;}
 #burnout #btnFS:hover{background:rgba(63,185,80,.4);}
 #burnout.zfsfake{position:fixed;inset:0;width:100vw;height:100dvh;aspect-ratio:auto;min-height:0;max-width:none;max-height:none;z-index:9999;border-radius:0;}
 #burnout:fullscreen,#burnout:-webkit-full-screen{aspect-ratio:auto;inset:0;width:100vw;height:100dvh;min-height:0;border-radius:0;}
@@ -120,7 +120,7 @@
 #burnout .bgbottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;}
 #burnout .bgcorner{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
 #burnout .bgcorner:hover{border-color:#c49a3d;color:#e8dcc2;}
-#burnout .bgstart{flex:1;background:rgba(90,60,20,0.25);border:1px solid #8a6a2e;color:#fff3dc;border-radius:8px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:2px;cursor:pointer;min-height:44px;transition:all .15s;}
+#burnout .bgstart{flex:1;background:rgba(90,60,20,0.25);border:1px solid #c49a3d;color:#fff3dc;border-radius:8px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:2px;cursor:pointer;min-height:44px;transition:all .15s;box-shadow:0 0 14px rgba(196,162,78,0.25),inset 0 0 8px rgba(90,60,20,0.2);}
 #burnout .bgstart:hover{background:rgba(196,162,78,0.2);border-color:#c49a3d;box-shadow:0 0 16px rgba(196,162,78,0.35);}
 #burnout .bgmode{display:flex;gap:6px;}
 #burnout .bgmodebtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
@@ -203,6 +203,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout.tlearn .tb .tlbl{display:block;}
 
 #burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#e8dcc2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
+#burnout.nohint #deskHint,#burnout.nohint #joyHint{display:none!important;}
 #burnout .bgsub{font-size:11.5px;opacity:.85;margin-top:2px;}
 #burnout .bgsub b{color:#ffcf5c;}
 
@@ -216,6 +217,9 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .brail span{display:none;}
   #burnout .bgbio{display:none;}
   #burnout .bgbottom{margin-top:8px;}
+  #burnout .bgskills{overflow-y:auto;max-height:34vh;min-height:0;}
+  #burnout .bskill{padding:3px 0;}
+  #burnout .bskill p{font-size:10.5px;line-height:1.35;}
 }
 
 @media (max-width:520px){
@@ -223,3 +227,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #bmenu .bgstart{order:-1;grid-column:1/-1;}
   #bmenu .bgmode{display:contents;}
 }
+
+/* цифра кулдауна в центре тач-кнопки */
+#burnout .tbtn .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:800;font-size:15px;color:#ffe566;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none;}
+#burnout .tbtn:not(.oncd) .cdt{display:none;}

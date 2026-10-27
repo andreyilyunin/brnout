@@ -80,9 +80,9 @@ function classLook(cls,seat){
 function newPlayer(id,cls){
   var lb=lobbySpawn();
   return{id:id,cls:cls,x:lb.x+lb.w/2+(R()*120-60),y:lb.y+lb.h/2+(R()*120-60),r:18,spd:210,spdMult:1,dmgMult:1,
-    burnout:0,coffee:60,coffeeMax:100,face:0,coins:0,
+    burnout:0,coffee:60,coffeeMax:100,face:0,
     dmgBonus:0,critBonus:0,cdMult:1,costMult:1,dodgeCdMult:1,vamp:0,coffeeRegen:0,superRate:1,drMult:1,perks:[],
-    cd1:0,cd2:0,cdQ:0,cdS:0,cdU:0,cdD:0,root:0,ult:false,fk:false,superC:0,shield:0,qT:0,qPulse:0,haste:0,castT:0,inv:0,flash:0,heart:0,kx:0,ky:0,step:0,atkT:0,
+    cd1:0,cd2:0,cdQ:0,cdS:0,cdU:0,cdD:0,root:0,ult:false,fk:false,superC:0,shield:0,qT:0,qPulse:0,haste:0,castT:0,inv:0,flash:0,heart:0,kx:0,ky:0,step:0,atkT:0,hintT:14,
     dead:false,respT:0,
     ix:0,iy:0,aim:0,f1:false,f2:false,sk:false,sk2:false,cf:false,
     look:LOOKS[0],moving:false};
@@ -121,8 +121,7 @@ var ACHS=[
   {id:'k100',n:'сотня отчисленных',d:'100 стажёров за карьеру'},
   {id:'furn50',n:'ремонт за свой счёт',d:'50 мебели за карьеру'},
   {id:'dead10',n:'синдром самозванца',d:'сгореть 10 раз'},
-  {id:'coop',n:'тимбилдинг',d:'спринт в коопе'},
-  {id:'rich',n:'осквернитель бюджета',d:'500 плашек за забег'}
+  {id:'coop',n:'тимбилдинг',d:'спринт в коопе'}
 ];
 function award(id){
   if(CAREER.ach[id])return false;
@@ -135,14 +134,11 @@ function award(id){
 }
 function careerEndRun(coopMode){
   CAREER.runs++;
-  var me=localPlayer();
   CAREER.bestSprint=Math.max(CAREER.bestSprint,Math.max(0,G.wave-1));
   CAREER.bestOkr=Math.max(CAREER.bestOkr,G.okr);
-  CAREER.bestCoins=Math.max(CAREER.bestCoins,(me?me.coins:0)||0);
   CAREER.bestLevel=Math.max(CAREER.bestLevel,G.level);
   CAREER.totalInterns+=G.killsI;CAREER.totalDeadlines+=G.killsD;
   if(CAREER.totalInterns>=100)award('k100');
-  if((me&&me.coins>=500))award('rich');
   if(coopMode)award('coop');
   saveCareer();
 }

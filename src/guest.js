@@ -6,8 +6,8 @@ function guestApplySnapshot(s){
   for(i=0;i<s.p.length;i++){var sp=s.p[i];
     found=null;
     for(j=0;j<VIEW.players.length;j++)if(VIEW.players[j].id===sp.id){found=VIEW.players[j];break;}
-    if(!found){found=newPlayer(sp.id,sp.cls);found.x=sp.x;found.y=sp.y;found.look=classLook(sp.cls,i);found.coins=sp.co||0;VIEW.players.push(found);}
-    found.tgt={x:sp.x,y:sp.y,face:sp.face,burn:sp.burn,cof:sp.cof,cls:sp.cls,sh:sp.sh,qt:sp.qt,dd:sp.dd,cd1:sp.c1,cd2:sp.c2,cdQ:sp.cq,cdS:sp.cs||0,cm:sp.cm,mv:sp.mv,st:sp.st,as:sp.as||0,ct:sp.ct||0,co:sp.co||0};
+    if(!found){found=newPlayer(sp.id,sp.cls);found.x=sp.x;found.y=sp.y;found.look=classLook(sp.cls,i);VIEW.players.push(found);}
+    found.tgt={x:sp.x,y:sp.y,face:sp.face,burn:sp.burn,cof:sp.cof,cls:sp.cls,sh:sp.sh,qt:sp.qt,dd:sp.dd,cd1:sp.c1,cd2:sp.c2,cdQ:sp.cq,cdS:sp.cs||0,cm:sp.cm,mv:sp.mv,st:sp.st,as:sp.as||0,ct:sp.ct||0};
     var nowT=performance.now();
     if(found.tgtT){
       var dts=(nowT-found.tgtT)/1000;
@@ -151,8 +151,6 @@ function guestUpdate(dt){
     p.burnout=tg.burn;p.coffee=tg.cof;p.cls=tg.cls;p.shield=tg.shield;p.qT=tg.qt;p.dead=tg.dd;
     p.cd1=tg.cd1;p.cd2=tg.cd2;p.cdQ=tg.cdQ;p.cdS=tg.cdS;p.coffeeMax=tg.cm;
     p.haste=tg.as;p.castT=tg.ct;
-    if(!isMe)p.coins=tg.co||0;
-    else p.coins=Math.max(p.coins||0,tg.co||0);
     p.atkT=Math.max(0,p.atkT-dt);
   }
   for(i=0;i<VIEW.mobs.length;i++){var m=VIEW.mobs[i];
@@ -208,7 +206,7 @@ function sendSnapshot(){
   var p=G.players.map(function(pl,i){return{id:pl.id,cls:pl.cls,x:Math.round(pl.x),y:Math.round(pl.y),face:Math.round(pl.aim*100)/100,
     burn:Math.round(pl.burnout),cof:Math.round(pl.coffee),sh:Math.round(pl.shield*10)/10,qt:Math.round(pl.qT*10)/10,
     dd:pl.dead?1:0,c1:Math.round(pl.cd1*100)/100,c2:Math.round(pl.cd2*100)/100,cq:Math.round(pl.cdQ*10)/100,cs:Math.round(pl.cdS*10)/100,cm:pl.coffeeMax,sc:Math.round(clamp(pl.superC||0,0,1)*100)/100,
-    mv:pl.moving?1:0,st:Math.round(pl.step*10)/10,as:Math.round(pl.haste*10)/10,ct:Math.round(pl.castT*10)/10,co:pl.coins||0};});
+    mv:pl.moving?1:0,st:Math.round(pl.step*10)/10,as:Math.round(pl.haste*10)/10,ct:Math.round(pl.castT*10)/10};});
   var m=G.mobs.map(function(mo){return[mo.id,mo.type==='intern'?0:1,Math.round(mo.x),Math.round(mo.y),Math.round(clamp(mo.hp/mo.hpMax,0,1)*100),mo.stun>0?1:0,mo.tint||0,Math.round(mo.face*100)/100,
     Math.round((mo.ch||0)*10)/10,Math.round((mo.cf||0)*10)/10,mo.mk>0?1:0,mo.chSrc===undefined?-1:mo.chSrc,mo.elite?1:0];});
   var b=null;

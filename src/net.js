@@ -165,11 +165,6 @@ function hostOnMsg(c,d){
     pl.ix=d.x;pl.iy=d.y;pl.aim=d.a;pl.f1=!!d.f1;pl.f2=!!d.f2;pl.sk=!!d.sk;pl.sk2=!!d.s2;pl.fk=!!d.fk;pl.cf=!!d.cf;
     if(d.u)pl.ult=true;
   }
-  if(d.t==='coin'){
-    var pc=null;
-    for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pc=G.players[i];
-    if(pc)pc.coins=(pc.coins||0)+(d.n||1);
-  }
   if(d.t==='perk'){
     var pp=null;
     for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pp=G.players[i];

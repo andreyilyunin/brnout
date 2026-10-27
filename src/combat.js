@@ -198,11 +198,9 @@ function addBurnout(p,n,src){
     }
     p.dead=true;p.respT=0;
     floatText(p.x,p.y-40,'сгорел(а)','#e5534b',16);
-    if((p.coins||0)>=10){
-      var dropN=Math.floor(p.coins*0.5);
-      p.coins-=dropN;
-      var dropS=p.superC||0;p.superC=0;
-      G.pickups.push({id:++G.pkSeq,x:p.x,y:p.y,kind:'folder',t:0,life:99999,n:dropN,s:dropS});
+    if((p.superC||0)>0){
+      var dropS=p.superC;p.superC=0;
+      G.pickups.push({id:++G.pkSeq,x:p.x,y:p.y,kind:'folder',t:0,life:99999,s:dropS});
       floatText(p.x,p.y-58,'папка задач выпала!','#d29922',13);
     }
     var anyAlive=false,i;
@@ -309,7 +307,6 @@ function dramaOfDeath(x,y,tp,elite){
     if(agony)SFX.soulAgony(pitch*(elite?0.7:1));
     else SFX.soulSigh(pitch*(elite?0.7:1));
   },120);
-  spawnCoinBurst(x,y,2+((R()*3)|0)+(elite?2:0));
 }
 function killMob(m){
   addXp((m.type==='deadline'?9:6)*(m.elite?2:1),m.x,m.y);
@@ -324,11 +321,9 @@ function killMob(m){
   if(G.combo===5||G.combo===7||G.combo===9){
     var cn=COMBONAMES[G.combo];
     floatText(m.x,m.y-46,'×'+G.combo+' '+cn,'#ffcf5c',13,'C');
-    if(G.combo>=3)spawnCoinBurst(m.x,m.y,1);
   }
   if(R()<0.10&&G.texts.length<20&&flavorOK())floatText(m.x+R()*20-10,m.y-28,KILLQUOTES[(R()*KILLQUOTES.length)|0],'#8b949e',10,'F');
   if(m.elite){
-    spawnCoinBurst(m.x,m.y,3);
     if(R()<0.25)dropPickup(m.x,m.y,'coffee');
     floatText(m.x,m.y-60,'элитный уволился красиво','#c88a4a',12);
   }
@@ -343,10 +338,9 @@ function killMob(m){
   if(m.type!=='boss')dramaOfDeath(m.x,m.y,m.type,m.elite);
   else if(m.type==='boss'){
     G.okr+=10;msg('Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
-    spawnCoinBurst(m.x+R()*30-15,m.y+R()*20-10,16);
     for(var i=0;i<3;i++)dropPickup(m.x+R()*60-30,m.y+R()*60-30,'coffee');
-    dropPickup(m.x,m.y,['espresso','desk','cert'][(R()*3)|0]);
-    dropPickup(m.x+20,m.y,['espresso','desk','cert'][(R()*3)|0]);
+    dropPickup(m.x,m.y,'espresso');
+    dropPickup(m.x+20,m.y,'espresso');
     addXp(150,m.x,m.y);
     if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
     else if(G.wave<G.campaign)msg('Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
@@ -358,7 +352,7 @@ function killMob(m){
   G.shake+=2;
   NET.events.push({k:'hs',v:0.02});
   if(R()<0.12)dropPickup(m.x,m.y,'coffee');
-  if(R()<0.035)dropPickup(m.x,m.y,['espresso','desk','cert'][(R()*3)|0]);
+  if(R()<0.035)dropPickup(m.x,m.y,'espresso');
   SFX.splat();
 }
 function dropPickup(x,y,kind){
