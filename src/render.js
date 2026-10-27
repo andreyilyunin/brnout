@@ -964,7 +964,7 @@ function drawHUD(){
   }
   if(G.msgT>0){
     var msgFs=17,msgMaxW=W-40,msgLines=[G.msg];
-    var msgY=(G.waveState==='cleared'&&topY)?topY+200:H*0.24;
+    var msgY=(G.waveState==='cleared')?Math.max(H*0.24,240):H*0.24;
     hctx.globalAlpha=Math.min(1,G.msgT);hctx.font=pixFont(msgFs,true);hctx.fillStyle='#e6edf3';hctx.textAlign='center';
     if(hctx.measureText(G.msg).width>msgMaxW){
       var msgMid=G.msg.length/2,msgSp=-1;
