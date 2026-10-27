@@ -695,27 +695,18 @@ function drawCup(x,y,s,fill){
     var H2=bhud.height/DPR;
     var topY=H2<480?34:64;
 
-    var barW=Math.min(W-150,340),bx=(W-130)/2-barW/2,by=12,bh=20,half=barW/2;
-    var fl=clamp(p.burnout/100,0,1),cf=clamp(p.coffee/(p.coffeeMax||100),0,1);
-    var jit=p.burnout>70?R()*3-1.5:0;
-    hctx.fillStyle='rgba(10,13,18,0.78)';rr(hctx,bx,by,barW,bh,9);hctx.fill();
-    hctx.strokeStyle='rgba(138,116,96,0.7)';hctx.lineWidth=1.5;rr(hctx,bx,by,barW,bh,9);hctx.stroke();
-    var bCol=p.burnout>70?'#dc2626':(p.burnout>45?'#c47f1a':'#b45309');
-    hctx.fillStyle=bCol;rr(hctx,bx+3+jit,by+3,(half-8)*fl,bh-6,6);hctx.fill();
-    hctx.fillStyle='#3fb950';rr(hctx,bx+half+5,by+3,(half-8)*cf,bh-6,6);hctx.fill();
-    hctx.strokeStyle='rgba(138,116,96,0.9)';hctx.lineWidth=1.5;
-    hctx.beginPath();hctx.moveTo(bx+half,by+2);hctx.lineTo(bx+half,by+bh-2);hctx.stroke();
-    hctx.textAlign='center';
-    hctx.font=pixFont(11,true);
-    hctx.strokeStyle='rgba(0,0,0,0.75)';hctx.lineWidth=3;
-    var bTxt=Math.round(p.burnout)+'%',cTxt=Math.round(p.coffee)+'%';
-    hctx.strokeText(bTxt,bx+half/2,by+bh-5);hctx.fillStyle='#ffd7c9';hctx.fillText(bTxt,bx+half/2,by+bh-5);
-    hctx.strokeText(cTxt,bx+half+half/2,by+bh-5);hctx.fillStyle='#b8eec6';hctx.fillText(cTxt,bx+half+half/2,by+bh-5);
-    hctx.font='13px Arial';
+    var by=12,bh=20;
+    hctx.font='13px Arial';hctx.textAlign='left';
     hctx.strokeStyle='rgba(0,0,0,0.8)';hctx.lineWidth=3;
-    hctx.strokeText('♥',bx+half-10,by+bh-5);hctx.fillStyle='#ff6b5e';hctx.fillText('♥',bx+half-10,by+bh-5);
-    hctx.strokeText('☕',bx+half+3,by+bh-5);hctx.fillText('☕',bx+half+3,by+bh-5);
-    hctx.textAlign='left';
+    hctx.strokeText('♥',12,by+bh-4);hctx.fillStyle='#ff6b5e';hctx.fillText('♥',12,by+bh-4);
+    hctx.font=pixFont(14,true);
+    hctx.strokeText(Math.round(p.burnout)+'%',30,by+bh-4);hctx.fillStyle='#e8dcc2';
+    hctx.fillText(Math.round(p.burnout)+'%',30,by+bh-4);
+    hctx.font='13px Arial';
+    hctx.strokeText('☕',86,by+bh-4);hctx.fillStyle='#7fd18a';hctx.fillText('☕',86,by+bh-4);
+    hctx.font=pixFont(14,true);
+    hctx.strokeText(Math.round(p.coffee)+'%',104,by+bh-4);hctx.fillStyle='#e8dcc2';
+    hctx.fillText(Math.round(p.coffee)+'%',104,by+bh-4);
     if((p.hintT||0)>0){
       hctx.textAlign='center';
       hctx.globalAlpha=Math.min(1,p.hintT/2);
