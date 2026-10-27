@@ -714,7 +714,7 @@ function drawCup(x,y,s,fill){
       hctx.fillStyle='#12161c';hctx.fillRect(12,topY+35,110,3);
       hctx.fillStyle='#d29922';hctx.fillRect(12,topY+35,110*clamp(G.xp/G.xpN,0,1),3);
       hctx.font=pixFont(16,true);
-      if(hi.cleared){hctx.fillStyle='#8bd17c';hctx.fillText('ВСЕ ЗАДАЧИ ЗАКРЫТЫ ✓',12,topY+57);}
+      if(hi.cleared){}
       else if(hi.boss){hctx.fillStyle='#e5534b';hctx.fillText('АУДИТ ИДЁТ',12,topY+57);}
       else{
         var hot=hi.remain<=3;
@@ -964,6 +964,7 @@ function drawHUD(){
   }
   if(G.msgT>0){
     var msgFs=17,msgMaxW=W-40,msgLines=[G.msg];
+    var msgY=(G.waveState==='cleared'&&topY)?topY+200:H*0.24;
     hctx.globalAlpha=Math.min(1,G.msgT);hctx.font=pixFont(msgFs,true);hctx.fillStyle='#e6edf3';hctx.textAlign='center';
     if(hctx.measureText(G.msg).width>msgMaxW){
       var msgMid=G.msg.length/2,msgSp=-1;
@@ -971,7 +972,7 @@ function drawHUD(){
       if(msgSp>0)msgLines=[G.msg.slice(0,msgSp),G.msg.slice(msgSp+1)];
       while(msgFs>13&&(hctx.measureText(msgLines[0]).width>msgMaxW||hctx.measureText(msgLines[1]||'').width>msgMaxW)){msgFs--;hctx.font=pixFont(msgFs,true);}
     }
-    for(var li=0;li<msgLines.length;li++)hctx.fillText(msgLines[li],W/2,H*0.24+li*(msgFs+4));
+    for(var li=0;li<msgLines.length;li++)hctx.fillText(msgLines[li],W/2,msgY+li*(msgFs+4));
     hctx.textAlign='left';hctx.globalAlpha=1;
   }
   if(G.waveState==='calm'&&G.wave>=1&&G.state==='playing'&&G.waveT>0.5){

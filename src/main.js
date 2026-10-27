@@ -32,7 +32,9 @@ function loop(ts){
   perkMaybe();
   try{render();
     var fsB=document.getElementById('btnFS');
-    if(fsB)fsB.classList.toggle('hidden',G.state==='playing'&&!isTouch);
+    if(fsB)fsB.classList.toggle('hidden',!isTouch);
+    var pB=document.getElementById('btnPauseM');
+    if(pB)pB.classList.toggle('hidden',!isTouch);
   }catch(e){console.error('render:',e);}
 }
 
