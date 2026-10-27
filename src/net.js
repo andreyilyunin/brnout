@@ -105,7 +105,7 @@ function hostConnect(code,cb,first){
         lobbyRender();
         hostHbIv=setInterval(function(){relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});},1500);
         hostSweepIv=setInterval(hostSweep,3000);
-        hostSnapIv=setInterval(function(){if(NET.mode==='host'&&NET.started&&G.state==='playing')sendSnapshot();},125);
+        hostSnapIv=setInterval(function(){if(NET.mode==='host'&&NET.started&&G.state==='playing')sendSnapshot();},70);
         if(!hostWatchIv)hostWatchIv=setInterval(function(){
           if(NET.mode!=='host'||!relay||!NET.conns.length)return;
           var last=0;
@@ -253,7 +253,7 @@ function guestConnect(code,cb){
           NET.hostConn.send({t:'in',x:Math.round(INPUT.ix*100)/100,y:Math.round(INPUT.iy*100)/100,
             a:Math.round(INPUT.aim*100)/100,f1:(INPUT.f1||INPUT.f1Tap)?1:0,f2:INPUT.f2?1:0,sk:INPUT.sk?1:0,s2:INPUT.sk2?1:0,fk:INPUT.fk?1:0,cf:INPUT.cf?1:0,u:(INPUT.ultTap?1:0)});
           INPUT.f1Tap=false;INPUT.ultTap=false;
-        },125);
+        },33);
 
         var hiN=0;
         if(guestHiIv)clearInterval(guestHiIv);

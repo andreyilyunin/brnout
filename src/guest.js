@@ -8,6 +8,12 @@ function guestApplySnapshot(s){
     for(j=0;j<VIEW.players.length;j++)if(VIEW.players[j].id===sp.id){found=VIEW.players[j];break;}
     if(!found){found=newPlayer(sp.id,sp.cls);found.x=sp.x;found.y=sp.y;found.look=classLook(sp.cls,i);found.coins=sp.co||0;VIEW.players.push(found);}
     found.tgt={x:sp.x,y:sp.y,face:sp.face,burn:sp.burn,cof:sp.cof,cls:sp.cls,sh:sp.sh,qt:sp.qt,dd:sp.dd,cd1:sp.c1,cd2:sp.c2,cdQ:sp.cq,cdS:sp.cs||0,cm:sp.cm,mv:sp.mv,st:sp.st,as:sp.as||0,ct:sp.ct||0,co:sp.co||0};
+    var nowT=performance.now();
+    if(found.tgtT){
+      var dts=(nowT-found.tgtT)/1000;
+      if(dts>0){found.tvx=clamp((sp.x-found.ptgt.x)/dts,-420,420);found.tvy=clamp((sp.y-found.ptgt.y)/dts,-420,420);}
+    }
+    found.ptgt={x:sp.x,y:sp.y};found.tgtT=nowT;
   }
   for(i=VIEW.players.length-1;i>=0;i--){var keep=false;
     for(j=0;j<s.p.length;j++)if(s.p[j].id===VIEW.players[i].id)keep=true;
@@ -131,9 +137,11 @@ function guestUpdate(dt){
         p.x+=INPUT.ix/l*spd*dt;p.y+=INPUT.iy/l*spd*dt;
         p.step+=dt*spd*0.012;
       }
-      var err=Math.hypot(tg.x-p.x,tg.y-p.y);
-      if(err>90){p.x=tg.x;p.y=tg.y;}
-      else{p.x+=(tg.x-p.x)*(1-Math.exp(-4*dt));p.y+=(tg.y-p.y)*(1-Math.exp(-4*dt));}
+      var age=Math.min(0.3,Math.max(0,(performance.now()-(p.tgtT||performance.now()))/1000));
+      var exx=tg.x+(p.tvx||0)*age,exy=tg.y+(p.tvy||0)*age;
+      var err=Math.hypot(exx-p.x,exy-p.y);
+      if(err>140){p.x=exx;p.y=exy;}
+      else{p.x+=(exx-p.x)*(1-Math.exp(-6*dt));p.y+=(exy-p.y)*(1-Math.exp(-6*dt));}
       p.aim=INPUT.aim;
     }else{
       p.x+=(tg.x-p.x)*k;p.y+=(tg.y-p.y)*k;

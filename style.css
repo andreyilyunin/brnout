@@ -145,12 +145,19 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .brail{flex:1;padding:3px 2px;}
   #burnout .brail span{font-size:9.5px;}
   #burnout .bgdetail{gap:10px;align-items:flex-start;}
-  #burnout .bgphotoframe{width:min(34vw,140px);align-self:center;}
+  #burnout .bgphotoframe{width:min(30vw,118px);align-self:center;}
   #burnout .bgphotoframe img{width:100%;height:auto;}
-  #burnout .bginfo h2{font-size:20px;}
-  #burnout .bgbio{font-size:12px;margin-bottom:6px;}
-  #burnout .bgskills{flex:none;max-height:30vh;}
-  #burnout .bskill p{font-size:11.5px;}
+  #burnout .bginfo h2{font-size:19px;}
+  #burnout .bgrole{margin:2px 0 6px;}
+  #burnout .bgbio{font-size:11.5px;line-height:1.45;margin-bottom:6px;}
+  #burnout .bgskills{flex:none;max-height:none;overflow:visible;}
+  #burnout .bskill{padding:4px 0;}
+  #burnout .bskill b{font-size:12px;}
+  #burnout .bskill p{font-size:11px;line-height:1.4;}
+  #burnout .bgcommon{display:none;}
+  #burnout #bmenu .bgpanel{max-height:none;width:94%;padding:14px 16px;}
+  #burnout #bmenu .bgselect,#burnout #bmenu .bgdetail{flex:none;max-height:none;overflow:visible;}
+  #burnout #bmenu .bgtag{margin:4px 0 10px;font-size:12.5px;}
 }
 #burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
 #burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):active{transform:scale(.97);}

@@ -285,6 +285,8 @@ test('кооп-конфетка: реконнект, heartbeat-детект, и�
   ok(nj.indexOf('NET.reconnectTries<3') > 0, 'до 3 автопереподключений');
   ok(nj.indexOf('hostRetries<3') > 0, 'хост тоже восстанавливает комнату');
   ok(nj.indexOf('Связь восстановлена') > 0, 'успешный возврат отмечается');
+  ok(/guestInIv=setInterval[\s\S]{0,400}?\},33\)/.test(nj), 'ввод гостя 30 Гц (8 Гц = рывки на хосте и телепорты у гостя)');
+  ok(/sendSnapshot\(\);},70\)/.test(nj), 'снапшоты ~14 Гц (8 Гц = дёрганые мобы у гостей)');
   const rj = fsL.readFileSync('src/render.js', 'utf8');
   ok(rj.indexOf('ПЕРЕПОДКЛЮЧЕНИЕ') > 0, 'баннер переподключения в HUD');
   ok(rj.indexOf('связь') > 0 && rj.indexOf('#3fb950') > 0, 'индикатор связи зелёный-жёлтый-красный');
@@ -295,6 +297,26 @@ test('гость сканирует брокеры, пока не услышит
   ok(nj.indexOf('tryBroker') > 0, 'есть переход к следующему брокеру при тишине');
   const mj = require('fs').readFileSync('src/mqtt.js', 'utf8');
   ok(mj.indexOf('mqttBrokerList') > 0, 'единый порядок брокеров вынесен в mqttBrokerList');
+});
+test('гость строит уровень по событию map из снапшота (синхрон сидов)', () => {
+  const gj = require('fs').readFileSync('src/guest.js', 'utf8');
+  ok(gj.indexOf("e.k==='map'") > 0, 'guestEvent обрабатывает k=map (иначе гость остаётся на старом уровне)');
+  ok(/k==='map'[\s\S]*?buildMap\(e\.seed\)/.test(gj), 'по событию вызывается buildMap с сидом хоста');
+  load('src/guest.js');
+  global.DEBRIS=[];global.WATER=[];global.PFX=[];global.STONES=[];
+  buildMap(424242);
+  VIEW.mobs.push({id:1});VIEW.projs.push({id:1});VIEW.pickups.push({id:1});
+  G.fx.push({type:'ring'});G.texts.push({x:0,y:0});
+  guestEvent({k:'map',seed:7777});
+  eq(MAPSEED, 7777);
+  eq(VIEW.mobs.length, 0);
+  eq(VIEW.projs.length, 0);
+  eq(VIEW.pickups.length, 0);
+  eq(G.fx.length, 0);
+  eq(G.waveState, 'calm');
+  ok(gj.indexOf('found.tvx=clamp((sp.x-found.ptgt.x)/dts') > 0, 'скорость игрока считается из снапшотов');
+  ok(gj.indexOf('var exx=tg.x+(p.tvx||0)*age') > 0, 'свой игрок экстраполируется по скорости — без телепортов при отдаче');
+  ok(gj.indexOf('err>140') > 0, 'жёсткий снап только при большой ошибке (140px)');
 });
 test('инвайт-флоу живёт вне render-цикла (регресс-страж)', () => {
   const mjs = require('fs').readFileSync('src/main.js', 'utf8');
