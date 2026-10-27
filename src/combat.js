@@ -176,7 +176,8 @@ function addXp(n,x,y){
 function spendCoffee(p,n){
   var c=Math.ceil(n*(p.costMult||1));
   if(p.coffee<c){floatText(p.x,p.y-30,'НЕ ХВАТАЕТ КОФЕ','#d29922',12,'I');return false;}
-  p.coffee-=c;return true;
+  p.coffee-=c;SFX.sip(); // трата кофе подкреплена «сёрбом»
+  return true;
 }
 function addBurnout(p,n,src){
   if(p.shield>0){floatText(p.x,p.y-30,'заблокировано созвоном','#7aa2c8',12,'I');return;}
@@ -184,7 +185,7 @@ function addBurnout(p,n,src){
   n*=(p.drMult||1);
   if(G.combo>=5)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10,'I');
   G.combo=0;G.comboT=0;
-  p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();
+  p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();SFX.hexCrackle();
   if(window.__tm&&p===localPlayer())__tm.hurt=(__tm.hurt||0)+n,(__tm.src=__tm.src||{})[src||'mob']=((__tm.src[src||'mob']||0)+n);
   floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14,'I');
   if(p.burnout>=100){
@@ -224,6 +225,9 @@ function damageMob(m,dmg,kx,ky,stun){
       NET.events.push({k:'plates',x:Math.round(m.x),y:Math.round(m.y-20),n:pn});
     }else{
       floatText(m.x+(R()*14-7),m.y-m.r-8,'КРИТ '+Math.round(dmg),'#ff8a5c',15,'C');
+      // крит = корпоративный сленг облаком вверх по дуге
+      var sl=[['ASAP!','#e8c56a'],['DEADLINE!','#c4574e'],['REJECTED!','#a32626'],['FYI','#d8cfc0']][(R()*4)|0];
+      G.fx.push({type:'slang',x:m.x,y:m.y-m.r-10,txt:sl[0],col:sl[1],dir:R()<0.5?-1:1,t:0,life:0.45});
     }
     G.shake+=2;hitStopFx(0.03);
     G.fx.push({type:'flash',x:m.x,y:m.y,r:36,t:0,life:0.18});
@@ -348,6 +352,7 @@ function killMob(m){
     else if(G.wave<G.campaign)msg('Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
     G.boss=null;return;
   }
+  if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13); // ТЗ: правки лопаются в «ASAP»
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;
