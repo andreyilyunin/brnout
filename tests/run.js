@@ -40,6 +40,13 @@ test('CLS: 4 класса × 4 приёма с именами и кулдаун�
     for (const s of ['s1', 's2', 'ult', 'sk'])
       ok(CLS[c][s].n && CLS[c][s].cd > 0, c + '.' + s);
 });
+test('dsn sk: логотип побольше — волна-отброс вместо рывка (дублировал общий уворот)', () => {
+  eq(CLS.dsn.sk.n, 'логотип побольше');
+  ok(CLS.dsn.sk.d.includes('отбрасывает'));
+  const ab = require('fs').readFileSync('src/abilities.js', 'utf8');
+  ok(!ab.includes('пиксель-перфект'), 'старый рывок удалён');
+  ok(ab.includes('ЛОГОТИП ПОБОЛЬШЕ'), 'волна реализована в trySkill2');
+});
 test('COMBONAMES покрывает все уровни комбо', () => {
   eq(COMBONAMES.length, 10); // индексы 0..9
   ok(COMBONAMES[9].length > 3);

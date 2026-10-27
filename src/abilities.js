@@ -231,19 +231,24 @@ function trySkill2(p){ // Q-скил
     NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:360,red:1});
     SFX.ring();
     if(!marked)floatText(p.x,p.y-36,'аудитория не найдена','#8b949e',11);
-  }else{ // dsn пиксель-перфект: dash
+  }else{ // dsn логотип побольше: расходящаяся волна — отброс + сбивает замахи
     if(!spendCoffee(p,C.sk.cost))return;
-    p.cdS=C.sk.cd*p.cdMult;p.inv=Math.max(p.inv,0.4);
-    var a=p.aim,stepLen=5,total=170;
-    for(var st=0;st<total;st+=stepLen){
-      var nx=p.x+Math.cos(a)*stepLen,ny=p.y+Math.sin(a)*stepLen;
-      if(blockedAt(nx,ny,p.r))break; // рывок не проходит сквозь стены
-      G.fx.push({type:'ghost',x:p.x,y:p.y,face:p.face,cls:p.cls,t:0,life:0.3+st*0.001});
-      p.x=nx;p.y=ny;
+    p.cdS=C.sk.cd*p.cdMult;p.atkT=0.25;
+    G.fx.push({type:'ring',x:p.x,y:p.y,rad:20,radMax:300,t:0,life:0.45,yellow:true});
+    NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:300,yellow:1});
+    G.shake+=5;SFX.slam();SFX.grade();
+    var pushed=0;
+    for(i=0;i<G.mobs.length;i++){var m4=G.mobs[i];
+      if(dist(p,m4)<300+m4.r){
+        var a4=angTo(p,m4);
+        m4.kx+=Math.cos(a4)*560;m4.ky+=Math.sin(a4)*560;
+        if(m4.wu>0){m4.wu=0;m4.cd=Math.max(m4.cd,1.2);}
+        damageMob(m4,12*p.dmgMult,0,0,0);pushed++;
+      }
     }
-    NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:40,green:1});
-    SFX.whoosh();
-    floatText(p.x,p.y-36,'пиксель-перфект','#8bd17c',12);
+    if(G.boss&&dist(p,G.boss)<300+G.boss.r)damageMob(G.boss,12*p.dmgMult,0,0,0);
+    floatText(p.x,p.y-40,'ЛОГОТИП ПОБОЛЬШЕ!!','#d29922',14);
+    if(!pushed)floatText(p.x,p.y-56,'критики не нашли','#8b949e',11);
   }
 }
 function drinkCoffee(p,cp){

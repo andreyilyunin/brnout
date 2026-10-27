@@ -377,12 +377,6 @@ function drawFx(f){
     }
     ctx.closePath();ctx.fill();
     ctx.globalAlpha=1;
-  }else if(f.type==='ghost'){
-    ctx.globalAlpha=0.35*(1-k);
-    ctx.fillStyle='#8bd17c';
-    ctx.beginPath();ctx.arc(f.x,f.y,13,0,TAU);ctx.fill();
-    ctx.beginPath();ctx.arc(f.x,f.y-14,7,0,TAU);ctx.fill();
-    ctx.globalAlpha=1;
   }else if(f.type==='flash'){ // адская вспышка: белое ядро, гало пекла
     ctx.globalCompositeOperation='lighter';
     var g3=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*(0.5+k));

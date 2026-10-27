@@ -152,8 +152,13 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .bgrail{flex-direction:row;width:100%;gap:6px;}
   #burnout .brail{flex:1;padding:3px 2px;}
   #burnout .brail span{font-size:9.5px;}
-  #burnout .bgdetail{gap:10px;}
+  #burnout .bgdetail{gap:10px;align-items:flex-start;}
+  #burnout .bgphotoframe{width:min(34vw,140px);align-self:center;}
+  #burnout .bgphotoframe img{width:100%;height:auto;}
   #burnout .bginfo h2{font-size:20px;}
+  #burnout .bgbio{font-size:12px;margin-bottom:6px;}
+  #burnout .bgskills{flex:none;max-height:30vh;}
+  #burnout .bskill p{font-size:11.5px;}
 }
 #burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
 #burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):active{transform:scale(.97);}
