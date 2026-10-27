@@ -51,21 +51,27 @@ function guestStart(seed){
   updateCamera(0.016,true);
 }
 
-var RELAY_PRE='brnt4/';
-var relay=null,guestPid=null;
-var hostHbIv=null,hostSweepIv=null,hostSnapIv=null,hostWatchIv=null,guestHbIv=null,guestInIv=null,guestHiIv=null,guestWatchIv=null;
-function relayH(code){return RELAY_PRE+code+'/h';}
-function relayG(code){return RELAY_PRE+code+'/g';}
+var TRY_APP='brnout-corporate-hell';
+var TRY_STRATS=['nostr','torrent'];
+var tryRooms={},trySends={},guestPid=null;
+var hostHbIv=null,hostSweepIv=null,hostSnapIv=null,guestHbIv=null,guestInIv=null,guestWatchIv=null;
+function tryLib(strat){return strat==='nostr'?TrysteroNostr:TrysteroTorrent;}
+function tryWrap(code,strat){
+  var room=tryLib(strat).joinRoom({appId:TRY_APP},code);
+  var act=room.makeAction('m');
+  tryRooms[strat]=room;trySends[strat]=act[0];
+  NET.peer={destroy:function(){relayKill();}};
+  return act[1];
+}
 function relayKill(){
   if(hostHbIv){clearInterval(hostHbIv);hostHbIv=null;}
   if(hostSweepIv){clearInterval(hostSweepIv);hostSweepIv=null;}
   if(hostSnapIv){clearInterval(hostSnapIv);hostSnapIv=null;}
-  if(hostWatchIv){clearInterval(hostWatchIv);hostWatchIv=null;}
   if(guestHbIv){clearInterval(guestHbIv);guestHbIv=null;}
   if(guestInIv){clearInterval(guestInIv);guestInIv=null;}
-  if(guestHiIv){clearInterval(guestHiIv);guestHiIv=null;}
   if(guestWatchIv){clearInterval(guestWatchIv);guestWatchIv=null;}
-  if(relay){try{relay.cli.destroy();}catch(e){}relay=null;}
+  for(var s in tryRooms){try{tryRooms[s].leave();}catch(e){}}
+  tryRooms={};trySends={};
 }
 function lobbyRender(){
   var el;
@@ -80,73 +86,44 @@ function lobbyRender(){
 }
 
 function relayBroadcast(d){
-  if(relay&&NET.mode==='host')relay.publish(relayH(NET.code),JSON.stringify({d:d}));
+  if(NET.mode!=='host')return;
+  for(var i=0;i<NET.conns.length;i++){
+    var send=trySends[NET.conns[i].strat];
+    if(send)send({d:d},NET.conns[i].peer);
+  }
 }
-var hostRetries=0;
 function hostCreate(cb){
   var code=genCode();
-  hostConnect(code,cb,true);
+  NET.code=code;NET.mode='host';
+  for(var si=0;si<TRY_STRATS.length;si++){
+    var strat=TRY_STRATS[si],recv;
+    try{recv=tryWrap(code,strat);}catch(e){continue;}
+    (function(strat,recv){
+      recv(function(d,pid){if(d&&d.d)hostOnRelay(pid,d.d,strat);});
+      tryRooms[strat].onPeerLeave(function(pid){
+        var c=null,i;
+        for(i=0;i<NET.conns.length;i++)if(NET.conns[i].peer===pid&&NET.conns[i].strat===strat)c=NET.conns[i];
+        if(c)hostDropConn(c);
+      });
+    })(strat,recv);
+  }
+  if(!Object.keys(tryRooms).length){cb('nosignal');return;}
+  document.getElementById('roomCode').textContent=code;
+  LOBBY=[{id:'me',cls:NET.cls}];
+  lobbyRender();
+  hostHbIv=setInterval(function(){relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});},1500);
+  hostSweepIv=setInterval(hostSweep,3000);
+  hostSnapIv=setInterval(function(){if(NET.mode==='host'&&NET.started&&G.state==='playing')sendSnapshot();},70);
+  cb(null,code);
 }
-
-function hostConnect(code,cb,first){
-  var brokerName='…';
-  var cli=mqttClient({
-    clientId:'brnt-h-'+code+'-'+((R()*1e9)|0).toString(36),
-    sub:relayG(code),
-    onReady:function(name){
-      brokerName=name;NET.broker=name;
-      relay={cli:cli,publish:function(topic,str){cli.publish(topic,str);}};
-      NET.code=code;NET.mode='host';
-      NET.peer={destroy:function(){relayKill();}};
-      hostRetries=0;
-      if(first){
-        document.getElementById('roomCode').textContent=code;
-        LOBBY=[{id:'me',cls:NET.cls}];
-        lobbyRender();
-        hostHbIv=setInterval(function(){relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});},1500);
-        hostSweepIv=setInterval(hostSweep,3000);
-        hostSnapIv=setInterval(function(){if(NET.mode==='host'&&NET.started&&G.state==='playing')sendSnapshot();},70);
-        if(!hostWatchIv)hostWatchIv=setInterval(function(){
-          if(NET.mode!=='host'||!relay||!NET.conns.length)return;
-          var last=0;
-          for(var wi=0;wi<NET.conns.length;wi++)last=Math.max(last,NET.conns[wi].last);
-          if(performance.now()-last>8000&&hostRetries<3){
-            hostRetries++;
-            try{relay.cli.destroy();}catch(e){}
-            relay=null;
-            hostConnect(NET.code,null,false);
-          }
-        },2000);
-        if(cb)cb(null,code);
-      }else{
-        msg('Связь восстановлена',2);
-        relayBroadcast({t:'hb',n:LOBBY.length,st:NET.started});
-        if(NET.started)relayBroadcast({t:'start',seed:MAPSEED});
-      }
-    },
-    onMsg:function(topic,str){
-      var o=null;try{o=JSON.parse(str);}catch(e){return;}
-      if(o&&o.pid&&o.d)hostOnRelay(o.pid,o.d);
-    },
-    onDown:function(reason){
-      if(!relay){if(cb)cb(reason==='nobroker'?'nobroker':'broker-down');return;}
-      if(NET.mode==='host'&&hostRetries<3){
-        hostRetries++;
-        setTimeout(function(){hostConnect(code,cb,false);},1000);
-        return;
-      }
-      netLost('Связь с комнатой потеряна ('+brokerName+')');
-    }
-  });
-}
-function hostOnRelay(pid,d){
+function hostOnRelay(pid,d,strat){
   var c=null,i;
   for(i=0;i<NET.conns.length;i++)if(NET.conns[i].peer===pid)c=NET.conns[i];
   if(d.t==='bye'){if(c)hostDropConn(c);return;}
   if(!c){
     if(LOBBY.length>=4)return;
-    c={peer:pid,open:true,last:performance.now(),
-       send:function(m){if(relay)relay.publish(relayH(NET.code),JSON.stringify({to:pid,d:m}));},
+    c={peer:pid,strat:strat,open:true,last:performance.now(),
+       send:function(m){var s2=trySends[strat];if(s2)s2({d:m},pid);},
        close:function(){}};
     NET.conns.push(c);
   }
@@ -204,106 +181,65 @@ function hostDropConn(c){
   lobbyRender();
 }
 function guestJoin(code,cb){
-  gCode=code;NET.reconnectTries=0;NET.reconnecting=false;
-  guestConnect(code,cb);
-}
-var gCode=null;
-function guestConnect(code,cb){
-  var list=mqttBrokerList();
-  var idx=0,done=false,cbCalled=false,timer=null,cli=null;
-  function finish(err){if(done)return;done=true;if(timer)clearTimeout(timer);if(err)cb(err);}
-  function tryBroker(){
-    if(done)return;
-    if(idx>=list.length){
-      if(NET.started&&NET.mode==='guest'&&NET.reconnectTries<3){
-        NET.reconnectTries++;idx=0;
-        setTimeout(tryBroker,900);
-        return;
-      }
-      finish('nobroker');return;
-    }
-    var br=list[idx];idx++;
-    var st=document.getElementById('netStatus');
-    if(st)st.textContent=(NET.reconnecting?('Переподключение '+NET.reconnectTries+'/3 · '):'')+('поиск комнаты ('+br.name+')…');
-    var heard=false,opened=false;
-    cli=mqttClient({
-      clientId:'brnt-g-'+code+'-'+guestPid.slice(1),
-      sub:relayH(code),
-      urls:[br],
-      onReady:function(){
-        if(done)return;
-        opened=true;NET.broker=br.name;
-        relay={cli:cli,publish:function(topic,str){cli.publish(topic,str);}};
-        NET.peer={destroy:function(){relayKill();}};
-        NET.hostConn={open:true,
-          send:function(m){if(relay)relay.publish(relayG(code),JSON.stringify({pid:guestPid,d:m}));},
-          close:function(){}};
-        NET.lastRecv=performance.now();
-        var wc=document.getElementById('waitCode');
-        if(wc){wc.textContent='комната '+code.toUpperCase();wc.classList.remove('hidden');}
-        NET.hostConn.send({t:'hi',cls:NET.cls});
-        if(!guestHbIv)guestHbIv=setInterval(function(){if(NET.hostConn)NET.hostConn.send({t:'hb'});},1500);
-        if(!guestInIv)guestInIv=setInterval(function(){
-          if(!NET.hostConn||NET.mode!=='guest')return;
-          NET.hostConn.send({t:'in',x:Math.round(INPUT.ix*100)/100,y:Math.round(INPUT.iy*100)/100,
-            a:Math.round(INPUT.aim*100)/100,f1:(INPUT.f1||INPUT.f1Tap)?1:0,f2:INPUT.f2?1:0,sk:INPUT.sk?1:0,s2:INPUT.sk2?1:0,fk:INPUT.fk?1:0,cf:INPUT.cf?1:0,u:(INPUT.ultTap?1:0)});
-          INPUT.f1Tap=false;INPUT.ultTap=false;
-        },33);
-
-        var hiN=0;
-        if(guestHiIv)clearInterval(guestHiIv);
-        guestHiIv=setInterval(function(){
-          if(NET.started||LOBBY.length||hiN++>12||!NET.hostConn){clearInterval(guestHiIv);guestHiIv=null;return;}
-          NET.hostConn.send({t:'hi',cls:NET.cls});
-        },2000);
-        if(!cbCalled){cbCalled=true;cb(null,'connected');}
-        timer=setTimeout(function(){
-          if(done||heard||NET.started)return;
-          try{cli.destroy();}catch(e){}
-          relay=null;NET.hostConn=null;NET.peer=null;
-          tryBroker();
-        },4500);
-      },
-      onMsg:function(topic,str){
-        var o=null;try{o=JSON.parse(str);}catch(e){return;}
-        if(!o)return;
-        if(o.to&&o.to!==guestPid)return;
-        heard=true;NET.lastRecv=performance.now();clearTimeout(timer);
-        if(o.d&&o.d.t==='hb-echo'&&NET.hostConn&&!LOBBY.length)NET.hostConn.send({t:'hi',cls:NET.cls});
-        if(NET.reconnecting){NET.reconnecting=false;NET.reconnectTries=0;msg('Связь восстановлена',2);}
-        if(!guestWatchIv)guestWatchIv=setInterval(function(){
-
-          if(performance.now()-NET.lastRecv>6000){
-            if(!NET.deadChk)NET.deadChk=setTimeout(function(){
-              NET.deadChk=null;
-              if(performance.now()-NET.lastRecv>6000)netLost('Хост не отвечает — проверьте код комнаты');
-            },1600);
-          }
-        },2000);
-        if(o.d)guestOnMsg(o.d);
-      },
-      onDown:function(reason){
-        if(done)return;
-        clearTimeout(timer);
-        if(opened&&heard){
-          if(NET.started&&NET.mode==='guest'&&NET.reconnectTries<3){
-            NET.reconnectTries++;NET.reconnecting=true;
-            try{cli.destroy();}catch(e){}
-            relay=null;NET.hostConn=null;NET.peer=null;
-            setTimeout(function(){if(!done){idx=0;tryBroker();}},800);
-            return;
-          }
-          done=true;netLost('Связь с комнатой потеряна');return;
+  if(!guestPid)guestPid='p'+((R()*1e9)|0).toString(36);
+  var st=document.getElementById('netStatus');
+  if(st)st.textContent='ищу комнату '+code.toUpperCase()+'…';
+  var done=false,cbCalled=false;
+  function fail(err){
+    if(cbCalled)return;
+    cbCalled=true;relayKill();NET.hostConn=null;cb(err);
+  }
+  function guestWire(strat,recv){
+    recv(function(d,pid){
+      if(pid!==NET.hostPid||!d||!d.d)return;
+      NET.lastRecv=performance.now();
+      if(d.d.t==='hb-echo'&&NET.hostConn&&!LOBBY.length)NET.hostConn.send({t:'hi',cls:NET.cls});
+      if(NET.reconnecting){NET.reconnecting=false;NET.reconnectTries=0;msg('Связь восстановлена',2);}
+      guestOnMsg(d.d);
+    });
+    tryRooms[strat].onPeerJoin(function(pid){
+      if(done||NET.hostPid)return;
+      done=true;
+      guestPid=tryLib(strat).selfId;
+      NET.hostPid=pid;NET.hostStrat=strat;
+      NET.hostConn={open:true,
+        send:function(m){var s2=trySends[strat];if(s2)s2({d:m},pid);},
+        close:function(){}};
+      NET.lastRecv=performance.now();
+      var wc=document.getElementById('waitCode');
+      if(wc){wc.textContent='комната '+code.toUpperCase();wc.classList.remove('hidden');}
+      NET.hostConn.send({t:'hi',cls:NET.cls});
+      if(!guestHbIv)guestHbIv=setInterval(function(){if(NET.hostConn)NET.hostConn.send({t:'hb'});},1500);
+      if(!guestInIv)guestInIv=setInterval(function(){
+        if(!NET.hostConn||NET.mode!=='guest')return;
+        NET.hostConn.send({t:'in',x:Math.round(INPUT.ix*100)/100,y:Math.round(INPUT.iy*100)/100,
+          a:Math.round(INPUT.aim*100)/100,f1:(INPUT.f1||INPUT.f1Tap)?1:0,f2:INPUT.f2?1:0,sk:INPUT.sk?1:0,s2:INPUT.sk2?1:0,fk:INPUT.fk?1:0,cf:INPUT.cf?1:0,u:(INPUT.ultTap?1:0)});
+        INPUT.f1Tap=false;INPUT.ultTap=false;
+      },33);
+      if(!guestWatchIv)guestWatchIv=setInterval(function(){
+        if(performance.now()-NET.lastRecv>6000){
+          if(!NET.deadChk)NET.deadChk=setTimeout(function(){
+            NET.deadChk=null;
+            if(performance.now()-NET.lastRecv>6000)netLost('Хост не отвечает — проверьте код комнаты');
+          },1600);
         }
-        try{cli.destroy();}catch(e){}
-        relay=null;NET.hostConn=null;NET.peer=null;
-        if(reason==='nobroker'){finish('nobroker');return;}
-        tryBroker();
-      }
+      },2000);
+      if(cb&&!cbCalled){cbCalled=true;cb(null,'connected');}
+    });
+    tryRooms[strat].onPeerLeave(function(pid){
+      if(pid!==NET.hostPid)return;
+      netLost('Хост покинул комнату');
     });
   }
-  if(!guestPid)guestPid='p'+((R()*1e9)|0).toString(36);
-  tryBroker();
+  var opened=0;
+  for(var si=0;si<TRY_STRATS.length;si++){
+    (function(strat){
+      try{guestWire(strat,tryWrap(code,strat));opened++;}
+      catch(e){}
+    })(TRY_STRATS[si]);
+  }
+  if(!opened){fail('nosignal');return;}
+  var watchdog=setTimeout(function(){fail('nobody');},20000);
 }
 function guestOnMsg(d){
   if(!d)return;
@@ -347,10 +283,10 @@ function netLost(reason){
   showOv('bwait');
 }
 function destroyNet(){
-  if(NET.mode==='host'&&relay)relayBroadcast({t:'bye-host'});
+  if(NET.mode==='host')relayBroadcast({t:'bye-host'});
   relayKill();
   NET.peer=null;NET.conns=[];NET.hostConn=null;NET.started=false;NET.code='';
-  NET.mode='solo';NET.myId='me';guestPid=null;
+  NET.mode='solo';NET.myId='me';guestPid=null;NET.hostPid=null;NET.hostStrat=null;
 }
 
 function inviteLink(){

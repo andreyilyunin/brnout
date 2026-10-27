@@ -23,10 +23,12 @@ test('LCG rnd детерминирован', () => {
   _seed = 42; const a = rnd(); _seed = 42; const b = rnd();
   eq(a, b);
 });
-test('genCode: 5 символов из алфавита', () => {
+test('genCode: 4 символа из алфавита', () => {
   const c = genCode();
-  eq(c.length, 5);
+  eq(c.length, 4);
   ok(/^[a-z0-9]+$/.test(c));
+  const mjs = require('fs').readFileSync('src/main.js', 'utf8');
+  ok(/\[a-z0-9\]\{4\}/.test(mjs), 'инвайт-парсер и форма ждут 4 символа');
 });
 
 load('src/data.js');
@@ -276,27 +278,30 @@ test('контейнер вписывается в высоту экрана (л
   const qa = fsL.readFileSync('qa/shots.js', 'utf8');
   ok(qa.indexOf('844, height: 390') > 0, 'QA проверяет реальный ландшафт телефона');
 });
-test('кооп-конфетка: реконнект, heartbeat-детект, индикатор связи', () => {
+test('кооп-конфетка: heartbeat-детект, индикатор связи', () => {
   const nj = fsL.readFileSync('src/net.js', 'utf8');
   ok(nj.indexOf('bye-host') > 0, 'хост явно прощается при выходе');
   ok(nj.indexOf('Хост завершил игру') > 0, 'гость выходит по bye-host');
   ok(nj.indexOf('},1500);') > 0, 'heartbeat 1.5с: смерть хоста видна за секунды');
   ok(nj.indexOf('deadChk') > 0, 'watchdog с двойной проверкой — переживает сворачивание приложения');
-  ok(nj.indexOf('NET.reconnectTries<3') > 0, 'до 3 автопереподключений');
-  ok(nj.indexOf('hostRetries<3') > 0, 'хост тоже восстанавливает комнату');
-  ok(nj.indexOf('Связь восстановлена') > 0, 'успешный возврат отмечается');
+  ok(nj.indexOf('Хост покинул комнату') > 0, 'уход хоста виден мгновенно через onPeerLeave');
   ok(/guestInIv=setInterval[\s\S]{0,600}?\},33\)/.test(nj), 'ввод гостя 30 Гц (8 Гц = рывки на хосте и телепорты у гостя)');
   ok(/sendSnapshot\(\);},70\)/.test(nj), 'снапшоты ~14 Гц (8 Гц = дёрганые мобы у гостей)');
   const rj = fsL.readFileSync('src/render.js', 'utf8');
   ok(rj.indexOf('ПЕРЕПОДКЛЮЧЕНИЕ') > 0, 'баннер переподключения в HUD');
   ok(rj.indexOf('связь') > 0 && rj.indexOf('#3fb950') > 0, 'индикатор связи зелёный-жёлтый-красный');
 });
-test('гость сканирует брокеры, пока не услышит комнату', () => {
+test('кооп на trystero: P2P-комната без брокеров', () => {
   const nj = require('fs').readFileSync('src/net.js', 'utf8');
-  ok(nj.indexOf('urls:[br]') > 0, 'guestJoin пробует брокеров по одному');
-  ok(nj.indexOf('tryBroker') > 0, 'есть переход к следующему брокеру при тишине');
-  const mj = require('fs').readFileSync('src/mqtt.js', 'utf8');
-  ok(mj.indexOf('mqttBrokerList') > 0, 'единый порядок брокеров вынесен в mqttBrokerList');
+  ok(nj.indexOf('joinRoom({appId:TRY_APP}') > 0, 'комната через trystero joinRoom');
+  ok(nj.indexOf("makeAction('m')") > 0, 'единый канал сообщений');
+  ok(nj.indexOf('onPeerJoin') > 0 && nj.indexOf('onPeerLeave') > 0, 'подключение/отключение пиров обрабатываются');
+  ok(nj.indexOf('watchdog') > 0, 'гость не висит вечно: 15с на поиск комнаты');
+  ok(nj.indexOf('tryRooms[s].leave()') > 0, 'комнаты закрываются при выходе');
+  ok(nj.indexOf('mqtt') < 0, 'mqtt-транспорт удалён');
+  const ih = require('fs').readFileSync('index.html', 'utf8');
+  ok(ih.indexOf('trystero-torrent.min.js') > 0, 'бандл trystero подключён');
+  ok(ih.indexOf('src/mqtt.js') < 0, 'mqtt.js больше не грузится');
 });
 test('гость строит уровень по событию map из снапшота (синхрон сидов)', () => {
   const gj = require('fs').readFileSync('src/guest.js', 'utf8');

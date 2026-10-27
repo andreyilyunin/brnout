@@ -173,7 +173,7 @@ function connectGuest(code){
       $('netStatus').textContent='';
       showOv('bjoin');
       document.getElementById('joinCode').value=code;
-      $('joinErr').textContent=err==='nobroker'?'Брокеры недоступны — проверьте интернет':'Комната не отвечает. Хост ещё в игре?';
+      $('joinErr').textContent=err==='nobody'?'Комната не найдена. Проверьте код — хост должен быть онлайн':(err==='nosignal'?'P2P недоступен — проверьте интернет':'Комната не отвечает. Хост ещё в игре?');
       destroyNet();
     }else{
       audioInit();startAmbient();
@@ -213,11 +213,11 @@ updateDetail();
 $('cHost').addEventListener('click',function(){
   showOv('bhost');
   $('roomCode').textContent='…';
-  $('shareHint').textContent='соединяемся с брокером…';
+  $('shareHint').textContent='открываю P2P-комнату…';
   destroyNet();LOBBY=[];
   hostCreate(function(err){
     if(err){$('roomCode').textContent='-----';
-      $('shareHint').textContent=(err==='nobroker'?'ни один брокер недоступен — проверьте интернет':'брокер недоступен, попробуйте ещё раз');
+      $('shareHint').textContent=(err==='nosignal'?'P2P недоступен — проверьте интернет':'не удалось открыть комнату, попробуйте ещё раз');
       return;}
     audioInit();startAmbient();
     $('shareHint').textContent='ссылка сама введёт код другу · или продиктуйте код';
@@ -235,7 +235,7 @@ $('joinCode').addEventListener('keydown',function(e){if(e.code==='Enter')$('bjoi
 $('cJoin').addEventListener('click',function(){showOv('bjoin');$('joinErr').textContent='';});
 $('bjoinGo').addEventListener('click',function(){
   var code=$('joinCode').value.trim().toLowerCase();
-  if(code.length!==5||!/^[a-z0-9]{5}$/.test(code)){$('joinErr').textContent='Код из 5 символов (латиница)';return;}
+  if(code.length!==4||!/^[a-z0-9]{4}$/.test(code)){$('joinErr').textContent='Код из 4 символов (латиница)';return;}
   connectGuest(code);
 });
 $('bLeaveWait').addEventListener('click',function(){
@@ -343,7 +343,7 @@ requestAnimationFrame(loop);
 var PENDING_JOIN=null;
 try{
   var _jc=new URL(location.href).searchParams.get('join');
-  if(_jc&&/^[a-z0-9]{5}$/i.test(_jc)){
+  if(_jc&&/^[a-z0-9]{4}$/i.test(_jc)){
     PENDING_JOIN=_jc.toLowerCase();
     var _tag=document.querySelector('#bmenu .bgtag');
     if(_tag)_tag.textContent='вас позвали в комнату '+PENDING_JOIN.toUpperCase()+' — выберите класс';
