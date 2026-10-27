@@ -296,7 +296,7 @@ function resize(){
   ctx.imageSmoothingEnabled=true;
   bhud.width=Math.max(320,Math.round(r.width*DPR));
   bhud.height=Math.max(240,Math.round(r.height*DPR));
-  G.zoom=clamp(r.width/700,0.8,1.45);
+  G.zoom=clamp(Math.max(r.width/700,r.height/640),0.8,1.45);
   drawPost.vg=null;
 }
 window.addEventListener('resize',resize);

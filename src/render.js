@@ -670,17 +670,6 @@ function drawPost(){
 function pixFont(px,bold){
   return (bold?'700 ':'500 ')+px+'px "IBM Plex Mono",Arial,monospace';
 }
-function drawHeart(x,y,r,col){
-  hctx.save();hctx.translate(x,y);hctx.scale(r/10,r/10);
-  hctx.fillStyle=col;
-  hctx.beginPath();
-  hctx.moveTo(0,4);
-  hctx.bezierCurveTo(-9,-4,-6,-11,0,-6);
-  hctx.bezierCurveTo(6,-11,9,-4,0,4);
-  hctx.fill();
-  hctx.strokeStyle='rgba(0,0,0,0.6)';hctx.lineWidth=1.4;hctx.stroke();
-  hctx.restore();
-}
 function drawCup(x,y,s,fill){
 
   var me=localPlayer(),moving=me?!!me.moving:false;
@@ -734,7 +723,7 @@ function drawCup(x,y,s,fill){
     var H2=bhud.height/DPR;
     var topY=H2<480?34:64;
 
-    var barW=Math.min(W-24,340),bx=W/2-barW/2,by=64,bh=20,half=barW/2;
+    var barW=Math.min(W-140,340),bx=W/2-barW/2,by=12,bh=20,half=barW/2;
     var fl=clamp(p.burnout/100,0,1),cf=clamp(p.coffee/(p.coffeeMax||100),0,1);
     var jit=p.burnout>70?R()*3-1.5:0;
     hctx.fillStyle='rgba(10,13,18,0.78)';rr(hctx,bx,by,barW,bh,9);hctx.fill();
@@ -750,8 +739,10 @@ function drawCup(x,y,s,fill){
     var bTxt=Math.round(p.burnout)+'%',cTxt=Math.round(p.coffee)+'%';
     hctx.strokeText(bTxt,bx+half/2,by+bh-5);hctx.fillStyle='#ffd7c9';hctx.fillText(bTxt,bx+half/2,by+bh-5);
     hctx.strokeText(cTxt,bx+half+half/2,by+bh-5);hctx.fillStyle='#b8eec6';hctx.fillText(cTxt,bx+half+half/2,by+bh-5);
-    drawHeart(bx+half-9,by+bh/2-1,6,'#e5534b');
-    drawCup(bx+half+9,by+bh/2-1,0.62,1);
+    hctx.font='13px Arial';
+    hctx.strokeStyle='rgba(0,0,0,0.8)';hctx.lineWidth=3;
+    hctx.strokeText('♥',bx+half-10,by+bh-5);hctx.fillStyle='#ff6b5e';hctx.fillText('♥',bx+half-10,by+bh-5);
+    hctx.strokeText('☕',bx+half+3,by+bh-5);hctx.fillText('☕',bx+half+3,by+bh-5);
     hctx.textAlign='left';
 
     var hi=window.__hudInfo;
