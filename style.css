@@ -224,3 +224,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #bmenu .bgstart{order:-1;grid-column:1/-1;}
   #bmenu .bgmode{display:contents;}
 }
+
+/* цифра кулдауна в центре тач-кнопки */
+#burnout .tbtn .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:800;font-size:15px;color:#ffe566;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none;}
+#burnout .tbtn:not(.oncd) .cdt{display:none;}

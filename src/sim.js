@@ -39,6 +39,7 @@ function updatePlayer(p,dt){
   collideMove(p,p.kx*dt,p.ky*dt);p.kx*=Math.exp(-7*dt);p.ky*=Math.exp(-7*dt);
   p.x=clamp(p.x,p.r,MAP_W-p.r);p.y=clamp(p.y,p.r,MAP_H-p.r);
   p.face=p.aim;
+  p.hintT=Math.max(0,(p.hintT||0)-dt);
   p.cd1-=dt;p.cd2-=dt;p.cdQ-=dt;p.cdS-=dt;p.inv-=dt;p.atkT=Math.max(0,p.atkT-dt);p.flash=Math.max(0,p.flash-dt*3);
   p.coffee=Math.min(p.coffeeMax,p.coffee+(2.2+(p.coffeeRegen||0))*dt);
   if(p.shield>0){

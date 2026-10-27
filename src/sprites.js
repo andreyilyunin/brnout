@@ -16,6 +16,8 @@ function pixWrap(o,fn){
   SPRC.restore();
   ctx.save();
   ctx.imageSmoothingEnabled=false;
+  ctx.shadowColor='rgba(0,0,0,0.85)';
+  ctx.shadowBlur=5;
   ctx.drawImage(SPRCV,Math.round(o.x-80),Math.round(o.y-80));
   ctx.restore();
 }
