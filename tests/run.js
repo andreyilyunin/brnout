@@ -9,7 +9,6 @@ function test(name, fn) {
 function eq(a, b, msg) { if (a !== b) throw new Error((msg || '') + ' expected ' + JSON.stringify(b) + ' got ' + JSON.stringify(a)); }
 function ok(v, msg) { if (!v) throw new Error(msg || 'expected truthy'); }
 
-// ---------- utils ----------
 load('src/utils.js');
 console.log('utils:');
 test('clamp', () => { eq(clamp(5, 0, 3), 3); eq(clamp(-1, 0, 3), 0); eq(clamp(2, 0, 3), 2); });
@@ -30,7 +29,6 @@ test('genCode: 5 символов из алфавита', () => {
   ok(/^[a-z0-9]+$/.test(c));
 });
 
-// ---------- data ----------
 load('src/data.js');
 console.log('data:');
 test('CLS: 4 класса × 4 приёма с именами и кулдаунами', () => {
@@ -48,7 +46,7 @@ test('dsn sk: логотип побольше — волна-отброс вме
   ok(ab.includes('ЛОГОТИП ПОБОЛЬШЕ'), 'волна реализована в trySkill2');
 });
 test('COMBONAMES покрывает все уровни комбо', () => {
-  eq(COMBONAMES.length, 10); // индексы 0..9
+  eq(COMBONAMES.length, 10);
   ok(COMBONAMES[9].length > 3);
 });
 test('PROG: 8 тактов гармонии с войсингами', () => {
@@ -63,7 +61,6 @@ test('MOBNAMES непустые', () => {
   ok(MOBNAMES.deadline.length >= 3);
 });
 
-// ---------- map ----------
 load('src/map.js');
 console.log('map:');
 test('buildMap детерминирован по сиду', () => {
@@ -156,8 +153,6 @@ test('спавн-точки на открытом полу', () => {
   }
 });
 
-
-// ---------- v-new: локации/темы/твиты/тайминги/дроп ----------
 load('src/data.js');
 console.log('locations & style:');
 test('карта: 44x44 (залы 11-14, боксы с 2-тайловыми проходами)', () => { eq(GW, 44); eq(GH, 44); });
@@ -232,7 +227,6 @@ test('подбор кружек: радиус 22 и событие pkup', () => 
   ok(sm.includes("NET.events.push({k:'pkup"), 'событие');
 });
 
-
 console.log('menu v11:');
 test('меню: отдельные настройки, углы, старт', () => {
   const ih = require('fs').readFileSync('index.html', 'utf8');
@@ -246,7 +240,6 @@ test('меню: отдельные настройки, углы, старт', ()
   ok((ih.slice(ih.indexOf('id="bset"'), ih.indexOf('id="bset"') + 900)).includes('sndMaster'), 'слайдеры в настройках');
 });
 
-// ---------- layout-стражи: следим за раскладкой ключевых элементов ----------
 console.log('layout guards:');
 const fsL = require('fs');
 const rjs = fsL.readFileSync('src/render.js', 'utf8');
@@ -268,7 +261,7 @@ test('миникарта экспортирует хит-зону __mmRect дл�
 test('дуга тач-кнопок: у всех 5 кнопок заданы позиции right/bottom', () => {
   const css = fsL.readFileSync('style.css', 'utf8');
   for (const sel of ['#burnout .tb-abs', '#burnout .tb-alt', '#burnout .tb-dodge', '#burnout .tb-skill', '#burnout .tb-ult']) {
-    const i = css.lastIndexOf(sel + '{'); // последнее = индивидуальная позиция кнопки
+    const i = css.lastIndexOf(sel + '{');
     ok(i > 0, sel + ' есть');
     ok(css.slice(i, css.indexOf('}', i)).includes('right:calc('), sel + ' имеет right:calc');
     ok(css.slice(i, css.indexOf('}', i)).includes('bottom:calc('), sel + ' имеет bottom:calc');
@@ -305,7 +298,7 @@ test('гость сканирует брокеры, пока не услышит
 });
 test('инвайт-флоу живёт вне render-цикла (регресс-страж)', () => {
   const mjs = require('fs').readFileSync('src/main.js', 'utf8');
-  const loopBody = mjs.slice(mjs.indexOf('function loop('), mjs.indexOf('// ============================== menu wiring'));
+  const loopBody = mjs.slice(mjs.indexOf('function loop('), mjs.indexOf('var PERKSEL=[]'));
   ok(loopBody.indexOf('join') < 0, 'в loop() нет кода инвайта — иначе каждый кадр сносит оверлеи');
   ok(mjs.indexOf("PENDING_JOIN=_jc.toLowerCase()") > 0, 'инвайт-ссылка открывает меню с выбором класса');
   ok(mjs.indexOf('ВОЙТИ В КОМНАТУ') > 0, 'кнопка входа в комнату в join-режиме');
@@ -460,7 +453,7 @@ test('стеклобоксы в больших залах; санузлы глу
       if (r.type !== 'wc') continue;
       wc++;
       if (r.glass) { wcBad++; continue; }
-      // прижат к стене зала: хотя бы одна сторона кольца в 3 тайлах от стены хоста
+
       const hug = ROOMS.some(h => (h.type === 'openspace' || h.type === 'lobby') &&
         r.tx >= h.tx && r.tx + r.tw <= h.tx + h.tw && r.ty >= h.ty && r.ty + r.th <= h.ty + h.th &&
         (r.tx - 3 <= h.tx || r.tx + r.tw + 3 >= h.tx + h.tw || r.ty - 3 <= h.ty || r.ty + r.th + 3 >= h.ty + h.th));

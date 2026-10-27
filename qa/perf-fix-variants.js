@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-// QA: сравнение вариантов drawLighting на живой игре (390×700, canvas ~1960×3516,
-// как на реальном телефоне без meta viewport) + скриншот для проверки UI-скейла.
+
 'use strict';
 const puppeteer = require('puppeteer');
-// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
-// локально кэш бывает пуст — тогда системный chromium, если он есть
+
 const fs = require('fs');
 const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 const BASE = 'http://127.0.0.1:8099';
@@ -22,8 +20,7 @@ const BASE = 'http://127.0.0.1:8099';
     await page.screenshot({ path: 'qa/perf-phone-nometa.png' });
 
     const DL_SRC = (sc, useBaked) => {
-      // полностью автономная копия drawLighting с параметрами: масштаб буфера,
-      // опционально «запечённые» статические дырки (обновляются раз в 0.5с).
+
       window.__bakeCv = window.__bakeCv || null;
       window.__bakeT = -1;
       window.drawLighting = function () {
@@ -45,7 +42,7 @@ const BASE = 'http://127.0.0.1:8099';
             if (inten > 0.03) hole(L.x, L.y, 215 * Math.min(1, inten + 0.3), Math.min(1, inten + 0.3));
           }
         } else {
-          // статические лампы — один слой, перерисовывается редко (мерцание жертвуем)
+
           if (!window.__bakeCv) { window.__bakeCv = document.createElement('canvas'); }
           var bc = window.__bakeCv, bx = bc.getContext('2d');
           var BW = Math.max(2, Math.round(MAP_W * sc * 0.25)), BH = Math.max(2, Math.round(MAP_H * sc * 0.25));
@@ -64,7 +61,7 @@ const BASE = 'http://127.0.0.1:8099';
             bx.globalAlpha = 1;
           }
           var Wc = cv.width / (DPR * G.zoom), Hc = cv.height / (DPR * G.zoom);
-          lctx.drawImage(bc, 0, 0, MAP_W, MAP_H); // весь запечённый слой одной quad-командой
+          lctx.drawImage(bc, 0, 0, MAP_W, MAP_H);
         }
         var players = worldPool('players');
         for (i = 0; i < players.length; i++) if (!players[i].dead) hole(players[i].x, players[i].y, 230, 0.95);

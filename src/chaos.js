@@ -1,5 +1,5 @@
 'use strict';
-// ============================== physical chaos: debris / water / printers ==============================
+
 var DEBRIS=[],WATER=[],PFX=[],STONES=[];
 var CRITWORDS=['ПРАВКА!','ДЕДЛАЙН!','УВОЛЕН!'];
 function drawHoverTag(){
@@ -32,14 +32,14 @@ function spawnDebris(d){
   if(DEBRIS.length>220)DEBRIS.shift();
   DEBRIS.push(d);
 }
-// горсть монет: физика, отскок, сбор
+
 function spawnCoinBurst(x,y,n){
   for(var i=0;i<n;i++){
     spawnDebris({kind:'coin',x:x+R()*20-10,y:y-10,vx:R()*220-110,vy:-150-R()*170,vr:0,
       floorY:y+18+R()*30,g:980,phys:1,coined:1,t:0,life:7+R()*2});
   }
 }
-// крит-бёрст босса: слово текстом + монеты (события шлёт вызывающий)
+
 function critBurst(x,y,n){
   floatText(x+R()*30-15,y-30,CRITWORDS[(R()*CRITWORDS.length)|0],'#ff6a5c',16);
   spawnCoinBurst(x,y,n);
@@ -99,7 +99,7 @@ function updateChaos(dt){
       if(k>=1){stoneImpact(d.tx,d.ty);DEBRIS.splice(i,1);}
       continue;
     }
-    if(d.kind==='soul'){ // душа всплывает и тает
+    if(d.kind==='soul'){
       d.y-=dt*(d.elite?60:40);
       d.x+=Math.sin(d.t*4)*26*dt;
       if(d.t>d.life){DEBRIS.splice(i,1);}
@@ -113,12 +113,12 @@ function updateChaos(dt){
         if(Math.abs(d.vy)>60){d.vy*=-0.42;d.vx*=0.65;d.vr*=0.5;SFX.clack();}
         else{
           d.vy=0;d.vx*=0.82;d.vr=0;
-          // осела — превращается в круглую монетку (марио-стиль)
+
           if(d.kind==='plate'&&!d.coined){d.coined=1;d.kind='coin';d.life=d.t+8;SFX.clack();}
         }
       }
       if(blockedAt(d.x,d.y,3)&&d.kind==='plate'){d.vx*=-0.55;d.vr*=-0.6;d.x+=d.vx*dt*2;}
-      // монетки: магнит + подбор героем
+
       if(d.kind==='coin'){
         var me=localPlayer();
         if(me&&!me.dead){
@@ -167,12 +167,12 @@ function updateChaos(dt){
     if(st.t>=st.dur){
       var tgt=null;
       for(var pi2=0;pi2<G.players.length;pi2++)if(G.players[pi2].id===st.tgtId)tgt=G.players[pi2];
-      // честный снаряд: попал, только если игрок в 30px от точки прибытия (успел уйти — промах)
+
       if(tgt&&!tgt.dead&&Math.hypot(tgt.x-st.tx,tgt.y-st.ty)<30){
         addBurnout(tgt,st.dmg,'stone');
-        stoneImpact(tgt.x,tgt.y); // эффект там, где игрок, а не где был снапшот
+        stoneImpact(tgt.x,tgt.y);
       }else if(tgt){
-        stoneImpact(st.tx,st.ty); // видимый промах
+        stoneImpact(st.tx,st.ty);
       }
       STONES.splice(i,1);
     }
@@ -180,7 +180,7 @@ function updateChaos(dt){
 }
 function drawChaos(){
   var i;
-  // water puddles under everything
+
   for(i=0;i<WATER.length;i++){var w=WATER[i];
     var al=Math.min(0.4,0.55*(1-w.t/w.life)+0.15);
     ctx.fillStyle='rgba(70,120,180,'+al+')';
@@ -195,7 +195,7 @@ function drawChaos(){
     ctx.fillStyle='rgba(200,230,255,0.12)';
     ctx.beginPath();ctx.ellipse(w.x-w.r*0.25,w.y-w.r*0.15,w.r*0.3,w.r*0.16,0,0,TAU);ctx.fill();
   }
-  // printer jets glow point
+
   for(i=0;i<PFX.length;i++){
     ctx.fillStyle='rgba(200,210,225,0.25)';
     ctx.beginPath();ctx.arc(PFX[i].x,PFX[i].y,6+Math.sin(G.t*9+i)*2,0,TAU);ctx.fill();
@@ -204,7 +204,7 @@ function drawChaos(){
 function drawDebris(){
   var i;
   for(i=0;i<DEBRIS.length;i++){var d=DEBRIS[i];
-    if(d.kind!=='stone'&&!tileVis(d.x,d.y))continue; // души/монеты/папки скрыты туманом
+    if(d.kind!=='stone'&&!tileVis(d.x,d.y))continue;
     ctx.save();ctx.translate(d.x,d.y);
     if(d.kind==='coin'){
       var bob2=Math.sin(d.t*6+d.x)*1.2;
@@ -223,7 +223,7 @@ function drawDebris(){
       ctx.fillText(d.word,0,3);ctx.textAlign='left';
     }else if(d.kind==='folder'){
       ctx.rotate(d.rot);
-      // канцелярская папка: белый лист + манила-картон + лейбл — никакой позолоты
+
       ctx.fillStyle='#f2efe6';ctx.fillRect(-6,-7,12,10);
       ctx.fillStyle='#cbb98e';rr(ctx,-8,-5,16,10,1);ctx.fill();
       ctx.strokeStyle='#a08c5a';ctx.lineWidth=1;rr(ctx,-8,-5,16,10,1);ctx.stroke();
@@ -237,7 +237,7 @@ function drawDebris(){
       ctx.fillStyle='#14171c';ctx.fillRect(-10,-4,14,9);
       if(d.vx>0){ctx.fillStyle='rgba(150,190,220,0.35)';ctx.fillRect(-8,-3,10,7);}
     }else if(d.kind==='stone'){
-      // угроза читается ДО попадания: пунктир к точке прибытия + оранжевая зона
+
       ctx.strokeStyle='rgba(255,138,61,'+(0.3+0.2*Math.sin(G.t*10)).toFixed(2)+')';
       ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
       ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.tx,d.ty);ctx.stroke();ctx.setLineDash([]);
@@ -245,7 +245,7 @@ function drawDebris(){
       ctx.beginPath();ctx.arc(d.tx,d.ty,13+3*Math.sin(G.t*8),0,TAU);ctx.fill();
       ctx.strokeStyle='rgba(255,170,80,0.8)';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(d.tx,d.ty,10,0,TAU);ctx.stroke();
-      // само слово: оранжево-красное, пульсирует (серый = фон, так не читается)
+
       var k=Math.min(1,d.t/d.dur);
       var wx=d.sx+(d.tx-d.sx)*k,wy=d.sy+(d.ty-d.sy)*k;
       ctx.font='bold '+(15+3*Math.sin(G.t*12))+'px Georgia,serif';
@@ -258,9 +258,8 @@ function drawDebris(){
   }
 }
 
-// души — поверх освещения и виньетки: духам тьма не помеха
 function drawSouls(){
-  applyWorldT(); // после drawPost трансформация экранная — возвращаем мир
+  applyWorldT();
   for(var i=0;i<DEBRIS.length;i++){var d=DEBRIS[i];
     if(d.kind!=='soul')continue;
     if(!tileVis(d.x,d.y))continue;

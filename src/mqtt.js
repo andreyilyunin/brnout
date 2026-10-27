@@ -1,8 +1,5 @@
 'use strict';
-// ============================== mini-MQTT 3.1.1 поверх WSS ==============================
-// Кооп-релей через публичные брокеры: P2P WebRTC из РФ мёртв (STUN/TURN заблокированы),
-// а MQTT-брокеры живут — они и есть наш «сигнальный сервер + релей».
-// Реализовано ровно столько протокола, сколько нужно: CONNECT/SUBSCRIBE/PUBLISH(QoS0)/PINGREQ.
+
 var MQTT_BROKERS=[
   {url:'wss://broker.hivemq.com:8884/mqtt',name:'hivemq'},
   {url:'wss://test.mosquitto.org:8081/',name:'mosquitto'},
@@ -27,8 +24,7 @@ function mqttPacket(typeFlags,body){
   u.set(h,0);u.set(body,h.length);
   return u;
 }
-// mqttClient({clientId,sub,onReady,onMsg(topic,str),onDown(reason)}) — авто-фейловер по списку брокеров
-// единый порядок брокеров для хоста и гостя: гость сканирует список, пока не услышит комнату
+
 function mqttBrokerList(){
   var override=null;
   try{var _q=new URL(location.href).searchParams.get('broker');if(_q)override=_q;}catch(e){}
@@ -37,7 +33,7 @@ function mqttBrokerList(){
 }
 function mqttClient(opts){
   var list=opts.urls||mqttBrokerList();
-  var DBG=window.__mqttDbg; // E2E-диагностика: журнал событий соединения
+  var DBG=window.__mqttDbg;
   function dbg(ev){if(DBG)DBG.push(Date.now()%100000+' '+ev);}
   var idx=0,ws=null,alive=false,stopped=false,pingIv=null,lastPing=0,lastPong=1;
   function cleanup(){
@@ -49,17 +45,17 @@ function mqttClient(opts){
     if(stopped)return;
     if(idx>=list.length){opts.onDown('nobroker');return;}
     var u=list[idx++].url;
-    try{ws=new WebSocket(u,'mqtt');}catch(e){tryNext();return;} // брокеры требуют subprotocol 'mqtt'
+    try{ws=new WebSocket(u,'mqtt');}catch(e){tryNext();return;}
     ws.binaryType='arraybuffer';
     var connack=false;
     var to=setTimeout(function(){if(!connack){cleanup();tryNext();}},9000);
     ws.onopen=function(){
       dbg('open '+(list[idx-1].name));
-      // CONNECT: clean session + опциональный Last Will (мгновенное «меня не стало» при обрыве)
+
       var flags=0x02;
       var body=[].concat(mqttStr('MQTT'),[4,flags,0,60],mqttStr(opts.clientId));
       if(opts.will){
-        flags|=0x04; // will flag = бит2; clean = бит1 (0x02) — по спецификации 3.1.1 §3.1.2.3
+        flags|=0x04;
         body=[].concat(mqttStr('MQTT'),[4,flags,0,60],mqttStr(opts.clientId),mqttStr(opts.will.topic),mqttStr(opts.will.str));
       }
       try{ws.send(mqttPacket(0x10,body));}catch(e){cleanup();tryNext();}
@@ -67,13 +63,13 @@ function mqttClient(opts){
     ws.onmessage=function(ev){
       var arr=new Uint8Array(ev.data);
       var type=arr[0]>>4;
-      if(type===2&&!connack){ // CONNACK
+      if(type===2&&!connack){
         dbg('connack '+(arr.length>3?arr[3]:'?'));
         if(arr.length<4||arr[3]!==0){clearTimeout(to);cleanup();tryNext();return;}
         connack=true;clearTimeout(to);alive=true;
-        var body=[0,1].concat(mqttStr(opts.sub),[0]); // SUBSCRIBE qos0, id=1, +байт QoS подписки
+        var body=[0,1].concat(mqttStr(opts.sub),[0]);
         try{ws.send(mqttPacket(0x82,body));}catch(e){}
-        // живость сессии: PINGREQ каждые 5с, два неотвеченных подряд = зомби-коннект
+
         lastPong=Date.now();lastPing=0;
         pingIv=setInterval(function(){
           if(!alive)return;
@@ -84,15 +80,15 @@ function mqttClient(opts){
         opts.onReady(list[idx-1].name);
         return;
       }
-      if(type===13){lastPong=Date.now();return;} // PINGRESP
-      if(type===9)dbg('suback '+(arr[arr.length-1])); // 0=ok, 0x80=отказ
-      if(type===3){ // PUBLISH
+      if(type===13){lastPong=Date.now();return;}
+      if(type===9)dbg('suback '+(arr[arr.length-1]));
+      if(type===3){
         var p=1,mul=1,rem=0,d;
         do{d=arr[p];p++;rem+=(d&127)*mul;mul*=128;}while((d&128)&&p<5);
         var tl=arr[p]*256+arr[p+1];p+=2;
         var topic=mqttUtf8(arr,p,tl);p+=tl;
-        if(arr[0]&0x06)p+=2; // qos>0: пропускаем id пакета
-        var plen=rem-2-tl-((arr[0]&0x06)?2:0); // rem уже не включает поле длины
+        if(arr[0]&0x06)p+=2;
+        var plen=rem-2-tl-((arr[0]&0x06)?2:0);
         if(plen>0)opts.onMsg(topic,mqttUtf8(arr,p,plen));
       }
     };
@@ -101,7 +97,7 @@ function mqttClient(opts){
       if(alive){alive=false;cleanup();opts.onDown('closed');}
       else{clearTimeout(to);cleanup();tryNext();}
     };
-    ws.onerror=function(){}; // следом придёт onclose
+    ws.onerror=function(){};
   }
   tryNext();
   return {

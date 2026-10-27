@@ -1,5 +1,5 @@
 'use strict';
-// ============================== input ==============================
+
 var INPUT={ix:0,iy:0,aim:0,f1:false,f2:false,sk:false,sk2:false,fk:false,cf:false,f1Tap:false,ultTap:false};
 var keys={},mouse={x:0,y:0,down:false,rdown:false};
 var isTouch=false;
@@ -31,7 +31,7 @@ cv.addEventListener('mousemove',function(e){
 cv.addEventListener('mousedown',function(e){
   audioInit();
   if(isTouch)return;
-  if(e.button===0){mouse.down=true;INPUT.f1=true;INPUT.f1Tap=true;} // клик = выстрел
+  if(e.button===0){mouse.down=true;INPUT.f1=true;INPUT.f1Tap=true;}
   if(e.button===2){mouse.rdown=true;INPUT.f2=true;}
 });
 window.addEventListener('mouseup',function(e){
@@ -45,7 +45,7 @@ window.addEventListener('keydown',function(e){
   }
   keys[e.code]=true;
   if(e.repeat)return;
-  if(e.code==='Enter'&&G.state==='playing'&&G.waveState==='cleared')G.interT=0.05; // запуск следующего спринта
+  if(e.code==='Enter'&&G.state==='playing'&&G.waveState==='cleared')G.interT=0.05;
   if(e.code==='Escape'){
     if(OV_OPEN&&OV_BACK[OV_OPEN]){showOv(OV_BACK[OV_OPEN]);return;}
     togglePause();
@@ -64,7 +64,7 @@ window.addEventListener('keyup',function(e){
   if(e.code==='KeyE')INPUT.cf=false;
 });
 function keysToInput(){
-  if(isTouch&&joyId!==null)return; // джойстик активен — не стирать его ввод клавиатурным опросом
+  if(isTouch&&joyId!==null)return;
   INPUT.ix=0;INPUT.iy=0;
   if(keys.KeyW||keys.ArrowUp)INPUT.iy-=1;
   if(keys.KeyS||keys.ArrowDown)INPUT.iy+=1;
@@ -77,9 +77,9 @@ var joyHinted=false;
 function enableTouch(){
   if(isTouch)return;
   isTouch=true;
-  if(window.tuiSync)tuiSync(); // видимость бой-слоя решает ui.js: кнопки только в бою
+  if(window.tuiSync)tuiSync();
 }
-// PC has no joystick: real mouse activity switches touch mode off on hybrid devices
+
 root.addEventListener('pointermove',function(e){
   if(e.pointerType==='mouse'&&isTouch&&joyId===null){
     isTouch=false;
@@ -96,7 +96,7 @@ root.addEventListener('touchstart',function(e){
     if(t.target.closest&&t.target.closest('.bgov'))continue;
     if(t.target.closest&&t.target.closest('#btnPauseM'))continue;
     if(t.target.closest&&t.target.closest('#btnFS'))continue;
-    // тап по канвасной кнопке «следующий спринт» (координаты HUD)
+
     if(window.__nextBtnRect&&G.state==='playing'&&G.waveState==='cleared'){
       var rr2=root.getBoundingClientRect();
       var tx2=t.clientX-rr2.left,ty2=t.clientY-rr2.top;
@@ -110,7 +110,7 @@ root.addEventListener('touchstart',function(e){
       joyId=t.identifier;
       if(!joyHinted){joyHinted=true;var jh2=document.getElementById('joyHint');if(jh2)jh2.classList.add('hidden');}
       var r=root.getBoundingClientRect();
-      // clamp spawn point away from screen edges, minimap and the button cluster
+
       joyCx=clamp(t.clientX-r.left,90,r.width*0.5);
       joyCy=clamp(t.clientY-r.top,r.height*0.3,r.height-90);
       joy.style.display='block';
@@ -153,13 +153,13 @@ function bindBtn(id,down,up){
 }
 bindBtn('btnAtk',function(){INPUT.f1=true;},function(){INPUT.f1=false;});
 bindBtn('btnAlt',function(){INPUT.f2=true;},function(){INPUT.f2=false;});
-bindBtn('btnSkill',function(){INPUT.sk=true;},function(){INPUT.sk=false;});   // ПРОБЕЛ: уворот
-bindBtn('btnSkill2',function(){INPUT.sk2=true;},function(){INPUT.sk2=false;});  // Q
-bindBtn('btnFU',function(){INPUT.fk=true;},function(){INPUT.fk=false;});        // F: класс-ульта
+bindBtn('btnSkill',function(){INPUT.sk=true;},function(){INPUT.sk=false;});
+bindBtn('btnSkill2',function(){INPUT.sk2=true;},function(){INPUT.sk2=false;});
+bindBtn('btnFU',function(){INPUT.fk=true;},function(){INPUT.fk=false;});
 bindBtn('btnR',function(){INPUT.ultTap=true;},function(){});
 (function(){
   var fs=document.getElementById('btnFS');
-  var fakeOK=true; // iOS Safari не даёт fullscreen элементам — используем псевдофуллскрин
+  var fakeOK=true;
   function toggle(){
     if(document.fullscreenElement||document.webkitFullscreenElement||root.classList.contains('zfsfake')){
       root.classList.remove('zfsfake');
@@ -169,11 +169,11 @@ bindBtn('btnR',function(){INPUT.ultTap=true;},function(){});
     if(root.requestFullscreen||root.webkitRequestFullscreen){
       var pr=(root.requestFullscreen||root.webkitRequestFullscreen).call(root);
       if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){});
-      setTimeout(function(){ // тихий отказ вебвью — включаем псевдофуллскрин
+      setTimeout(function(){
         if(!(document.fullscreenElement||document.webkitFullscreenElement)){root.classList.add('zfsfake');if(window.__fsFakeHint)__fsFakeHint();}
       },350);
     }else if(fakeOK){
-      root.classList.toggle('zfsfake'); // CSS-фуллскрин
+      root.classList.toggle('zfsfake');
       if(root.classList.contains('zfsfake')&&window.__fsFakeHint)__fsFakeHint();
     }
   }
@@ -183,16 +183,15 @@ bindBtn('btnR',function(){INPUT.ultTap=true;},function(){});
   var pb=document.getElementById('bfsToggle');
   if(pb)pb.addEventListener('click',function(){
     toggle();
-    setTimeout(function(){ // exitFullscreen асинхронен — подпись по факту
+    setTimeout(function(){
       var on=document.fullscreenElement||document.webkitFullscreenElement||root.classList.contains('zfsfake');
       pb.textContent=on?'Выйти из полного экрана':'Полный экран';
     },250);
   });
-  // iOS: псевдофуллскрин расширяет поле, но хром браузера остаётся — говорим об этом один раз
+
   root.addEventListener('classchange',function(){},true);
 })();
 document.getElementById('btnPauseM').addEventListener('touchstart',function(e){e.preventDefault();togglePause();},{passive:false});
 document.getElementById('btnPauseM').addEventListener('mousedown',function(e){e.preventDefault();togglePause();});
-// тач-устройство видно сразу при загрузке: кнопки и миникарта в тач-позиции с первого кадра,
-// а не после первого касания (гибриды выключит тач первый же pointermove мышью)
+
 if(('ontouchstart' in window)||navigator.maxTouchPoints>0)enableTouch();

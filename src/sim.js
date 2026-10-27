@@ -1,5 +1,5 @@
 'use strict';
-// ============================== update ==============================
+
 function nearestPlayerTo(e){
   var best=null,bd=1e9;
   for(var i=0;i<G.players.length;i++){var p=G.players[i];
@@ -25,7 +25,7 @@ function updatePlayer(p,dt){
   p.moving=l>0.01;
   if(p.haste>0)p.haste-=dt;
   if(p.castT>0)p.castT-=dt;
-  // адреналин: на пороге выгорания — быстрее и злее (самоирония: работает только на износ)
+
   p.adr=p.burnout>80;
   p.dmgMult=(1+0.08*(G.grade-1))*(1+0.07*(G.level-1))*(1+(p.dmgBonus||0))*(G.plan>0?1.5:1)*(p.adr?1:1)*(1+0.03*(G.combo||0));
   if(p.adr)p.burnout=Math.min(100,p.burnout+1.0*dt);
@@ -64,16 +64,16 @@ function updatePlayer(p,dt){
   if(p.burnout>70){p.heart-=dt;if(p.heart<=0){p.heart=0.9;SFX.heart();}}
   if(p.f1)tryPrimary(p);
   if(p.f2)trySecondary(p);
-  if(p.sk)tryDodge(p);          // ПРОБЕЛ: уворот от всего
-  if(p.fk)trySkill(p);          // F: класс-ульта
+  if(p.sk)tryDodge(p);
+  if(p.fk)trySkill(p);
   if(p.sk2)trySkill2(p);
   if(p.ult){p.ult=false;tryUlt(p);}
   if(p.cdD>0)p.cdD-=dt;
   for(i=0;i<COFFEES.length;i++){var cp=COFFEES[i];
-    if(cp.charges>0&&dist(p,cp)<58&&(p.burnout>2||p.coffee<p.coffeeMax-2)){drinkCoffee(p,cp);} // авто: подошёл — пьёшь
+    if(cp.charges>0&&dist(p,cp)<58&&(p.burnout>2||p.coffee<p.coffeeMax-2)){drinkCoffee(p,cp);}
   }
 }
-// wall-slide steering: try direct, then angled steps, so mobs round corners instead of grinding walls
+
 function steerMove(m,ux,uy,step){
   var probes=[0,-0.7,0.7,-1.35,1.35];
   for(var i=0;i<probes.length;i++){
@@ -88,8 +88,7 @@ function steerMove(m,ux,uy,step){
 function updateMobs(dt){
   for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
     if(m.dead)continue;
-    // анти-застревание: агрессивный моб, который не двигается, пока игрок далеко —
-    // застрял в мебельном кармане. Телепорт к досягаемому тайлу возле игрока.
+
     if(!m.dead&&m.aggro){
       if(m._stuckT===undefined){m._stuckT=0;m._sx=m.x;m._sy=m.y;m._trav=0;}
       m._trav+=Math.hypot(m.x-m._sx,m.y-m._sy);
@@ -111,7 +110,7 @@ function updateMobs(dt){
     if(m.dead)continue;
     m.cd-=dt;
     if(m.fade>0)m.fade-=dt;
-    if(m.dmgT>0){ // агрегированный урон: один текст на окно 0.25с вместо потока
+    if(m.dmgT>0){
       m.dmgT-=dt;
       if(m.dmgT<=0&&m.dmgAcc>0){
         floatText(m.x+(R()*14-7),m.y-m.r-6,m.dmgHits>1?Math.round(m.dmgAcc)+'×'+m.dmgHits:''+Math.round(m.dmgAcc),'#dfe6ee',12,'D');
@@ -131,7 +130,7 @@ function updateMobs(dt){
     if(m.stun>0){m.stun-=dt;continue;}
     collideMove(m,m.kx*dt,m.ky*dt);m.kx*=Math.exp(-8*dt);m.ky*=Math.exp(-8*dt);
     var slow=(m.ch>0?0.4:1)*(inWater(m.x,m.y)?0.55:1)*(G.rushT>0?1.3:1)*(G.wave>=4&&G.mobs.length>6?1.08:1);
-    if(m.cf>0){ // ребрендинг:/confused wander
+    if(m.cf>0){
       m.cf-=dt;m.aggro=false;
       m.wt-=dt;
       if(m.wt<=0){m.wt=0.5+R()*0.8;m.wx=R()*2-1;m.wy=R()*2-1;}
@@ -161,25 +160,25 @@ function updateMobs(dt){
         SFX.explode();m.dead=true;
       }
     }else{
-      m.aggro=true; // все сразу знают, где вы (динамика!)
+      m.aggro=true;
       if(m.aggro){
         if(d>m.r+tgt.r+4){
           var a2=(d>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
           m.face=angTo(m,tgt);
           steerMove(m,Math.cos(a2),Math.sin(a2),m.spd*slow*dt);
-        }else if(m.wu>0){ // телеграф замаха: слово над головой, звука и позы достаточно, чтобы уйти
+        }else if(m.wu>0){
           m.wu-=dt;
           if(m.wu<=0){
-            m.cd=1.4; // реже бросают
+            m.cd=1.4;
             var inFlight=0;
             for(var si=0;si<STONES.length;si++)if(STONES[si].tgtId===tgt.id)inFlight++;
-          if(inFlight<2+(G.wave>=6?1:0)+(G.wave>=9?1:0)){ // потолок слов растёт со спринтами
-              var snapx=tgt.x,snapy=tgt.y; // снапшот в момент БРОСКА — увернуться можно
+          if(inFlight<2+(G.wave>=6?1:0)+(G.wave>=9?1:0)){
+              var snapx=tgt.x,snapy=tgt.y;
               spawnStone(m.x,m.y-12,snapx,snapy,STONEWORDS[(R()*STONEWORDS.length)|0],(7+0.7*G.wave)|0,tgt.id);
               SFX.swish&&SFX.swish();
             }
           }
-        }else if(m.cd<=0&&G.wave>=2){ // спринт-1 — стажёры ещё не выучили слова
+        }else if(m.cd<=0&&G.wave>=2){
           m.wu=0.5;
         }
         if(!m.said&&d<300){m.said=true;if(R()<0.5&&flavorOK())floatText(m.x,m.y-24,['а дизайн уже согласовали?','у меня один вопрос…','а куда нажимать?'][(R()*3)|0],'#8b949e',11,'F');}
@@ -204,16 +203,16 @@ function updateBoss(dt){
   var b=G.boss;if(!b)return;
   var p=nearestPlayerTo(b);
   if(!p)return;
-  // анти-застревание: босс, упёршийся в мебель, СНОСИТ её; стены — «перепланируется» к игроку
+
   if(b.windup<=0&&!(b.chgT>0)&&!(b.chgWind>0)) {
     if(b._sx===undefined){b._sx=b.x;b._sy=b.y;}
-    var bm=Math.hypot(b.x-b._sx,b.y-b._sy); // пройдено за ОКНО, не за кадр
+    var bm=Math.hypot(b.x-b._sx,b.y-b._sy);
     b._stuckT=(b._stuckT||0)+dt;
     if(b._stuckT>=1.1){
       b._stuckT=0;b._sx=b.x;b._sy=b.y;
       if(bm<60&&dist(b,p)>120){
         b._stuckN=(b._stuckN||0)+1;
-        if(b._stuckN>=2){ // мебель уже снёс, а не идёт — застрял в стене: репланировка
+        if(b._stuckN>=2){
           b._stuckN=0;
           var btp=freeSpotNear(p.x,p.y,300,520,b.r);
           G.fx.push({type:'flash',x:b.x,y:b.y,r:80,t:0,life:0.25});
@@ -227,14 +226,14 @@ function updateBoss(dt){
           floatText(b.x,b.y-70,'АУДИТ НЕ ЖДЁТ','#e5534b',13,'C');
           for(var sm2=0;sm2<8;sm2++)G.fx.push({type:'paper',x:b.x,y:b.y,vx:R()*260-130,vy:R()*260-130,rot:R()*3,vr:R()*8-4,t:0,life:0.7});
         }
-      }else if(bm>=60)b._stuckN=0; // реально идёт — счётчик в ноль; рядом с игроком — замораживаем
+      }else if(bm>=60)b._stuckN=0;
     }
   }
   b.cd-=dt;b.face=angTo(b,p);b.step+=dt*2;
   b.chgCd-=dt;
   if(b.windup>0){
     b.windup-=dt;b.wuT+=dt;
-    // зона удара зафиксирована в начале замаха (b.tx/b.ty) — телеграф честный, увернуться можно всегда
+
     if(b.windup<=0){
       G.shake+=14;SFX.slam();
       G.hitStop=Math.max(G.hitStop,0.09);
@@ -250,7 +249,7 @@ function updateBoss(dt){
     }
     return;
   }
-  if(b.chgT>0){ // чардж фазы 2: рывок по прямой, телеграф 0.6с «ПЕРЕПЛАНИРОВКА»
+  if(b.chgT>0){
     b.chgT-=dt;
     collideMove(b,Math.cos(b.chgA)*320*dt,Math.sin(b.chgA)*320*dt);
     if(dist(b,p)<b.r+p.r+4&&b.cd<=0){b.cd=1.1;addBurnout(p,18,'boss');}
@@ -264,7 +263,7 @@ function updateBoss(dt){
   }
   var bDist=dist(b,p);
   var mvA=angTo(b,p);
-  // стекло прозрачно для взгляда, но не для ходьбы: прямой курс — только когда он проходим
+
   if(bDist>140&&!losClear(b.x,b.y,p.x,p.y,true)){
     var fa=flowDir(b.x,b.y);
     if(fa!==null)mvA=fa;
@@ -294,7 +293,7 @@ function updateBoss(dt){
     b.tapeCd=12;
     for(i=0;i<3;i++){
       var zx=clamp(p.x+(R()*300-150),60,MAP_W-160),zy=clamp(p.y+(R()*300-150),60,MAP_H-100);
-      var stacked=false; // контракт: зоны не перекрываются и не заменяют живые
+      var stacked=false;
       for(var zk=0;zk<G.zones.length;zk++){var zE=G.zones[zk];
         if(zE.friendly)continue;
         if(Math.hypot(zE.x+zE.w/2-zx,zE.y+zE.h/2-zy)<170){stacked=true;break;}
@@ -322,7 +321,7 @@ function updateProjs(dt){
       for(var m=0;m<G.mobs.length;m++){var mob=G.mobs[m];
         if(dist(pr,mob)<mob.r+5){
           damageMob(mob,pr.dmg,pr.vx*0.3,pr.vy*0.3,0);
-          if(pr.split&&!pr.didSplit){ // «твит становится тредом»: развилка при первом попадании
+          if(pr.split&&!pr.didSplit){
             pr.didSplit=1;
             for(var sp2=0;sp2<2;sp2++){
               var na=Math.atan2(pr.vy,pr.vx)+(sp2?0.55:-0.55);
@@ -339,7 +338,7 @@ function updateProjs(dt){
 }
 function updateFx(dt){
   updateChaos(dt);
-  // подбор кружек и сокровищ локальным героем
+
   var me=localPlayer();
   if(me&&!me.dead){
     for(var pi4=G.pickups.length-1;pi4>=0;pi4--){var pk=G.pickups[pi4];
@@ -355,7 +354,7 @@ function updateFx(dt){
       }
     }
   }
-  // имя зоны при входе (Among Us-читаемость): троттл от мерцания на швах
+
   if(me&&!me.dead){
     G.roomT=(G.roomT||0)-dt;
     var rmNow=roomAtTile(clamp((me.x/TILE)|0,0,GW-1),clamp((me.y/TILE)|0,0,GH-1));
@@ -364,7 +363,7 @@ function updateFx(dt){
       floatText(me.x,me.y-34,'«'+roomLabel(rmNow)+'»','#42e0ff',13,'S');
     }else if(rmNow)G.lastRoom=rmNow;
   }
-  // 5. пыль из-под ног + случайные реплики героев
+
   if(me&&me.moving&&R()<0.12)
     G.fx.push({type:'paper',x:me.x+(R()*10-5),y:me.y+12,vx:R()*20-10,vy:-R()*14,rot:R()*3,vr:R()*2-1,t:0,life:0.35});
   if(me&&R()<0.0012&&flavorOK()){
@@ -383,7 +382,7 @@ function updateFx(dt){
     FOG.dirty=true;
   }
   if(G.rushT>0)G.rushT-=dt;
-  if(R()<0.0006)SFX.whisper(); // редкий мистический шёпот
+  if(R()<0.0006)SFX.whisper();
   if(G.comboT>0){G.comboT-=dt;if(G.comboT<=0)G.combo=0;}
   for(var i=0;i<G.fx.length;i++){var f=G.fx[i];
     f.t+=dt;
@@ -399,7 +398,7 @@ function updateFx(dt){
   for(i=0;i<G.texts.length;i++){var t=G.texts[i];t.t+=dt;t.y+=t.vy*dt;if(t.t>=t.life){G.texts.splice(i,1);i--;}}
   for(i=0;i<G.pickups.length;i++){var pk=G.pickups[i];pk.t+=dt;if(pk.t>=pk.life){G.pickups.splice(i,1);i--;}}
   for(i=0;i<G.zones.length;i++){var z=G.zones[i];z.t+=dt;
-    if(z.friendly){ // «3 сентября»: рябина жжёт мобов
+    if(z.friendly){
       z.tk=(z.tk||0)+dt;
       if(z.tk>0.4){z.tk=0;
         for(var zm=0;zm<G.mobs.length;zm++){var mzf=G.mobs[zm];
@@ -449,7 +448,7 @@ function updateWaves(dt){
     G.waveT-=dt;
     if(G.waveT<=0&&anyPlayer){G.waveState='active';startWave();}
   }else if(G.waveState==='cleared'){
-    // осязаемая пауза между спринтами: итоги + следующая локация, скип любой клавишей
+
     G.interT-=dt;
     if(G.interT<=0){
       G.waveState='calm';G.waveT=3.2;
@@ -458,8 +457,7 @@ function updateWaves(dt){
       msg('Новый офис. Обустраиваемся…',3);
     }
   }else{
-    // зачистка хвостов: когда спавн-очередь пуста и мобов мало, HR «вычисляет» уцелевших —
-    // все агрятся, недосягаемые телепортируются к игроку. Спринт всегда может закончиться.
+
     G.sweepT=(G.sweepT||0)-dt;
     if(G.sweepT<=0&&G.spawnQ.length===0&&G.mobs.length>0&&G.mobs.length<=6){
       G.sweepT=4;
@@ -469,7 +467,7 @@ function updateWaves(dt){
         for(i=0;i<G.mobs.length;i++){var sw=G.mobs[i];
           if(sw.dead)continue;
           sw.aggro=true;
-          // хвостов мало: за стеной — телепорт без порога дистанции; далеко или недосягаемо — тоже
+
           if(!reachOK(sw.x,sw.y)||dist(sw,anchor)>1100||
              (G.mobs.length<=3&&!losClear(sw.x,sw.y,anchor.x,anchor.y)&&dist(sw,anchor)>90)||
              (dist(sw,anchor)>240&&!losClear(sw.x,sw.y,anchor.x,anchor.y))){
@@ -514,8 +512,8 @@ function update(dt){
   }
   if(NET.mode==='guest'){guestUpdate(dt);return;}
   if(G.state!=='playing')return;
-  if(OV_OPEN==='bperk'&&NET.mode==='solo')return; // выбор буста: соло-мир ждёт
-  // flow-field к ближайшему живому игроку
+  if(OV_OPEN==='bperk'&&NET.mode==='solo')return;
+
   FLOW.t-=dt;
   var fp=null;
   for(var i=0;i<G.players.length;i++)if(!G.players[i].dead&&(fp===null||G.players[i].respT<fp.respT))fp=G.players[i];
@@ -542,7 +540,6 @@ function gameOver(){
   broadcast({t:'stt',s:'dead',stats:{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade,co:(meD?meD.coins:0)||0}});
 }
 
-// переезд в новую локацию между спринтами: свежая карта+тема, игроки в лобби
 function regenLocation(seed){
   seed=(seed>0)?(seed|0):((R()*1e9)|0);
   buildMap(seed);

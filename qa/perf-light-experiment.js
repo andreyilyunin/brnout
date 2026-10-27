@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-// QA-эксперимент: почему drawLighting жжёт кадр — считаем LIGHTS/дырки за кадр,
-// меряем варианты (baseline vs viewport-culling vs полускейл) на живой игре.
+
 'use strict';
 const puppeteer = require('puppeteer');
-// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
-// локально кэш бывает пуст — тогда системный chromium, если он есть
+
 const fs = require('fs');
 const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 const BASE = 'http://127.0.0.1:8099';
@@ -21,7 +19,7 @@ const BASE = 'http://127.0.0.1:8099';
     await new Promise(r => setTimeout(r, 5000));
 
     const facts = await page.evaluate(() => {
-      // сколько ламп всего и сколько реально попадает в кадр
+
       const Wc = cv.width / (DPR * G.zoom), Hc = cv.height / (DPR * G.zoom);
       let inView = 0, inView2x = 0;
       for (const L of LIGHTS) {
@@ -33,16 +31,15 @@ const BASE = 'http://127.0.0.1:8099';
     });
     console.log('СВЕТА:', JSON.stringify(facts));
 
-    // === вариант A: baseline (как в игре) ===
     const timeVariant = async (label, patchFn) => {
       await page.evaluate(patchFn);
-      await new Promise(r => setTimeout(r, 1500)); // разгон
+      await new Promise(r => setTimeout(r, 1500));
       const res = await page.evaluate(() => new Promise(resolve => {
         const N = 200; const times = [];
         const orig = window.render;
         let counted = 0;
         const t0 = performance.now();
-        // меряем сам drawLighting через обёртку
+
         const dl = window.drawLighting;
         let acc = 0, n = 0;
         window.drawLighting = function (...a) {
@@ -57,7 +54,6 @@ const BASE = 'http://127.0.0.1:8099';
 
     await timeVariant('A. baseline (все лампы карты)', () => {});
 
-    // === вариант B: culling по видимой области + запас ===
     await timeVariant('B. culling viewport', () => {
       window.drawLighting = function () {
         var sc = 0.5;
@@ -70,7 +66,7 @@ const BASE = 'http://127.0.0.1:8099';
         function hole(x, y, r, i2) { lctx.globalAlpha = i2; lctx.drawImage(holeCv, x - r, y - r, r * 2, r * 2); lctx.globalAlpha = 1; }
         var i;
         var Wc = cv.width / (DPR * G.zoom), Hc = cv.height / (DPR * G.zoom);
-        var M = 320; // запас: радиус дырки ~280
+        var M = 320;
         for (i = 0; i < LIGHTS.length; i++) { var L = LIGHTS[i];
           if (L.dead) continue;
           if (L.x < G.camX - M || L.x > G.camX + Wc + M || L.y < G.camY - M || L.y > G.camY + Hc + M) continue;
@@ -91,24 +87,21 @@ const BASE = 'http://127.0.0.1:8099';
       };
     });
 
-    // === вариант C: culling + четверть-скейл буфер (sc=0.25) ===
     await timeVariant('C. culling + sc=0.25', () => {
       var sc2 = 0.25;
       var cv2 = document.createElement('canvas'), cx2 = cv2.getContext('2d');
       var _orig = window.drawLighting;
       window.drawLighting = function () {
         if (cv2.width !== Math.max(2, Math.round(cv.width * sc2)) || cv2.height !== Math.max(2, Math.round(cv.height * sc2))) { cv2.width = Math.max(2, Math.round(cv.width * sc2)); cv2.height = Math.max(2, Math.round(cv.height * sc2)); }
-        // используем основной lightCv, но с меньшим буфером нельзя (переиспользуется) — рисуем во временный
+
         var keep = [lightCv.width, lightCv.height];
         lightCv.width = cv2.width; lightCv.height = cv2.height;
         _orig();
-        // вернём размер и результат скопируем не будем — просто мерим время оригинала на мелком буфере
-        // (визуал не важен — важен тайминг)
+
         lightCv.width = keep[0]; lightCv.height = keep[1];
       };
     });
 
-    // восстановить оригинал не нужно — страница живёт в этом контексте до закрытия
   } finally {
     await browser.close();
   }

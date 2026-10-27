@@ -1,21 +1,17 @@
 #!/usr/bin/env node
-// QA: профилирование кадров — какой этап конвейера жжёт CPU.
-// Сценарии: menu / battle. Замер через performance.now() вокруг этапов
-// render/update (JS-время), плюс итоговое rAF-время кадра.
+
 'use strict';
 const puppeteer = require('puppeteer');
-// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
-// локально кэш бывает пуст — тогда системный chromium, если он есть
+
 const fs = require('fs');
 const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 
 const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 
-// обёртка-инжект: патчим функции под таймеры, копим статистику в __prof
 const INJECT = () => {
   const stages = ['update','updateCamera','drawWorld','drawChaos','drawFog','drawLighting','drawPost','drawSouls','drawHUD','drawMinimap'];
   window.__prof = { acc: {}, n: 0, frames: [], raf: [] };
-  for (const s of stages) window.__prof.acc[s] = [0, 0]; // [sum, count]
+  for (const s of stages) window.__prof.acc[s] = [0, 0];
   const wrap = (obj, name) => {
     const orig = obj[name];
     if (typeof orig !== 'function') return;
@@ -39,7 +35,7 @@ const INJECT = () => {
   wrap(window, 'drawSouls');
   wrap(window, 'drawHUD');
   wrap(window, 'drawMinimap');
-  // rAF-тайминг: длина кадра глазами браузера (включая compositor-долю)
+
   let last = performance.now();
   const rafLoop = (ts) => {
     window.__prof.raf.push(ts - last);
@@ -47,7 +43,7 @@ const INJECT = () => {
     requestAnimationFrame(rafLoop);
   };
   requestAnimationFrame(rafLoop);
-  // полный кадр: патчим render целиком
+
   const origRender = window.render;
   window.render = function (...args) {
     const t0 = performance.now();
@@ -64,12 +60,12 @@ const stats = (arr) => {
 };
 
 async function profileScene(page, scene, label) {
-  // (пере)загрузка страницы и запуск сцены
+
   await page.goto(BASE, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__bo && window.G, { timeout: 10000 });
   if (scene === 'battle') {
     await page.evaluate(() => { window.__bo.startLocal(); });
-    // прогрев: добиваемся активного спринта с мобами
+
     await new Promise(r => setTimeout(r, 6000));
   } else {
     await new Promise(r => setTimeout(r, 3000));
@@ -118,7 +114,7 @@ async function profileScene(page, scene, label) {
     page.on('pageerror', e => console.log('PAGEERROR:', e.message));
     await profileScene(page, 'menu', 'МЕНЮ 1280×720 @2x');
     await profileScene(page, 'battle', 'БОЙ 1280×720 @2x');
-    // телефонный вьюпорт: айфон X ~ 375×812 @3x (DPR у нас capped 2)
+
     const page2 = await browser.newPage();
     await page2.setViewport({ width: 390, height: 700, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     page2.on('pageerror', e => console.log('PAGEERROR:', e.message));

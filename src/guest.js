@@ -1,5 +1,5 @@
 'use strict';
-// ============================== guest view ==============================
+
 var VIEW={players:[],mobs:[],boss:null,projs:[],pickups:[],zones:[],coffee:[3,3],init:false,paused:false};
 function guestApplySnapshot(s){
   var i,j,found;
@@ -62,9 +62,21 @@ function guestApplySnapshot(s){
 }
 function guestEvent(e){
   var x=e.x,y=e.y;
+  if(e.k==='map'){
+    buildMap(e.seed);
+    VIEW.mobs.length=0;VIEW.projs.length=0;VIEW.pickups.length=0;VIEW.zones.length=0;
+    G.fx.length=0;G.texts.length=0;
+    DEBRIS.length=0;WATER.length=0;PFX.length=0;STONES.length=0;
+    G.waveState='calm';G.interT=0;G.fadeT=0.9;
+    var lb=lobbySpawn();
+    for(var mi=0;mi<VIEW.players.length;mi++){var mp=VIEW.players[mi];
+      mp.x=lb.x+lb.w/2;mp.y=lb.y+lb.h/2;mp.tgt=null;
+    }
+    return;
+  }
   if(e.k==='die'){
     for(var j=0;j<6;j++)G.fx.push({type:'paper',x:x,y:y,vx:R()*160-80,vy:R()*160-80,rot:R()*3,vr:R()*6-3,t:0,life:0.7+R()*0.4});
-    dramaOfDeath(x,y,e.tp,e.elite); // общий код с хостом: стон, душа, монеты
+    dramaOfDeath(x,y,e.tp,e.elite);
   }else if(e.k==='ring'){
     G.fx.push({type:'ring',x:x,y:y,rad:10,radMax:e.rm,t:0,life:0.4,blue:e.blue,orange:e.orange,yellow:e.yellow,green:e.green});
   }else if(e.k==='slash'){
@@ -109,7 +121,7 @@ function guestUpdate(dt){
   var i,k=1-Math.exp(-10*dt);
   for(i=0;i<VIEW.players.length;i++){var p=VIEW.players[i],tg=p.tgt;
     if(!tg)continue;
-    if(tg.sc!==undefined)p.superC=tg.sc; // заряд СУПЕРа от хоста
+    if(tg.sc!==undefined)p.superC=tg.sc;
     var isMe=p.id===NET.myId;
     if(isMe&&G.state==='playing'){
       var l=Math.hypot(INPUT.ix,INPUT.iy);
@@ -183,7 +195,6 @@ function guestLocalAttackCosmetics(){
   if(INPUT.sk2&&me.cdS<=0){me.cdS=0.5;}
 }
 
-// ============================== snapshot ==============================
 function sendSnapshot(){
   if(!NET.conns.length)return;
   var p=G.players.map(function(pl,i){return{id:pl.id,cls:pl.cls,x:Math.round(pl.x),y:Math.round(pl.y),face:Math.round(pl.aim*100)/100,
@@ -210,5 +221,5 @@ function sendSnapshot(){
   broadcast(snap);
 }
 function broadcast(d){
-  relayBroadcast(d); // один publish на всех: адресация на брокере, не на клиентах
+  relayBroadcast(d);
 }

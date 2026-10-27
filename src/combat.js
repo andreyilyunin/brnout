@@ -1,5 +1,5 @@
 'use strict';
-// ============================== waves & combat ==============================
+
 function msg(t,d){G.msg=t;G.msgT=d||4.5;NET.events.push({k:'msg',t:t,d:d||4.5});}
 var TXPRIO={F:0,D:1,C:2,I:3,S:4};
 var TXLIFE={F:0.9,D:1.4,C:1.1,I:1.6,S:2.4};
@@ -97,7 +97,7 @@ function spawnMob(type){
     }
     p0={x:pick.x+(R()*70-35),y:pick.y+(R()*70-35)};
     if(blockedAt(p0.x,p0.y,18))p0=freeSpotNear(pick.x,pick.y,0,200,16);
-    if(!reachOK(p0.x,p0.y))p0=snapReachable(p0); // фолбэк мог утащить за стену
+    if(!reachOK(p0.x,p0.y))p0=snapReachable(p0);
     NET.events.push({k:'spawn',x:Math.round(p0.x),y:Math.round(p0.y),tag:pick.tag});
     G.fx.push({type:'ring',x:p0.x,y:p0.y,rad:26,radMax:8,t:0,life:0.5,purple:1});
   }else{
@@ -112,11 +112,11 @@ function spawnMob(type){
     var mm={id:++G.mobSeq,type:'intern',x:p0.x,y:p0.y,r:elite?19:15,hp:(16+2*w)*(elite?2.5:1)*pScale*coopScale,hpMax:(16+2*w)*(elite?2.5:1)*pScale*coopScale,spd:(55+R()*22+w*2)*(elite?0.92:1),elite:elite?1:0,
       stun:0,kx:0,ky:0,cd:R(),wt:0,wx:0,wy:0,face:0,aggro:false,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0};
-    if(mm.elite){ // супер-мобы: три характера
+    if(mm.elite){
       mm.ev=(R()*3)|0;
-      if(mm.ev===0){mm.hp*=1.9;mm.hpMax*=1.9;mm.spd*=0.8;mm.r=23;mm.tint=2;}            // «стажёр года»: танк
-      else if(mm.ev===1){mm.hp*=0.65;mm.spd*=1.7;mm.tint=1;}                             // «на энергетиках»: бегун
-      else{mm.hp*=1.3;mm.r=17;mm.tint=3;mm.dmgMul=1.7;}                                  // «обиженный»: бьёт больнее
+      if(mm.ev===0){mm.hp*=1.9;mm.hpMax*=1.9;mm.spd*=0.8;mm.r=23;mm.tint=2;}
+      else if(mm.ev===1){mm.hp*=0.65;mm.spd*=1.7;mm.tint=1;}
+      else{mm.hp*=1.3;mm.r=17;mm.tint=3;mm.dmgMul=1.7;}
     }
     G.mobs.push(mm);
   }else{
@@ -133,7 +133,7 @@ function spawnMob(type){
 function spawnBoss(){
   var arena=bossArena();
   var cx=arena.x+arena.w/2,cy=arena.y+arena.h/2,p=null;
-  // точка арены, максимально дальняя от живых игроков: босс не падает на голову
+
   var bestScore=-1;
   for(var bi=0;bi<REACH_LIST.length;bi++){var t2=REACH_LIST[bi];
     if(t2.x<arena.x||t2.x>arena.x+arena.w||t2.y<arena.y||t2.y>arena.y+arena.h)continue;
@@ -143,11 +143,11 @@ function spawnBoss(){
       if(G.players[pj].dead)continue;
       minD=Math.min(minD,Math.hypot(G.players[pj].x-t2.x,G.players[pj].y-t2.y));
     }
-    var score=minD-Math.hypot(t2.x-cx,t2.y-cy)*0.25; // но не в углу: тянем к центру
+    var score=minD-Math.hypot(t2.x-cx,t2.y-cy)*0.25;
     if(score>bestScore){bestScore=score;p=t2;}
   }
   if(!p)p=snapReachable({x:cx,y:cy});
-  if(blockedAt(p.x,p.y,46)){ // босс ⌀88: тайл из REACH(r16) может быть мебельным карманом
+  if(blockedAt(p.x,p.y,46)){
     var bb=null,bbd=1e18;
     for(var bi2=0;bi2<REACH_LIST.length;bi2++){var rt=REACH_LIST[bi2];
       if(blockedAt(rt.x,rt.y,46))continue;
@@ -176,7 +176,7 @@ function addXp(n,x,y){
 function spendCoffee(p,n){
   var c=Math.ceil(n*(p.costMult||1));
   if(p.coffee<c){floatText(p.x,p.y-30,'НЕ ХВАТАЕТ КОФЕ','#d29922',12,'I');return false;}
-  p.coffee-=c;SFX.sip(); // трата кофе подкреплена «сёрбом»
+  p.coffee-=c;SFX.sip();
   return true;
 }
 function addBurnout(p,n,src){
@@ -189,7 +189,7 @@ function addBurnout(p,n,src){
   if(window.__tm&&p===localPlayer())__tm.hurt=(__tm.hurt||0)+n,(__tm.src=__tm.src||{})[src||'mob']=((__tm.src[src||'mob']||0)+n);
   floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14,'I');
   if(p.burnout>=100){
-    if(G.players.length===1&&!p.revived){ // «переработал(а)»: раз за забег соло-смерть превращается в овертайм
+    if(G.players.length===1&&!p.revived){
       p.revived=true;p.burnout=55;p.coffee=50;p.inv=2.5;
       floatText(p.x,p.y-40,'переработал(а) — смену не закрыть','#d29922',16,'S');
       G.fx.push({type:'ring',x:p.x,y:p.y,rad:14,radMax:150,t:0,life:0.6,gold:true});
@@ -198,7 +198,7 @@ function addBurnout(p,n,src){
     }
     p.dead=true;p.respT=0;
     floatText(p.x,p.y-40,'сгорел(а)','#e5534b',16);
-    if((p.coins||0)>=10){ // соулс-папка: полплашек и заряд СУПЕРа падают на место гибели
+    if((p.coins||0)>=10){
       var dropN=Math.floor(p.coins*0.5);
       p.coins-=dropN;
       var dropS=p.superC||0;p.superC=0;
@@ -211,7 +211,7 @@ function addBurnout(p,n,src){
   }
 }
 function damageMob(m,dmg,kx,ky,stun){
-  if(m.mk>0)dmg*=1.5; // «в таргете»
+  if(m.mk>0)dmg*=1.5;
   var cb=0;
   for(var ci=0;ci<G.players.length;ci++)cb=Math.max(cb,G.players[ci].critBonus||0);
   var crit=R()<(0.15+cb);
@@ -225,7 +225,7 @@ function damageMob(m,dmg,kx,ky,stun){
       NET.events.push({k:'plates',x:Math.round(m.x),y:Math.round(m.y-20),n:pn});
     }else{
       floatText(m.x+(R()*14-7),m.y-m.r-8,'КРИТ '+Math.round(dmg),'#ff8a5c',15,'C');
-      // крит = корпоративный сленг облаком вверх по дуге
+
       var sl=[['ASAP!','#e8c56a'],['DEADLINE!','#c4574e'],['REJECTED!','#a32626'],['FYI','#d8cfc0']][(R()*4)|0];
       G.fx.push({type:'slang',x:m.x,y:m.y-m.r-10,txt:sl[0],col:sl[1],dir:R()<0.5?-1:1,t:0,life:0.45});
     }
@@ -237,7 +237,7 @@ function damageMob(m,dmg,kx,ky,stun){
   }
   if(m.hp<=0&&!m.dead){m.dead=true;killMob(m);}
 }
-// ---- destructible furniture ----
+
 function paintDestroy(f){
   var c=floorCv.getContext('2d');
   c.fillStyle='#20242c';c.fillRect(f.x-3,f.y-3,f.w+6,f.h+6);
@@ -299,10 +299,10 @@ function furnInArc(pl,arc,rad,dmg){
       damageFurn(f,dmg);
   }
 }
-// диабло-смерть: стон, улетающая душа с выдохом, горсть монет
+
 function dramaOfDeath(x,y,tp,elite){
   var pitch=tp==='deadline'?0.75:(elite?0.6:1.15+R()*0.25);
-  var agony=R()<0.5; // амазонки Диабло: кто-то корчится, кто-то уходит с облегчением
+  var agony=R()<0.5;
   SFX.deathCry(pitch);
   spawnDebris({kind:'soul',x:x,y:y-6,pitch:pitch,elite:elite,mood:agony?'agony':'relief',t:0,life:agony?1.6:1.35});
   setTimeout(function(){
@@ -318,7 +318,7 @@ function killMob(m){
     if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
   }
   NET.events.push({k:'die',x:Math.round(m.x),y:Math.round(m.y),tp:m.type,elite:m.elite?1:0});
-  // комбо: серия убийств без получения урона
+
   G.combo=Math.min(9,(G.combo||0)+1);G.comboT=3;
   if(G.combo>=9)award('combo9');
   if(G.combo===5||G.combo===7||G.combo===9){
@@ -352,7 +352,7 @@ function killMob(m){
     else if(G.wave<G.campaign)msg('Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
     G.boss=null;return;
   }
-  if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13); // ТЗ: правки лопаются в «ASAP»
+  if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13);
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;

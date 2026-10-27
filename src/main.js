@@ -1,8 +1,8 @@
 'use strict';
-// ============================== loop ==============================
+
 var lastT=0;
-var CAP_MS=1000/60-2; // 120Гц ProMotion без капа жгут конвейер вдвое; −2мс — джиттер-запас для честных 60Гц
-// ?fps=1 — маленький счётчик кадров: разницу до/после оптимизаций видно глазами
+var CAP_MS=1000/60-2;
+
 var FPS_EL=null,fpsN=0,fpsMark=0;
 try{
   if(/[?&]fps=1/.test(location.search)){
@@ -14,7 +14,7 @@ try{
 function loop(ts){
   requestAnimationFrame(loop);
   if(FPS_EL){fpsN++;if(ts-fpsMark>=500){FPS_EL.textContent=Math.round(fpsN*1000/(ts-fpsMark))+' fps';fpsN=0;fpsMark=ts;}}
-  if(lastT&&ts-lastT<CAP_MS)return; // ждём свой слот: dt честно накопится к следующему кадру
+  if(lastT&&ts-lastT<CAP_MS)return;
   var dt=Math.min(0.05,(ts-lastT)/1000||0.016);
   lastT=ts;
   if(G.state==='playing'&&!MUS.on)startMusic();
@@ -32,11 +32,10 @@ function loop(ts){
   perkMaybe();
   try{render();
     var fsB=document.getElementById('btnFS');
-    if(fsB)fsB.classList.toggle('hidden',G.state==='playing'&&!isTouch); // тачу кнопка нужна и в бою; десктоп — от случайных кликов прячем
+    if(fsB)fsB.classList.toggle('hidden',G.state==='playing'&&!isTouch);
   }catch(e){console.error('render:',e);}
 }
 
-// ============================== perks ==============================
 var PERKSEL=[];
 function rollPerks(){
   PERKSEL=[];
@@ -46,9 +45,9 @@ function rollPerks(){
   var rares=[],commons=[],stale=[];
   for(var pi=0;pi<PERKS.length;pi++){
     var pk=PERKS[pi];
-    if(pk.cls&&pk.cls.indexOf(NET.cls)<0)continue; // поведенческие — только своему классу
+    if(pk.cls&&pk.cls.indexOf(NET.cls)<0)continue;
     if(pk.r==='r'){if(!owned[pk.id])rares.push(pk);}
-    else(owned[pk.id]?stale:commons).push(pk); // взятые обычные — в запас на случай пустого пула
+    else(owned[pk.id]?stale:commons).push(pk);
   }
   if(rares.length&&R()<0.45)PERKSEL.push(rares.splice((R()*rares.length)|0,1)[0]);
   var pool=rares.concat(commons);
@@ -56,7 +55,7 @@ function rollPerks(){
     var idx=(R()*pool.length)|0;
     PERKSEL.push(pool.splice(idx,1)[0]);
   }
-  while(PERKSEL.length<2&&stale.length){ // пул исчерпан — повтор лучше пустой карточки
+  while(PERKSEL.length<2&&stale.length){
     var si=(R()*stale.length)|0;
     PERKSEL.push(stale.splice(si,1)[0]);
   }
@@ -94,7 +93,6 @@ window.addEventListener('keydown',function(e){
   else if(e.code==='Digit2')pickPerk(1);
 });
 
-// ============================== menu wiring ==============================
 function $(id){return document.getElementById(id);}
 var menuMode='solo';
 var selCls='mgr';
@@ -117,7 +115,7 @@ function refreshMenuUI(){
 function selectClass(cls){
   selCls=cls;
   NET.cls=cls;
-  audioInit();SFX.clsPick(); // сочный аккорд на выбор класса (ТЗ UI)
+  audioInit();SFX.clsPick();
   refreshMenuUI();
   updateDetail();
 }
@@ -130,7 +128,7 @@ function updateDetail(){
   var ph=$('bgPhoto');
   if(ph&&PHOTOSRC[selCls]){
     ph.src=PHOTOSRC[selCls];
-    ph.classList.toggle('photo-pix',!PORTRAIT_FILES[selCls]); // процедурные 88×156 — только pixelated
+    ph.classList.toggle('photo-pix',!PORTRAIT_FILES[selCls]);
   }
   var box=$('detSkills');
   if(!box)return;
@@ -171,7 +169,7 @@ function connectGuest(code){
   guestJoin(code,function(err){
     if(err){
       $('netStatus').textContent='';
-      showOv('bjoin'); // код известен — пусть правит в форме, там есть строка ошибки
+      showOv('bjoin');
       document.getElementById('joinCode').value=code;
       $('joinErr').textContent=err==='nobroker'?'Брокеры недоступны — проверьте интернет':'Комната не отвечает. Хост ещё в игре?';
       destroyNet();
@@ -206,7 +204,7 @@ function careerRender(){
   for(var i=0;i<ACHS.length;i++){var a=ACHS[i],on=CAREER.ach[a.id];
     html+='<div class="crrow'+(on?' on':'')+'"><b>'+(on?a.n:'???')+'</b><span>'+a.d+'</span></div>';
   }
-  $('crAch').innerHTML=html; /*safe: имена/описания только из констант ACHS*/
+  $('crAch').innerHTML=html;
 }
 refreshMenuUI();
 renderClassPortraits();
@@ -215,7 +213,7 @@ $('cHost').addEventListener('click',function(){
   showOv('bhost');
   $('roomCode').textContent='…';
   $('shareHint').textContent='соединяемся с брокером…';
-  destroyNet();LOBBY=[]; // повторный клик не должен течь прошлой комнатой
+  destroyNet();LOBBY=[];
   hostCreate(function(err){
     if(err){$('roomCode').textContent='-----';
       $('shareHint').textContent=(err==='nobroker'?'ни один брокер недоступен — проверьте интернет':'брокер недоступен, попробуйте ещё раз');
@@ -226,9 +224,9 @@ $('cHost').addEventListener('click',function(){
 });
 $('bshare').addEventListener('click',function(){shareInvite($('bshare'));});
 $('pauseShare').addEventListener('click',function(){shareInvite($('pauseShare'));});
-$('bBack2').addEventListener('click',function(){showOv('bmenu');});   // кооп -> меню
-$('bBack3').addEventListener('click',function(){showOv('bcoop');});   // ввод кода -> кооп
-$('bBack4').addEventListener('click',function(){                       // выход из лобби хоста
+$('bBack2').addEventListener('click',function(){showOv('bmenu');});
+$('bBack3').addEventListener('click',function(){showOv('bcoop');});
+$('bBack4').addEventListener('click',function(){
   try{broadcast({t:'stt',s:'paused'});}catch(e){}
   destroyNet();LOBBY=[];showOv('bmenu');
 });
@@ -288,7 +286,6 @@ window.addEventListener('blur',function(){
   keys={};
 });
 
-// ============================== init ==============================
 function resize(){
   var r=root.getBoundingClientRect();
   DPR=Math.min(2,window.devicePixelRatio||1);
@@ -303,7 +300,7 @@ function resize(){
 window.addEventListener('resize',resize);
 if(window.ResizeObserver){new ResizeObserver(resize).observe(root);}
 buildMap(20261020);
-for(var mi=0;mi<GW*GH;mi++)FOG.explored[mi]=1; // фон меню: офис виден до старта
+for(var mi=0;mi<GW*GH;mi++)FOG.explored[mi]=1;
 resize();
 window.__bo={G:G,NET:NET,VIEW:VIEW,INPUT:INPUT,startLocal:startLocal,hostStartGame:hostStartGame,buildMap:buildMap,
   spawns:function(){return SPAWNS;},rooms:function(){return ROOMS;},blockedAt:blockedAt,
@@ -341,7 +338,7 @@ window.__bo={G:G,NET:NET,VIEW:VIEW,INPUT:INPUT,startLocal:startLocal,hostStartGa
     }
   }};
 requestAnimationFrame(loop);
-// вход по инвайт-ссылке: ?join=code — друг выбирает класс в меню и жмёт «ВОЙТИ В КОМНАТУ»
+
 var PENDING_JOIN=null;
 try{
   var _jc=new URL(location.href).searchParams.get('join');
@@ -353,10 +350,8 @@ try{
   }
 }catch(e){}
 
-// бут: меню открыто по HTML — фиксируем OV_OPEN, иначе тач-HUD рисуется поверх меню
 try{showOv('bmenu');}catch(e){}
 
-// телефон в руках с первого кадра: тач-HUD не ждёт первого касания (гибриды откатит движение мыши)
 try{
   if(navigator.maxTouchPoints>0&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)enableTouch();
 }catch(e){}

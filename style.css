@@ -1,4 +1,3 @@
-/* вписываем в высоту экрана: леттербокс по бокам лучше, чем обрезанные кнопки снизу */
 #burnout{position:relative;width:min(100%,calc(100vh*16/9));width:min(100%,calc(100dvh*16/9));aspect-ratio:16/9;height:auto;background:#05070a;overflow:hidden;border-radius:6px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;}
 @media(max-width:720px), (orientation:portrait){
   html,body{overflow:hidden;height:100%;margin:0;}
@@ -16,7 +15,7 @@
 @keyframes boflick{0%,91%,94%,98%,100%{opacity:1}92%{opacity:.35}96%{opacity:.7}}
 #burnout .bgtag{color:#8b949e;margin:6px 0 16px;font-style:italic;font-size:14px;}
 #burnout .bgpanel{max-width:860px;}
-/* ===== выбор класса: рейка портретов + детальная панель ===== */
+
 #burnout .bgselect{display:flex;gap:12px;align-items:stretch;min-height:0;}
 #burnout .bgrail{display:flex;flex-direction:column;gap:8px;width:96px;flex:none;}
 #burnout .brail{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:8px;padding:5px 4px;cursor:pointer;color:#9aa4af;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.4;transition:border-color .15s,box-shadow .15s,transform .15s;min-height:0;overflow:hidden;}
@@ -66,27 +65,24 @@
 #burnout .tbtn:active{transform:scale(0.92);filter:brightness(1.5);}
 #burnout .tbtn svg{width:46%;height:46%;pointer-events:none;}
 #burnout .tbtn .tlbl{font-size:9px;font-weight:800;letter-spacing:.4px;pointer-events:none;color:#f0f3f7;margin-top:2px;}
-#burnout .tb .tlbl{display:none;} /* иконки+цвет говорят сами; текст мешает */
+#burnout .tb .tlbl{display:none;}
 #burnout .tb-abs .tlbl{display:block;}
 #burnout .tbig svg{width:40%;height:40%;}
 #burnout .tbig .tlbl{font-size:9px;}
 #burnout .tbtn.oncd{opacity:.55;filter:saturate(.45);}
 #burnout .tb-abs.nochg{opacity:.45;filter:grayscale(.8);}
-/* ДУГА (канон Brawl Stars / Diablo Immortal): атака-герой в углу, остальной веер
-   на дуге R=128px вокруг центра атаки (68,86 от правого-нижнего края), углы 95..205° шаг 27.5°.
-   Частотная эргономика: частое — ближе к атаке, ульта — в конце дуги. */
+
 #burnout .tb,#burnout .tbig{width:var(--cell);height:var(--cell);}
-#burnout .tbig{--cell:min(26vw,104px);right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));} /* герой кластера: крупный, у самого края */
-/* Brawl Stars канон: атака и СУПЕР — жёлтые (#ffce00), гаджеты — серые мелкие */
+#burnout .tbig{--cell:min(26vw,104px);right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));}
+
 #burnout .tbig{border-color:#ffce00;background:radial-gradient(circle at 35% 30%,rgba(255,206,0,.34),rgba(60,50,10,.8));color:#ffe566;box-shadow:0 0 12px rgba(255,206,0,.28);}
-#burnout .tb-abs{--cell:min(15vw,58px);right:calc(48px + env(safe-area-inset-right,0px));bottom:calc(182px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);} /* СУПЕР 95° — верх дуги */
+#burnout .tb-abs{--cell:min(15vw,58px);right:calc(48px + env(safe-area-inset-right,0px));bottom:calc(182px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);}
 #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(13.5vw,50px);font-size:7px;border-color:rgba(150,158,168,.8);color:#cfd6dd;}
-#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(169px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}   /* ПРИЁМ 122.5° */
-#burnout .tb-dodge{right:calc(154px + env(safe-area-inset-right,0px));bottom:calc(125px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}  /* РЫВОК 150° */
-#burnout .tb-skill{right:calc(171px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}  /* СКИЛ 177.5° */
-#burnout .tb-ult{right:calc(159px + env(safe-area-inset-right,0px));bottom:calc(7px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}      /* УЛЬТА 205° — конец дуги */
-/* низкий ландшафт (высота ≤520px, телефоны в горизонтали): дугу сжимаем ~15% и прижимаем вниз,
-   чтобы СУПЕР не уезжал за верх, а кнопки с подписями .tlbl не резались нижней кромкой экрана */
+#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(169px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}
+#burnout .tb-dodge{right:calc(154px + env(safe-area-inset-right,0px));bottom:calc(125px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}
+#burnout .tb-skill{right:calc(171px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}
+#burnout .tb-ult{right:calc(159px + env(safe-area-inset-right,0px));bottom:calc(7px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
+
 @media (max-height:520px){
   #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));}
   #burnout .tb-abs{--cell:min(13vw,50px);right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(170px + env(safe-area-inset-bottom,0px));}
@@ -102,7 +98,6 @@
 #burnout:fullscreen,#burnout:-webkit-full-screen{aspect-ratio:auto;inset:0;width:100vw;height:100dvh;min-height:0;border-radius:0;}
 #burnout #btnPauseM{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:4;width:46px;height:46px;border-radius:8px;background:rgba(33,38,45,.7);border:1px solid #30363d;color:#e6edf3;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:auto;}
 
-/* ===== неоновое главное меню ===== */
 #burnout .bgtitle{font-family:'Pixelify Sans',Arial,sans-serif;font-weight:700;font-size:clamp(24px,5.4cqw,46px);letter-spacing:2px;color:#fff3dc;
   text-shadow:0 0 6px rgba(196,162,78,0.85),0 0 20px rgba(90,60,20,0.75),0 0 46px rgba(120,60,24,0.5);
   animation:boflick 4s infinite;}
@@ -120,7 +115,6 @@
 #burnout .bgcredit a{color:#7d8590;text-decoration:none;border-bottom:1px dotted #4d5560;transition:color .15s,border-color .15s;}
 #burnout .bgcredit a:hover{color:#c49a3d;border-color:#c49a3d;}
 
-/* ===== главное меню: класс-фокус, углы ===== */
 #burnout .bgmain{display:flex;flex-direction:column;gap:8px;}
 #burnout .bgbottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;}
 #burnout .bgcorner{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
@@ -132,19 +126,17 @@
 #burnout .bgmodebtn.on{border-color:#c49a3d;color:#c49a3d;background:rgba(90,60,20,0.2);}
 #burnout .bgset{max-width:420px;}
 
-/* пауза: Продолжить — primary */
 #burnout #bresume{background:linear-gradient(180deg,#ffd633,#d9a800)!important;border-color:#ffd633!important;color:#1c1600!important;font-weight:800;}
 #burnout #bresume:active{transform:scale(0.96);}
-/* джойстик: видимая база-подсказка до первого касания */
+
 #burnout #joyHint{position:absolute;left:26px;bottom:calc(30px + env(safe-area-inset-bottom,0px));width:110px;height:110px;border-radius:50%;border:2px dashed rgba(200,210,225,.3);pointer-events:none;z-index:3;}
 #burnout #joyHint::after{content:'движение';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:rgba(200,210,225,.45);font-size:11px;font-weight:700;}
 
-/* ландшафт: пауза-колонна вместо простыни */
 @media (orientation:landscape){#burnout .bgov .bgcenter{max-width:440px;padding:18px 26px;}}
 #burnout .bgov .bgbtn{min-height:44px;}
-/* сбор лута: боевые кнопки гаснут, мир и джойстик живут */
+
 #burnout.noatk .tb,#burnout.noatk .tbig{display:none;}
-/* нет скроллу страницы вообще (ландшафт тоже) + никаких дефолтных отступов */
+
 html,body{overflow:hidden;margin:0;padding:0;}
 
 @media (orientation:portrait){
@@ -170,7 +162,6 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .brail,#burnout .perkcard{transition:none;}
 }
 
-/* ===== выбор буста при уровне ===== */
 #burnout .perkcards{display:flex;gap:12px;justify-content:center;margin:14px 0 6px;flex-wrap:wrap;}
 #burnout .perkcard{flex:1;min-width:150px;max-width:240px;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,rgba(26,20,14,0.92),rgba(16,12,9,0.92));border:1px solid #263444;border-radius:10px;padding:12px 10px;cursor:pointer;color:#e6edf3;font-family:inherit;transition:transform .15s ease,border-color .15s,box-shadow .15s;}
 #burnout .perkcard b{font-size:14px;letter-spacing:.5px;color:#ffcf5c;}
@@ -188,18 +179,15 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout .crrow.on{color:#9aa4af;}
 #burnout .crrow span{font-size:11px;font-style:italic;}
 
-/* первые секунды первого боя: подписи над тач-кнопками, чтобы не угадывать иконки */
 #burnout .tb .tlbl{display:none;}
 #burnout.tlearn .tb .tlbl{display:block;}
 
-/* десктоп: подсказка движения в первом бою (аналог тач-joyHint) */
 #burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#e8dcc2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
 #burnout .bgsub{font-size:11.5px;opacity:.85;margin-top:2px;}
 #burnout .bgsub b{color:#ffcf5c;}
 
 @media (pointer:coarse){#burnout .kbdonly{display:none;}}
 
-/* низкий ландшафт (телефон повернули): меню без воздуха — кнопки не уезжают за экран */
 @media (orientation:landscape) and (max-height:480px){
   #burnout .bgov .bgpanel{padding:12px 18px;}
   #burnout .bgtitle{font-size:22px;letter-spacing:1px;}
@@ -210,8 +198,6 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .bgbottom{margin-top:8px;}
 }
 
-/* узкий портрет: строка «карьера/настройки/старт/режим» не лезет по ширине —
-   сетка 2 колонки, НАЧАТЬ СМЕНУ сверху на всю ширину */
 @media (max-width:520px){
   #bmenu .bgbottom{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
   #bmenu .bgstart{order:-1;grid-column:1/-1;}

@@ -1,13 +1,10 @@
 #!/usr/bin/env node
-// QA: скриншоты ключевых экранов на 3 вьюпортах + автопроверки.
-// Любая JS-ошибка на странице, наезд тач-кнопок или неверный layout — фейл CI.
+
 'use strict';
 const puppeteer = require('puppeteer');
-// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
-// локально кэш бывает пуст — тогда системный chromium, если он есть
+
 const fs = require('fs');
 const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
-
 
 const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 const OUT = __dirname + '/shots';
@@ -23,10 +20,6 @@ let failures = 0;
 const fail = msg => { console.log('  ✗ ' + msg); failures++; };
 const ok = msg => console.log('  ✓ ' + msg);
 
-// ===== layout-аудит: ВСЕ интерактивные элементы экрана, каждый скрин =====
-// DOM-кнопки (+круглая метрика для .tbtn), поля видимых оверлеев, канвас-зоны
-// (миникарта __mmRect, кнопка спринта __nextBtnRect). Ловит «миникарта пропала»
-// и любые будущие наезды/вылезания до продакшена.
 const AUDIT_SRC = () => {
   const els = [];
   const W = innerWidth, H = innerHeight;
@@ -58,7 +51,7 @@ const AUDIT_SRC = () => {
   for (let i = 0; i < els.length; i++)
     for (let j = i + 1; j < els.length; j++) {
       const a = els[i], b2 = els[j];
-      if (contains(a, b2) || contains(b2, a)) continue; // родитель-потомок легитимно
+      if (contains(a, b2) || contains(b2, a)) continue;
       let hit = false;
       if (a.kind === 'circle' && b2.kind === 'circle')
         hit = Math.hypot(a.cx - b2.cx, a.cy - b2.cy) < a.rad + b2.rad + 2;
@@ -100,7 +93,6 @@ async function auditLayout(page, scene, need) {
     await page.screenshot({ path: OUT + '/' + vp.name + '-menu.png' });
     await auditLayout(page, 'menu');
 
-    // старт соло-игры
     await page.evaluate(() => { document.getElementById('mStart').click(); });
     await new Promise(r => setTimeout(r, 1800));
     const gameState = await page.evaluate(() => window.G ? G.state : 'no-G');
@@ -109,7 +101,6 @@ async function auditLayout(page, scene, need) {
     await page.screenshot({ path: OUT + '/' + vp.name + '-game.png' });
     await auditLayout(page, 'game', 'mm');
 
-    // живая волна
     await page.evaluate(() => {
       G.waveState = 'active'; G.wave = 2; startWave();
       const p = G.players[0]; p.inv = 999; p.burnout = 5;
@@ -122,11 +113,10 @@ async function auditLayout(page, scene, need) {
     else if (!(hudInfo.remain > 0)) fail('счётчик врагов пуст в бою: remain=' + hudInfo.remain);
     else ok('счётчик спринт/врагов на месте: спринт ' + hudInfo.wave + ', врагов ' + hudInfo.remain);
 
-    // layout тач-кнопок (только с touch)
     if (vp.mobile) {
       const overlap = await page.evaluate(() => {
         enableTouch();
-        // кнопки круглые (border-radius:50%) — честная проверка по кругам, не по прямоугольникам
+
         const btns = [...document.querySelectorAll('.tbtn')]
           .filter(b => !b.classList.contains('hidden'))
           .map(b => { const r = b.getBoundingClientRect();
@@ -156,7 +146,6 @@ async function auditLayout(page, scene, need) {
       else ok('все тач-кнопки внутри экрана');
     }
 
-    // интерстишл
     await page.evaluate(() => {
       G.mobs.length = 0; G.spawnQ.length = 0; G.boss = null;
       G.interStats = { w: 2, ki: 9, kd: 3, okr: 4, co: 120 };
@@ -172,7 +161,6 @@ async function auditLayout(page, scene, need) {
     if (!interRect) fail('итоговая статистика спринта не отрисована (__interRect)');
     else ok('итоги спринта на месте (' + Math.round(interRect.w) + 'x' + Math.round(interRect.h) + ')');
 
-    // пауза
     await page.evaluate(() => { G.waveState = 'calm'; G.waveT = 9; togglePause(); });
     await new Promise(r => setTimeout(r, 400));
     await page.screenshot({ path: OUT + '/' + vp.name + '-pause.png' });

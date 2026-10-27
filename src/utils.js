@@ -1,8 +1,7 @@
 'use strict';
-// burnout: corporate evil — utils
+
 var root=document.getElementById('burnout');
 
-// ============================== utils ==============================
 var TAU=Math.PI*2;
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 function dist(a,b){var dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy);}

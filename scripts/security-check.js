@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// security-check: статический скан игры на опасные паттерны.
-// Без зависимостей. Возврат != 0 = найдены проблемы (роняет CI).
+
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +9,6 @@ const FILES = ['index.html', 'style.css']
   .concat(fs.readdirSync(path.join(ROOT, 'src')).map(f => 'src/' + f))
   .concat(fs.readdirSync(path.join(ROOT, 'tests')).map(f => 'tests/' + f));
 
-// [имя, regexp, совет]
 const RULES = [
   ['eval', /\beval\s*\(/, 'не использовать eval — исполнять пользовательский ввод нельзя'],
   ['new Function', /new\s+Function\s*\(/, 'конструктор функций = скрытый eval'],
@@ -27,7 +25,7 @@ for (const rel of FILES) {
   const lines = src.split('\n');
   lines.forEach((line, i) => {
     for (const [name, re, advice] of RULES) {
-      if (/\/\*safe/.test(line)) continue; // строка помечена ревьюером как проверенная
+      if (/\/\*safe/.test(line)) continue;
       if (re.test(line)) {
         problems++;
         console.log(`  [${name}] ${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);

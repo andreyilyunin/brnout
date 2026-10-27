@@ -1,5 +1,5 @@
 'use strict';
-// ============================== state ==============================
+
 var CLS={
   mgr:{name:'менеджер',weapon:'tickets',role:'дальний бой · командные бафы',
     bio:'Пережил три ребрендинга, две смены руководства и один настоящий аудит. Дерётся тем, что всегда под рукой: чужими тикетами и собственной массой. В резюме — «стрессоустойчивый». В жизни — да.',
@@ -45,8 +45,8 @@ function localPlayer(){
   for(var i=0;i<pool.length;i++)if(pool[i].id===NET.myId)return pool[i];
   return pool[0];
 }
-// looks presets — hooks for future customization (skin/hair/outfit per seat)
-var LOOKS=[ // приглушённое подземелье: тёмная шерсть, кровь и латунь
+
+var LOOKS=[
  {skin:'#e8c39e',hair:'#3a2a1a',hs:0,shirt:'#33303a',accent:'#7a1f1f'},
  {skin:'#d9b48f',hair:'#1e1a16',hs:1,shirt:'#2b2a2e',accent:'#54483c'},
  {skin:'#f0d0b0',hair:'#7a4a20',hs:2,shirt:'#3e3040',accent:'#8a6d3b'},
@@ -56,19 +56,19 @@ var LOOKS=[ // приглушённое подземелье: тёмная ше�
  {skin:'#f0d0b0',hair:'#2a2a2a',hs:0,shirt:'#3c3228',accent:'#8ba36e'},
  {skin:'#c99a75',hair:'#8a2a2a',hs:2,shirt:'#333840',accent:'#c47a54'}
 ];
-var HOODIES=[ // стажёры «правки от заказчика»: безликие серые костюмы (ТЗ мобов)
+var HOODIES=[
  {skin:'#e8c39e',hair:'#3a2a1a',hs:1,shirt:'#3a3d42',accent:'#4d5158'},
  {skin:'#d9b48f',hair:'#20180f',hs:1,shirt:'#34373c',accent:'#45494f'},
  {skin:'#f0d0b0',hair:'#6a3a1a',hs:0,shirt:'#40434a',accent:'#53575e'},
  {skin:'#c99a75',hair:'#111111',hs:2,shirt:'#2f3236',accent:'#404449'}
 ];
-// signature class skins — каждый класс узнаваем; место в лобби варьирует тон кожи
+
 var SKINS=['#e8c39e','#d9b48f','#f0d0b0','#c99a75'];
 var CLSLOOKS={
- mgr:{hair:'#4a3220',hs:0,shirt:'#6e747a',accent:'#8b2020'},            // серая футболка + чёрные джинсы, как на фото
- dev:{hair:'#3a2a1a',hs:1,shirt:'#39445c',accent:'#c9cede'},            // тёмно-синее худи, белые кроссовки
- mkt:{hair:'#6a4a2c',hs:2,shirt:'#f06aa2',accent:'#f2e8ee'},            // розовый топ + серая юбка в горошек (отличать от дизайнера)
- dsn:{hair:'#2e262b',hs:2,shirt:'#e08a30',accent:'#5fd0c0'}             // оранжевая куртка + рваные джинсы
+ mgr:{hair:'#4a3220',hs:0,shirt:'#6e747a',accent:'#8b2020'},
+ dev:{hair:'#3a2a1a',hs:1,shirt:'#39445c',accent:'#c9cede'},
+ mkt:{hair:'#6a4a2c',hs:2,shirt:'#f06aa2',accent:'#f2e8ee'},
+ dsn:{hair:'#2e262b',hs:2,shirt:'#e08a30',accent:'#5fd0c0'}
 
 };
 function classLook(cls,seat){
@@ -147,7 +147,6 @@ function careerEndRun(coopMode){
   saveCareer();
 }
 
-// ---------- имена мобов ----------
 var MOBNAMES={
   intern:['стажёр-ибшник','стажёр-фронтендер','стажёр-QA','стажёр-аналитик'],
   deadline:['дедлайн: релиз','дедлайн: демо','дедлайн: аудит']
@@ -158,13 +157,11 @@ function mobName(m){
   return list[(m.tint||0)%list.length];
 }
 
-// ---------- музыкальные данные (движок в music.js) ----------
-// новая гармония: 8 тактов Am Em F Dm | Am G F E (андalusийский спуск — мрак)
 var PROG=[
   [45,[52,57,60,64]],[40,[52,55,59,64]],[41,[53,57,60,65]],[38,[50,57,62,65]],
   [45,[52,57,60,64]],[43,[50,55,59,62]],[41,[53,57,60,65]],[40,[52,56,59,64]]
 ];
-// мелодия: ниже, протяжнее, нисходящие линии
+
 var MEL=[
   [0,0,76,4],[0,6,74,2],[0,8,72,5],[0,15,71,1],
   [1,0,71,3],[1,4,67,2],[1,6,64,2],[1,8,67,5],
@@ -175,7 +172,7 @@ var MEL=[
   [6,0,69,3],[6,4,72,2],[6,6,77,2],[6,8,81,4],[6,14,79,1],
   [7,0,80,2],[7,2,79,2],[7,4,76,4],[7,8,71,4],[7,12,68,3]
 ];
-// ритм-паттерны (16 шагов)
+
 var BPAT=[{s:0,n:0,l:3},{s:3,n:0,l:1},{s:6,n:7,l:2},{s:8,n:0,l:3},{s:10,n:0,l:1},{s:12,n:3,l:2},{s:14,n:12,l:1}];
 var ARPPAT=[1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0];
 var MBPM=88;

@@ -1,5 +1,5 @@
 'use strict';
-// ============================== actions ==============================
+
 function tryPrimary(p){
   if(p.cd1>0)return;
   var C=CLS[p.cls];
@@ -13,7 +13,7 @@ function tryPrimary(p){
     shot(a);
     if(p.dblShot)shot(a+(p.cls==='mgr'?0.12:0.09));
     if(p.cls==='mgr'){SFX.whoosh();SFX.stapler();}
-    else{ // мегафон: дульный конус спама + синтвейв-дым (ТЗ маркетолога, кадры 2 и 4)
+    else{
       G.fx.push({type:'spamcone',x:p.x+Math.cos(a)*20,y:p.y+Math.sin(a)*20,a:a,len:60,hw:26,t:0,life:0.28});
       G.fx.push({type:'smoke',x:p.x+Math.cos(a)*18,y:p.y+Math.sin(a)*18,t:0,life:0.6});
       SFX.notif();
@@ -29,12 +29,12 @@ function tryPrimary(p){
     swing(1);
     if(p.echoSwing)schedule(function(){swing(0.6);SFX.swing();},0.18);
     SFX.swing();
-    if(p.cls==='dev'){ // на ударе летят клавиши, изредка ERROR 404
+    if(p.cls==='dev'){
       if(R()<0.6)SFX.clack();
       var kx0=p.x+Math.cos(p.aim)*rad*0.8,ky0=p.y+Math.sin(p.aim)*rad*0.8;
       for(var kk=0;kk<3;kk++)G.fx.push({type:'keycap',x:kx0,y:ky0,a:p.aim+(kk-1)*0.55,dst:24+R()*20,t:0,life:0.45,ch:'QWERTY'[(R()*6)|0]});
       if(R()<0.3)floatText(kx0,ky0-10,'ERROR 404','#f2c17e',11);
-    }else if(p.cls==='dsn'){ // выпад кисти: брызги CMYK и клякса на полу
+    }else if(p.cls==='dsn'){
       var px4=p.x+Math.cos(p.aim)*rad,py4=p.y+Math.sin(p.aim)*rad;
       G.fx.push({type:'cmyk',x:px4,y:py4,a:p.aim,t:0,life:0.4});
       G.fx.push({type:'paint',x:px4,y:py4,r:9+R()*5,col:['#b85f7a','#5fa8b8','#c4a94e'][(R()*3)|0],t:0,life:0.5});
@@ -49,7 +49,7 @@ function trySecondary(p){
     p.cd2=C.s2.cd*p.cdMult;p.atkT=0.2;
     G.fx.push({type:'slash',cls:p.cls,x:p.x,y:p.y,a:p.aim,arc:100*Math.PI/180,rad:80,t:0,life:0.18,big:true});
     NET.events.push({k:'slash',cls:p.cls,x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:100,rad:80,big:1});
-    // ноутбук-рубящий: сетка-таблица на полу + проценты
+
     var gx0=p.x+Math.cos(p.aim)*62,gy0=p.y+Math.sin(p.aim)*62;
     G.fx.push({type:'grid',x:gx0,y:gy0,r:84,t:0,life:0.55});
     floatText(gx0-14,gy0-8,'%','#c4574e',14);
@@ -71,7 +71,7 @@ function trySecondary(p){
   }else if(p.cls==='mkt'){
     if(!spendCoffee(p,C.s2.cost))return;
     p.cd2=C.s2.cd*p.cdMult;p.atkT=0.25;p.castT=0.3;
-    // funnel: pull enemies from a cone toward the marketer
+
     G.fx.push({type:'ring',x:p.x,y:p.y,rad:240,radMax:40,t:0,life:0.35,purple:true});
     NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:240,rv:40,purple:1});
     SFX.whoosh();
@@ -84,17 +84,17 @@ function trySecondary(p){
       }
     }
     if(G.boss&&dist(p,G.boss)<260+G.boss.r&&Math.abs(angDiff(p.aim,angTo(p,G.boss)))<0.9)damageMob(G.boss,6*p.dmgMult,0,0,0);
-  }else{ // dsn критика: wide push wave
+  }else{
     if(!spendCoffee(p,C.s2.cost))return;
     p.cd2=C.s2.cd*p.cdMult;p.atkT=0.25;
     G.fx.push({type:'slash',cls:p.cls,x:p.x,y:p.y,a:p.aim,arc:200*Math.PI/180,rad:95,t:0,life:0.2,big:true});
     NET.events.push({k:'slash',cls:p.cls,x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:200,rad:95,big:1});
-    G.fx.push({type:'cmyk',x:p.x+Math.cos(p.aim)*70,y:p.y+Math.sin(p.aim)*70,a:p.aim,t:0,life:0.45}); // брызги CMYK
+    G.fx.push({type:'cmyk',x:p.x+Math.cos(p.aim)*70,y:p.y+Math.sin(p.aim)*70,a:p.aim,t:0,life:0.45});
     G.shake+=3;SFX.bell();SFX.slam();
     meleeArc(p,200*Math.PI/180,95,10,430,0);
   }
 }
-function trySkill(p){ // ульта (ПРОБЕЛ)
+function trySkill(p){
   if(p.cdQ>0||p.qT>0)return;
   var C=CLS[p.cls];
   if(p.cls==='mgr'){
@@ -121,7 +121,7 @@ function trySkill(p){ // ульта (ПРОБЕЛ)
     floatText(p.x,p.y-40,'РЕБРЕНДИНГ!','#c8a2e0',16);
     SFX.grade();
     if(hit)floatText(p.x,p.y-58,'мобы в замешательстве','#c8a2e0',11);
-  }else{ // dsn мудборд
+  }else{
     if(!spendCoffee(p,C.ult.cost))return;
     p.cdQ=C.ult.cd*p.cdMult;p.castT=0.6;
     G.fx.push({type:'ring',x:p.x,y:p.y,rad:20,radMax:330,t:0,life:0.5,yellow:true});
@@ -152,42 +152,42 @@ function tryDodge(p){
   NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:70});
   SFX.dodge();
 }
-function tryUlt(p){ // R — СУПЕР (Brawl Stars): заряд от убийств, не от кофе
+function tryUlt(p){
   if(p.dead)return;
   if(G.wave<G.ultAt){floatText(p.x,p.y-48,'СУПЕР откроется на '+G.ultAt+'-м спринте','#8b949e',13);return;}
   if(p.cdU>0)return;
   if((p.superC||0)<1){floatText(p.x,p.y-48,'СУПЕР не заряжен — бей стажёров','#8b949e',13);return;}
   p.superC=0;
   p.cdU=25*p.cdMult;p.castT=0.6;
-  if(p.cls==='mgr'){ // ПЛАНИРОВКА: усиление команды
+  if(p.cls==='mgr'){
     G.plan=8;
     for(var i=0;i<G.players.length;i++){var pl=G.players[i];
       G.fx.push({type:'ring',x:pl.x,y:pl.y,rad:16,radMax:150,t:0,life:0.7,gold:true});
       floatText(pl.x,pl.y-52,'+50% урона','#ffcf5c',14);
     }
     msg('ПЛАНИРОВКА: команда усилилась',3);SFX.plan();
-  }else if(p.cls==='dev'){ // ВЫГОРАНИЕ: клавиатура взрывается клавишами
+  }else if(p.cls==='dev'){
     p.root=1.3;G.shake+=9;
     for(i=0;i<26;i++){var ka=(i/26)*TAU;
       G.projs.push({id:++G.pkSeq,kind:'key',x:p.x,y:p.y,vx:Math.cos(ka)*300,vy:Math.sin(ka)*300,dmg:16*p.dmgMult,life:0.95,rot:R()*TAU,lt:(R()*26|0)});
     }
     SFX.clacks(10);SFX.slam();
     floatText(p.x,p.y-52,'ВЫГОРАНИЕ!','#e5534b',18);
-  }else if(p.cls==='dsn'){ // КОМИК САНС: демон шрифта
+  }else if(p.cls==='dsn'){
     G.demon={x:p.x,y:p.y-30,t:10,cd:0.8,owner:p,ph:0};
     SFX.demon();
     floatText(p.x,p.y-52,'Comic Sans призван','#e88ac8',16);
-  }else{ // mkt: «3 СЕНТЯБРЯ» — рекламная кампания с горящей рябиной
+  }else{
     var zx=clamp(p.x+Math.cos(p.aim)*240-140,40,MAP_W-320),zy=clamp(p.y+Math.sin(p.aim)*240-140,40,MAP_H-320);
     G.zones.push({id:++G.pkSeq,x:zx,y:zy,w:280,h:280,t:0,life:6,friendly:true});
     G.sepT=2.8;SFX.shufut();
     floatText(p.x,p.y-52,'РЕКЛАМНАЯ КАМПАНИЯ','#e8894a',16);
   }
 }
-function trySkill2(p){ // Q-скил
+function trySkill2(p){
   if(p.cdS>0)return;
   var C=CLS[p.cls];
-  if(p.cls==='mgr'){ // АСАП: haste self + nearby allies
+  if(p.cls==='mgr'){
     if(!spendCoffee(p,C.sk.cost))return;
     p.cdS=C.sk.cd*p.cdMult;p.castT=0.4;
     var buffed=0;
@@ -201,7 +201,7 @@ function trySkill2(p){ // Q-скил
     }
     floatText(p.x,p.y-40,'АСАП ×'+buffed,'#8bd17c',13,'S');
     SFX.grade();
-  }else if(p.cls==='dev'){ // легаси-код: chains + mental DoT
+  }else if(p.cls==='dev'){
     if(!spendCoffee(p,C.sk.cost))return;
     p.cdS=C.sk.cd*p.cdMult;p.castT=0.5;
     var seat=-1;
@@ -217,7 +217,7 @@ function trySkill2(p){ // Q-скил
     NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:320,yellow:1});
     SFX.clacks(8);SFX.slam();
     if(!chained)floatText(p.x,p.y-36,'не нашлось целей','#8b949e',11);
-  }else if(p.cls==='mkt'){ // таргетинг: mark = +50% damage taken
+  }else if(p.cls==='mkt'){
     if(!spendCoffee(p,C.sk.cost))return;
     p.cdS=C.sk.cd*p.cdMult;p.castT=0.4;
     var marked=0;
@@ -231,7 +231,7 @@ function trySkill2(p){ // Q-скил
     NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:360,red:1});
     SFX.ring();
     if(!marked)floatText(p.x,p.y-36,'аудитория не найдена','#8b949e',11);
-  }else{ // dsn логотип побольше: расходящаяся волна — отброс + сбивает замахи
+  }else{
     if(!spendCoffee(p,C.sk.cost))return;
     p.cdS=C.sk.cd*p.cdMult;p.atkT=0.25;
     G.fx.push({type:'ring',x:p.x,y:p.y,rad:20,radMax:300,t:0,life:0.45,yellow:true});

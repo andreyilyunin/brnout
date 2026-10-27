@@ -1,5 +1,5 @@
 'use strict';
-// ============================== overlays ==============================
+
 var OVERLAYS=['bmenu','bset','bcareer','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin','bperk'];
 var OV_BACK={bset:'bmenu',bcareer:'bmenu',bcoop:'bmenu',bjoin:'bcoop',bhost:'bcoop',bwait:'bmenu',bpause:'bmenu'};
 var OV_OPEN=null;
@@ -8,9 +8,9 @@ function showOv(id){
   if(id)document.getElementById(id).classList.remove('bghidden');
   OV_OPEN=id||null;
   tuiSync();
-  try{window.scrollTo(0,0);}catch(e){} // iOS: страница могла уехать скроллом внутри панели
+  try{window.scrollTo(0,0);}catch(e){}
 }
-// единый владелец видимости бой-слоя: тач + нет оверлея = кнопки; всё остальное гасит
+
 function tuiSync(){
   var show=isTouch&&!OV_OPEN;
   var tui=document.getElementById('tui');
@@ -20,7 +20,7 @@ function tuiSync(){
   var jh=document.getElementById('joyHint');
   if(jh)jh.classList.toggle('hidden',!(show&&!joyHinted));
 }
-// первый бой на таче: 12 секунд подписей над кнопками — иконки учатся на лету
+
 var LEARN_SHOWN=false;
 function touchLearnStart(){
   if(LEARN_SHOWN)return;
@@ -44,7 +44,7 @@ function showDeadStats(st){
   document.getElementById('dIntern').textContent=st.ki;
   document.getElementById('dDeadline').textContent=st.kd;
   document.getElementById('dGrade').textContent=st.gr;
-  // leaderboard: score = OKR*10 + плашки*5
+
   var board=document.getElementById('dBoard');
   var players=worldPool('players');
   if(players.length>1){
@@ -56,7 +56,7 @@ function showDeadStats(st){
     for(var i2=0;i2<rows.length;i2++){var r2=rows[i2];
       html+='<div class="row'+(r2.me?' me':'')+'"><span>'+(i2+1)+'. '+r2.name+(r2.me?' (вы)':'')+'</span><span><b>'+r2.score+'</b> · '+r2.co+' плашек</span></div>';
     }
-    board.innerHTML=html; /*safe: строки только из CLS*/
+    board.innerHTML=html;
     board.classList.remove('hidden');
   }else board.classList.add('hidden');
   var again=document.getElementById('bagain');
@@ -76,7 +76,7 @@ function togglePause(){
     if(!document.getElementById('bpause').classList.contains('bghidden'))showOv(null);
     else showOv('bpause');
   }
-  // хосту в паузе показываем комнату: удобно позвать друга посреди игры
+
   var pn=document.getElementById('pauseNet'),pc=document.getElementById('pauseCode'),ps=document.getElementById('pauseShare');
   var isHost=NET.mode==='host'&&!!NET.code;
   if(pn)pn.classList.toggle('hidden',!isHost);

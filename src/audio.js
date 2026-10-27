@@ -1,7 +1,7 @@
 'use strict';
-// ============================== audio ==============================
+
 var AC=null,master=null,muted=false,amb=null;
-// настройки звука: общий / музыка / эффекты (persist в localStorage)
+
 var SET={master:0.85,music:0.5,sfx:1.0};
 try{var _s=JSON.parse(localStorage.getItem('brnt_snd')||'null');if(_s)for(var _k in SET)if(typeof _s[_k]==='number')SET[_k]=_s[_k];}catch(e){}
 var sfxBus=null,musGain=null;
@@ -46,22 +46,21 @@ var SFX={
   levelUp:function(){tone(784,0.1,'triangle',0.16);tone(988,0.1,'triangle',0.16,0,0.09);tone(1319,0.16,'triangle',0.15,0,0.18);},
   plan:function(){tone(523,0.1,'square',0.08);tone(659,0.1,'square',0.08,0,0.1);tone(784,0.1,'square',0.08,0,0.2);tone(1047,0.2,'triangle',0.14,0,0.3);},
   demon:function(){tone(100,0.5,'sawtooth',0.3,-55);tone(160,0.4,'sawtooth',0.2,-80,0.1);tone(58,0.6,'sawtooth',0.26,-20,0.22);},
-  shufut:function(){ // шансонный аккорд «третьего сентября» (своя фраза, ля-минор)
+  shufut:function(){
     tone(220,0.5,'sawtooth',0.07);tone(262,0.5,'sawtooth',0.06);tone(330,0.5,'triangle',0.12);
     tone(208,0.5,'sawtooth',0.06,0,0.45);tone(247,0.5,'sawtooth',0.05,0,0.45);tone(311,0.5,'triangle',0.11,0,0.45);
     tone(196,0.6,'sawtooth',0.07,0,0.9);tone(247,0.6,'sawtooth',0.06,0,0.9);tone(294,0.6,'triangle',0.12,0,0.9);
   },
   dodge:function(){noiz(0.14,0.2,1400,1.4);tone(300,0.12,'sine',0.14,260);},
-  notif:function(){ // звуки уведомлений телефона: случайно один из трёх
+  notif:function(){
     var n=(R()*3)|0;
-    if(n===0){tone(1319,0.09,'triangle',0.15);tone(1047,0.13,'triangle',0.13,0,0.08);}       // «ду-дин»
-    else if(n===1){tone(520,0.05,'sine',0.16,400);tone(1040,0.08,'sine',0.11,0,0.05);}        // «поп» телеграма
-    else{tone(880,0.05,'sine',0.14);tone(1175,0.07,'sine',0.12,0,0.06);}                      // двойной блип
+    if(n===0){tone(1319,0.09,'triangle',0.15);tone(1047,0.13,'triangle',0.13,0,0.08);}
+    else if(n===1){tone(520,0.05,'sine',0.16,400);tone(1040,0.08,'sine',0.11,0,0.05);}
+    else{tone(880,0.05,'sine',0.14);tone(1175,0.07,'sine',0.12,0,0.06);}
   },
 
-
   bell:function(){tone(660,0.5,'triangle',0.2,-15);tone(1320,0.35,'sine',0.1,-20,0.02);},
-  soulAgony:function(pitch){ // муки: нисходящий стон-стонания
+  soulAgony:function(pitch){
     if(!AC||muted)return;
     var t0=AC.currentTime,p=(pitch||1);
     var o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
@@ -79,7 +78,7 @@ var SFX={
     o.start(t0);o.stop(t0+0.72);lfo.start(t0);lfo.stop(t0+0.72);
     noiz(0.4,0.09,420,0.9);
   },
-  deathCry:function(pitch){ // диаблоподобный предсмертный стон
+  deathCry:function(pitch){
     if(!AC||muted)return;
     var t0=AC.currentTime,f0=(pitch||1)*185;
     var o=AC.createOscillator(),g=AC.createGain(),fl=AC.createBiquadFilter();
@@ -96,7 +95,7 @@ var SFX={
     o.connect(fl);fl.connect(g);g.connect(sfxBus||master);
     o.start(t0);o.stop(t0+0.46);lfo.start(t0);lfo.stop(t0+0.46);
   },
-  soulSigh:function(pitch){ // улетающая душа: выдох «аааах»
+  soulSigh:function(pitch){
     if(!AC||muted)return;
     var t0=AC.currentTime,p=(pitch||1);
     noiz(0.55,0.11,850,0.8);
@@ -112,7 +111,7 @@ var SFX={
     tone(p*262,0.55,'sine',0.08,-150,0.05);
     tone(p*392,0.45,'sine',0.055,-190,0.08);
   },
-  whisper:function(){ // мистический шёпот опенспейса
+  whisper:function(){
     if(!AC||muted)return;
     var t0=AC.currentTime;
     for(var i=0;i<3;i++){
@@ -128,8 +127,8 @@ var SFX={
   },
   pickup:function(){tone(760,0.07,'triangle',0.24);tone(1140,0.1,'triangle',0.2,0,0.05);},
   crit:function(){tone(880,0.08,'square',0.16);tone(1320,0.12,'square',0.13,0,0.05);noiz(0.06,0.15,1800,2);},
-  sip:function(){noiz(0.07,0.16,700,1.6);tone(320,0.08,'sine',0.1,-140,0.02);},          // «сёрб» кофе
-  hexCrackle:function(){noiz(0.05,0.2,2600,0.7);noiz(0.06,0.16,1200,0.9,0.05);tone(60,0.1,'sawtooth',0.1,0,0.02);}, // треск проклятия
+  sip:function(){noiz(0.07,0.16,700,1.6);tone(320,0.08,'sine',0.1,-140,0.02);},
+  hexCrackle:function(){noiz(0.05,0.2,2600,0.7);noiz(0.06,0.16,1200,0.9,0.05);tone(60,0.1,'sawtooth',0.1,0,0.02);},
   clsPick:function(){tone(392,0.12,'triangle',0.12);tone(494,0.12,'triangle',0.12,0,0.06);tone(587,0.18,'triangle',0.13,0,0.12);tone(784,0.26,'sine',0.1,0,0.18);},
   crack:function(){noiz(0.08,0.32,450,1.2);tone(180,0.07,'square',0.16,-60);},
   swing:function(){noiz(0.12,0.36,900,1.5);},
@@ -156,7 +155,7 @@ function startAmbient(){
   o1.connect(f);o2.connect(f);f.connect(g);g.connect(musGain||master);
   o1.start();o2.start();amb={o1:o1,o2:o2,g:g};
 }
-// неактивная вкладка не должна орать: музыка на setInterval и эмбиент-дрон живут без rAF
+
 document.addEventListener('visibilitychange',function(){
   if(!AC)return;
   if(document.hidden){if(AC.state==='running')AC.suspend();}

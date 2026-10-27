@@ -1,14 +1,12 @@
 #!/usr/bin/env node
-// E2E коопа в двух независимых headless-браузерах (анти-троттлинг флаги):
-// хост создаёт комнату, гость входит по коду, старт, проверка движения гостя.
+
 'use strict';
 const puppeteer = require('puppeteer');
-// хром: приоритет QA_CHROME; на CI работает дефолтный кэш puppeteer,
-// локально кэш бывает пуст — тогда системный chromium, если он есть
+
 const fs = require('fs');
 const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '/usr/sbin/chromium' : undefined);
 const BASE = process.env.COOP_BASE || 'http://127.0.0.1:8099';
-// COOP_BROKER: ws(s)-url локального брокера — детерминированный прогон без публичных брокеров
+
 const BROKER = process.env.COOP_BROKER || '';
 const FLAGS = ['--no-sandbox','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding','--disable-background-timer-throttling'];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -26,11 +24,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   }
   await h.goto(BASE + '/?cooph' + (BROKER ? '&broker=' + encodeURIComponent(BROKER) : ''), { waitUntil: 'domcontentloaded' });
   await g.goto(BASE + '/?coopg', { waitUntil: 'domcontentloaded' });
-  if (BROKER) await g.evaluate(b => localStorage.setItem('brnt_broker', b), BROKER); // переживёт переход на ?join=
+  if (BROKER) await g.evaluate(b => localStorage.setItem('brnt_broker', b), BROKER);
   await sleep(1500);
   await h.evaluate(() => { document.getElementById('mCoop').click(); document.getElementById('cHost').click(); });
   let code = '';
-  for (let i = 0; i < 20; i++) { // публичные брокеры иногда коннектят по 10с+ — ждём честно
+  for (let i = 0; i < 20; i++) {
     await sleep(1000);
     code = await h.evaluate(() => window.__bo.NET.code);
     if (/^[a-z0-9]{5}$/.test(code)) break;
@@ -38,9 +36,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   if (!/^[a-z0-9]{5}$/.test(code)) { console.log('✗ хост не создал комнату за 20с: ' + await h.evaluate(() => document.getElementById('shareHint').textContent)); process.exit(1); }
   ok('хост: комната ' + code + ' на ' + (await h.evaluate(() => window.__bo.NET.broker)));
   await g.evaluate(c => { location.href = '/?join=' + c; }, code);
-  await sleep(2500); // дождаться перехода: контекст страницы пересоздаётся
+  await sleep(2500);
   await g.evaluate(() => { window.__mqttDbg = []; });
-  for (let i = 0; i < 15; i++) { // гость тоже может коннектиться долго
+  for (let i = 0; i < 15; i++) {
     await sleep(1000);
     const ok = await g.evaluate(() => window.__bo.NET.mode === 'guest' || window.__bo.NET.broker);
     if (ok) break;
@@ -64,7 +62,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const gLobby = await g.evaluate(() => document.getElementById('lobbyList2').innerText.replace(/\n/g, ';'));
   if (gLobby.split('●').length - 1 !== 2) fail('в лобби гостя не двое: ' + gLobby);
   else ok('лобби: ' + gLobby);
-  // старт хоста
+
   await h.evaluate(() => document.getElementById('bstart').click());
   await sleep(2500);
   const gs = await g.evaluate(() => JSON.stringify({ state: window.__bo.G.state, vP: window.VIEW.players.length, vM: window.VIEW.mobs.length, recv: Math.round(performance.now() - window.__bo.NET.lastRecv) }));
@@ -72,7 +70,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const st = JSON.parse(gs);
   if (st.state !== 'playing' || st.vP < 2) fail('гость не в игре: ' + gs);
   else ok('гость в игре, снапшоты идут (recv ' + st.recv + 'мс)');
-  // ДВИЖЕНИЕ гостя: позиция на ХОСТЕ до/после зажатой клавиши на госте
+
   await g.evaluate(() => {
     window.__sent = 0;
     const oc = window.__bo.NET.hostConn.send.bind(window.__bo.NET.hostConn);
@@ -97,7 +95,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const moved = Math.hypot(ax - bx, ay - by);
   if (moved < 40) fail('ГОСТЬ НЕ ДВИГАЕТСЯ на хосте: ' + before + ' → ' + after + ' (инпут доходит: ' + inFlight + ', дистанция ' + Math.round(moved) + ')');
   else ok('гость двигается на хосте: ' + Math.round(moved) + 'px за 2с (' + inFlight + ')');
-  // и гость видит своё новое положение
+
   const self = await g.evaluate(() => JSON.stringify({
     self: (() => { const b = window.__bo, v = window.VIEW; const me = v.players.find(p => p.id === b.NET.myId); return me ? Math.round(me.x) + ',' + Math.round(me.y) : 'no-me'; })(),
     msgs: window.__msgLog, seed: window.__bo.G.wave

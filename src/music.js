@@ -1,5 +1,5 @@
 'use strict';
-// ============================== музыка: тёмный синтвейв (ST-вайб) ==============================
+
 var MUS={on:false,timer:null,next:0,step:0,chord:0,bus:null,dly:null};
 function kickAt(t){
   var o=AC.createOscillator(),g=AC.createGain();
@@ -47,25 +47,25 @@ function musicTick(){
     var pr=PROG[bar];
     var mobsN=(NET.mode==='guest')?VIEW.mobs.length:G.mobs.length;
     var inten=clamp(mobsN/8+G.wave*0.04+((NET.mode==='guest'?VIEW.boss:G.boss)?0.35:0),0,1);
-    // ---- бас: синкопы; в секции 0 — половинный
+
     for(var b=0;b<BPAT.length;b++){var bn=BPAT[b];
       if(bn.s!==s)continue;
       if(sec===0&&bn.s!==0&&bn.s!==8)continue;
       bassAt(t,pr[0]-12+bn.n,bn.l*dt16,inten);
     }
-    // ---- барабаны: кик 4-на-пол, клэп 4/12, хэты офф-бит, филл в конце цикла
+
     if(sec>=1&&inten>0.12){
       if(s%4===0)kickAt(t);
       if(s===4||s===12)noiz(0.09,0.13,1600,1.2,t-AC.currentTime);
       if(inten>0.45&&s%4===2)noiz(0.03,0.02,5000,1.2,t-AC.currentTime);
-      if(bar===7&&s>=12){ // филл
+      if(bar===7&&s>=12){
         noiz(0.05,0.1,1800,1,t-AC.currentTime);
         if(s%2===0)kickAt(t);
       }
     }else if(sec===0&&s===0){
-      kickAt(t); // мягкий пульс в затихании
+      kickAt(t);
     }
-    // ---- арпеджио-текстура (с секции 2)
+
     if(sec>=2&&ARPPAT[s]){
       var vi=pr[1][(s*3+stepAbs)%pr[1].length]+12;
       var o2=AC.createOscillator(),g2=AC.createGain();
@@ -76,13 +76,13 @@ function musicTick(){
       o2.connect(g2);g2.connect(MUS.dly);g2.connect(MUS.bus);
       o2.start(t);o2.stop(t+dt16*1.1);
     }
-    // ---- мелодия (с секции 2): сочиненная фраза
+
     if(sec>=2){
       for(var m2=0;m2<MEL.length;m2++){var nt=MEL[m2];
         if(nt[0]===bar&&nt[1]===s)leadAt(t,nt[2],nt[3]*dt16*0.95);
       }
     }
-    // ---- пад-аккорд (войсинг из PROG) раз в такт
+
     if(s===0){
       for(var pi=0;pi<pr[1].length;pi++){
         var po=AC.createOscillator(),pg=AC.createGain();
@@ -95,8 +95,8 @@ function musicTick(){
         po.start(t);po.stop(t+dt16*15.5);
       }
     }
-    // ---- дрон-педаль на тонику, раз в 4 цикла переподгоняем
-    if(s===0&&stepAbs%64===0){ // дрон-педаль с биениями (диссонирующая пара)
+
+    if(s===0&&stepAbs%64===0){
       for(var dj=0;dj<2;dj++){
         var dr=AC.createOscillator(),dg2=AC.createGain();
         dr.type='sine';dr.frequency.value=mtof(33)+(dj?0.7:0);

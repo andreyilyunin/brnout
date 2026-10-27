@@ -1,5 +1,5 @@
 'use strict';
-// Минимальные стабы браузера для node-тестов чистой логики (карта/данные/утилиты)
+
 function noopCtx() {
   return new Proxy({}, {
     get(t, p) {
@@ -21,7 +21,7 @@ global.requestAnimationFrame = () => {};
 const fs = require('fs'), path = require('path');
 function load(rel) {
   const code = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
-  // strict-eval изолирует var — снимаем директиву, чтобы определения попадали в global
+
   (0, eval)(code.replace(/^'use strict';\n?/, ''));
 }
 module.exports = { load };

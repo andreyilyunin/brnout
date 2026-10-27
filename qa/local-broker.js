@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// Локальный MQTT 3.1.1 брокер (aedes) поверх WebSocket для детерминированного qa/coop-e2e.js:
-//   npm i aedes && node qa/local-broker.js
-//   COOP_BROKER=ws://127.0.0.1:9001/ node qa/coop-e2e.js
-// ВАЖНО: aedes/mqtt-packet пишут пакеты кусочно (CONNACK = 4 записи по 1 байту) —
-// над WS каждая запись стала бы отдельным фреймом, поэтому исходящие чанки склеиваются.
+
 const http = require('http');
 const WebSocket = require('ws');
 const Aedes = require('aedes').Aedes;
@@ -19,8 +15,7 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
   const stream = WebSocket.createWebSocketStream(ws);
-  // aedes/mqtt-packet writes пакеты кусками (CONNACK = 4 записи по 1 байту):
-  // над WS каждая запись стала бы отдельным фреймом — склеиваем в максимальном burst
+
   let buf = [], flush = null;
   stream.write = ((orig) => (chunk, enc, cb) => {
     buf.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, enc));
