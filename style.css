@@ -7,6 +7,7 @@
 #burnout #bhud{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;}
 #burnout .bgov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,7,5,.82);z-index:5;overflow-y:auto;overscroll-behavior:contain;}
 #burnout .bghidden,#burnout .hidden{display:none;}
+#btnFS.hidden,#btnPauseM.hidden,#burnout #btnFS.hidden,#burnout #btnPauseM.hidden{display:none!important;}
 #burnout .bgpanel{background:rgba(13,17,23,.97);border:1px solid #2a3038;border-radius:10px;padding:22px 30px;max-width:620px;width:88%;color:#c9d1d9;box-shadow:0 0 60px rgba(0,0,0,.8);max-height:92%;overflow-y:auto;overscroll-behavior:contain;}
 #burnout .bgcenter{text-align:center;}
 #burnout .bgtitle{font-size:clamp(20px,4cqw,36px);font-weight:700;color:#e6edf3;letter-spacing:1px;animation:boflick 4s infinite;}
