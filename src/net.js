@@ -191,7 +191,7 @@ function hostOnMsg(c,d){
   if(d.t==='coin'){
     var pc=null;
     for(i=0;i<G.players.length;i++)if(G.players[i].id===c.peer)pc=G.players[i];
-    if(pc)pc.coins=(pc.coins||0)+1;
+    if(pc)pc.coins=(pc.coins||0)+(d.n||1);
   }
   if(d.t==='perk'){
     var pp=null;

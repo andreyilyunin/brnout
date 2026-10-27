@@ -324,11 +324,11 @@ function killMob(m){
   if(G.combo===5||G.combo===7||G.combo===9){
     var cn=COMBONAMES[G.combo];
     floatText(m.x,m.y-46,'×'+G.combo+' '+cn,'#ffcf5c',13,'C');
-    if(G.combo>=3)spawnDebris({kind:'coin',x:m.x,y:m.y-8,vx:R()*120-60,vy:-140,vr:0,floorY:m.y+16,g:900,phys:1,coined:1,t:0,life:8});
+    if(G.combo>=3)spawnCoinBurst(m.x,m.y,1);
   }
   if(R()<0.10&&G.texts.length<20&&flavorOK())floatText(m.x+R()*20-10,m.y-28,KILLQUOTES[(R()*KILLQUOTES.length)|0],'#8b949e',10,'F');
   if(m.elite){
-    for(var ek=0;ek<3;ek++)spawnDebris({kind:'coin',x:m.x+R()*24-12,y:m.y-10,vx:R()*180-90,vy:-160-R()*120,vr:0,floorY:m.y+20+R()*20,g:900,phys:1,coined:1,t:0,life:8});
+    spawnCoinBurst(m.x,m.y,3);
     if(R()<0.25)dropPickup(m.x,m.y,'coffee');
     floatText(m.x,m.y-60,'элитный уволился красиво','#c88a4a',12);
   }
@@ -343,7 +343,7 @@ function killMob(m){
   if(m.type!=='boss')dramaOfDeath(m.x,m.y,m.type,m.elite);
   else if(m.type==='boss'){
     G.okr+=10;msg('Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
-    for(var i=0;i<16;i++)spawnDebris({kind:'coin',x:m.x+R()*60-30,y:m.y+R()*40-20,vx:R()*300-150,vy:-180-R()*200,vr:0,floorY:m.y+30+R()*60,g:1000,phys:1,coined:1,t:0,life:9});
+    spawnCoinBurst(m.x+R()*30-15,m.y+R()*20-10,16);
     for(var i=0;i<3;i++)dropPickup(m.x+R()*60-30,m.y+R()*60-30,'coffee');
     dropPickup(m.x,m.y,['espresso','desk','cert'][(R()*3)|0]);
     dropPickup(m.x+20,m.y,['espresso','desk','cert'][(R()*3)|0]);
