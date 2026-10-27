@@ -114,6 +114,7 @@ function refreshMenuUI(){
 function selectClass(cls){
   selCls=cls;
   NET.cls=cls;
+  audioInit();SFX.clsPick(); // сочный аккорд на выбор класса (ТЗ UI)
   refreshMenuUI();
   syncAria();
 }

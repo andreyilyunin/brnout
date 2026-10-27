@@ -7,6 +7,10 @@ var MAPSEED=1;
 var grid=null;      // 1 = floor
 var ROOMS=[];       // {x,y,w,h,type} px
 var WALLS=[];       // merged wall rects (collide + minimap)
+var WINS=[];        // панорамные окна наружных стен: за ними параллакс-мегаполис
+var HOLOS=[];       // голо-экраны с графиками акций на внутренних стенах
+var RACKS=[];       // серверные стойки с мигающими диодами
+var WEXT={};        // маркер внешних стен (для отсева голо-экранов/стоек)
 var FURN=[];        // furniture rects (collide)
 var OBST=[];        // WALLS + FURN
 var LIGHTS=[],COFFEES=[],SPAWNS=[],RUGS=[],DOORS=[],DOORT=[]; // RUGS — ковры (визуал), DOORS — зоны дверей без мебели, DOORT — тайлы дверей между залами
@@ -353,13 +357,14 @@ function buildMap(seed){
   }
   var WT=26;
   // --- thin walls: strips on the void side of every floor tile edge
+  WINS=[];WEXT={}; // панорамные окна: стены, смотрящие наружу карты (арт-бриф: за ними мегаполис)
   for(j=0;j<GH;j++)for(i=0;i<GW;i++){
     if(!grid[j][i])continue;
     var L=(i>0?grid[j][i-1]:0),Rr=(i<GW-1?grid[j][i+1]:0),U=(j>0?grid[j-1][i]:0),D=(j<GH-1?grid[j+1][i]:0);
-    if(!L)WALLS.push({x:i*TILE-WT,y:j*TILE,w:WT,h:TILE,dir:0});
-    if(!Rr)WALLS.push({x:(i+1)*TILE,y:j*TILE,w:WT,h:TILE,dir:1});
-    if(!U)WALLS.push({x:i*TILE,y:j*TILE-WT,w:TILE,h:WT,dir:2});
-    if(!D)WALLS.push({x:i*TILE,y:(j+1)*TILE,w:TILE,h:WT,dir:3});
+    if(!L){WALLS.push({x:i*TILE-WT,y:j*TILE,w:WT,h:TILE,dir:0});if(i<=1){WINS.push({x:i*TILE-WT,y:j*TILE,w:WT,h:TILE});WEXT[(i*TILE-WT)+','+j*TILE]=1;}}
+    if(!Rr){WALLS.push({x:(i+1)*TILE,y:j*TILE,w:WT,h:TILE,dir:1});if(i>=GW-2){WINS.push({x:(i+1)*TILE,y:j*TILE,w:WT,h:TILE});WEXT[((i+1)*TILE)+','+j*TILE]=1;}}
+    if(!U){WALLS.push({x:i*TILE,y:j*TILE-WT,w:TILE,h:WT,dir:2});if(j<=1){WINS.push({x:i*TILE,y:j*TILE-WT,w:TILE,h:WT});WEXT[i*TILE+','+(j*TILE-WT)]=1;}}
+    if(!D){WALLS.push({x:i*TILE,y:(j+1)*TILE,w:TILE,h:WT,dir:3});if(j>=GH-2){WINS.push({x:i*TILE,y:(j+1)*TILE,w:TILE,h:WT});WEXT[i*TILE+','+((j+1)*TILE)]=1;}}
   }
   for(var wgi=0;wgi<WALLS.length;wgi++)WALLS[wgi].glass=wallGlass(WALLS[wgi]);
   buildWallBuckets();
@@ -756,6 +761,7 @@ function prerenderFloor(){
   }
   // coffee stains — irregular splatters, not circles
   // верхние грани стен (после фронтов, поверх)
+  HOLOS=[];RACKS=[];
   for(wi=0;wi<WALLS.length;wi++){w3=WALLS[wi];
     c.fillStyle=shade(MAPTHEME.wall,6);c.fillRect(w3.x,w3.y,w3.w,w3.h);
     c.fillStyle=MAPTHEME.wallIn;c.fillRect(w3.x+1,w3.y+1,w3.w-2,w3.h-2);
@@ -769,6 +775,56 @@ function prerenderFloor(){
     if(gl){c.fillStyle='rgba(150,210,240,0.15)';c.fillRect(w3.x+2,w3.y+2,w3.w-4,w3.h-4);}
     c.fillStyle='rgba(0,0,0,0.25)';
     if(w3.h>w3.w)c.fillRect(w3.x,w3.y,2,w3.h);else c.fillRect(w3.x,w3.y,w3.w,2);
+    // голо-экран с графиками акций: редкие, на внутренних стенах (арт-бриф Neon Office)
+    if(HOLOS.length<6&&!WEXT[w3.x+','+w3.y]&&rnd()<0.05&&Math.max(w3.w,w3.h)>=TILE){
+      var hcx=w3.x+w3.w/2,hcy=w3.y+w3.h/2,hw2=w3.h>w3.w?30:38,hh2=w3.h>w3.w?20:15;
+      var ho={x:hcx-hw2/2,y:hcy-hh2/2,w:hw2,h:hh2,ph:rnd()*9,vert:w3.h>w3.w};
+      HOLOS.push(ho);
+      c.fillStyle='#0a0e16';rr(c,ho.x-2,ho.y-2,ho.w+4,ho.h+4,2);c.fill();
+      c.fillStyle='#101826';c.fillRect(ho.x,ho.y,ho.w,ho.h);
+      c.strokeStyle='rgba(120,160,200,0.4)';c.lineWidth=1;c.strokeRect(ho.x,ho.y,ho.w,ho.h);
+    }
+    // серверная стойка у стены на стороне пола
+    if(RACKS.length<12&&!WEXT[w3.x+','+w3.y]&&rnd()<0.07){
+      var rkw=14,rkh=26,rx,ry;
+      if(w3.dir===0){rx=w3.x+28;ry=w3.y+(TILE-rkh)/2;}
+      else if(w3.dir===1){rx=w3.x-rkw-2;ry=w3.y+(TILE-rkh)/2;}
+      else if(w3.dir===2){rx=w3.x+(TILE-rkw)/2;ry=w3.y+28;}
+      else{rx=w3.x+(TILE-rkw)/2;ry=w3.y-rkh-2;}
+      RACKS.push({x:rx,y:ry,ph:rnd()*9});
+      c.fillStyle='#0d1118';rr(c,rx-1,ry-1,rkw+2,rkh+2,2);c.fill();
+      c.fillStyle='#161d28';c.fillRect(rx,ry,rkw,rkh);
+      c.fillStyle='rgba(0,0,0,0.35)';
+      for(var rv=3;rv<rkh-2;rv+=5)c.fillRect(rx+2,ry+rv,rkw-4,1.5);
+    }
+  }
+  // панорамные окна: тёмное стекло в стальных рамах (город за ними — динамический слой)
+  for(wi=0;wi<WINS.length;wi++){var wn=WINS[wi];
+    c.fillStyle='#0a1520';c.fillRect(wn.x+1,wn.y+1,wn.w-2,wn.h-2);
+    c.strokeStyle='rgba(140,170,200,0.28)';c.lineWidth=1;
+    c.strokeRect(wn.x+1.5,wn.y+1.5,wn.w-3,wn.h-3);
+    if(wn.h>wn.w){ // вертикальная оконная лента: шпросы
+      c.fillStyle='rgba(140,170,200,0.22)';
+      for(var my2=wn.y+TILE/2;my2<wn.y+wn.h-4;my2+=TILE/2)c.fillRect(wn.x+2,my2,wn.w-4,1.5);
+    }else{
+      c.fillStyle='rgba(140,170,200,0.22)';
+      for(var mx2=wn.x+TILE/2;mx2<wn.x+wn.w-4;mx2+=TILE/2)c.fillRect(mx2,wn.y+2,1.5,wn.h-4);
+    }
+  }
+  // кабели под ногами: тёмные волнистые линии по полу (детализация арт-брифа)
+  c.strokeStyle='rgba(8,10,14,0.55)';c.lineWidth=2;
+  for(i=0;i<16;i++){
+    var cx0=60+rnd()*(MAP_W-120),cy0=60+rnd()*(MAP_H-120),tries2=0;
+    while(tries2<10&&!floorOpenAt(cx0,cy0)){cx0=60+rnd()*(MAP_W-120);cy0=60+rnd()*(MAP_H-120);tries2++;}
+    if(tries2>=10)continue;
+    c.beginPath();c.moveTo(cx0,cy0);
+    var ang2=rnd()*TAU,len2=40+rnd()*70;
+    for(var seg=0;seg<4;seg++){
+      cx0+=Math.cos(ang2)*len2/4;cy0+=Math.sin(ang2)*len2/4;
+      ang2+=(rnd()-0.5)*1.2;
+      c.quadraticCurveTo(cx0+Math.cos(ang2+1.5)*6,cy0+Math.sin(ang2+1.5)*6,cx0,cy0);
+    }
+    c.stroke();
   }
   // coffee stains — irregular splatters, not circles
   for(i=0;i<40;i++){
@@ -1070,13 +1126,14 @@ function flowDir(x,y){
 }
 
 
-// ---- темы локаций: каждый спринт — новый офис в своей стилистике ----
+// ---- темы локаций: офис-подземелье после полуночи (GTA2 × Dave the Diver × Diablo) ----
+// база тем — тёплая чернильная тьма; различаются факельным/кровавым/пыльным светом
 var THEMES=[
- {name:'Пурпурный опенспейс',floor:'#171226',alt:'#1b1630',corr:'#120e20',corrAlt:'#150f28',wall:'#0d0a18',wallIn:'#181231',neonA:'#e83a9c',neonB:'#1fc4ae',steel:'#41336a'},
- {name:'Ретро-архив',floor:'#1c1424',alt:'#221832',corr:'#150f1e',corrAlt:'#191226',wall:'#0d0916',wallIn:'#1a1230',neonA:'#ff8a3d',neonB:'#c43ed8',steel:'#4e3660'},
- {name:'Фиолетовый корпоратив',floor:'#131028',alt:'#171340',corr:'#0e0b20',corrAlt:'#110e2c',wall:'#0a0818',wallIn:'#161244',neonA:'#7a6aff',neonB:'#2ab8d8',steel:'#302c62'},
- {name:'Мятная лаборатория',floor:'#122020',alt:'#16282a',corr:'#0d181a',corrAlt:'#101e20',wall:'#081212',wallIn:'#123032',neonA:'#2ee8a8',neonB:'#b8e83a',steel:'#24504a'},
- {name:'Розовая тревога',floor:'#1e0f1c',alt:'#251424',corr:'#170b16',corrAlt:'#1c0e1b',wall:'#0e0710',wallIn:'#221028',neonA:'#ff2a7a',neonB:'#ff8a3d',steel:'#5c2450'}
+ {name:'Угольный опенспейс',floor:'#171210',alt:'#1a1512',corr:'#120e0c',corrAlt:'#15100d',wall:'#0b0806',wallIn:'#221a13',neonA:'#ff9a3d',neonB:'#c4622a',steel:'#3a2f24'},
+ {name:'Котельная',floor:'#1a0f0c',alt:'#1e120e',corr:'#140b08',corrAlt:'#170d0a',wall:'#0c0605',wallIn:'#2a1410',neonA:'#ff5a2a',neonB:'#ffb25e',steel:'#4a2a1c'},
+ {name:'Бумажный архив',floor:'#1a160f',alt:'#1e1a12',corr:'#14110b',corrAlt:'#17130d',wall:'#0d0b07',wallIn:'#262014',neonA:'#d8a94e',neonB:'#9a8a5a',steel:'#403a28'},
+ {name:'Мраморный ресепшн',floor:'#12151a',alt:'#15181e',corr:'#0e1014',corrAlt:'#111318',wall:'#080a0d',wallIn:'#1c222a',neonA:'#8ab4c4',neonB:'#d8cfc0',steel:'#2e3a44'},
+ {name:'Красный этаж',floor:'#180d0d',alt:'#1c1010',corr:'#120909',corrAlt:'#150b0b',wall:'#0a0505',wallIn:'#2c1414',neonA:'#c4342e',neonB:'#d8a94e',steel:'#42201e'}
 ];
 var MAPTHEME=THEMES[0];
 

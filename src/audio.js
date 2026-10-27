@@ -128,6 +128,9 @@ var SFX={
   },
   pickup:function(){tone(760,0.07,'triangle',0.24);tone(1140,0.1,'triangle',0.2,0,0.05);},
   crit:function(){tone(880,0.08,'square',0.16);tone(1320,0.12,'square',0.13,0,0.05);noiz(0.06,0.15,1800,2);},
+  sip:function(){noiz(0.07,0.16,700,1.6);tone(320,0.08,'sine',0.1,-140,0.02);},          // «сёрб» кофе
+  hexCrackle:function(){noiz(0.05,0.2,2600,0.7);noiz(0.06,0.16,1200,0.9,0.05);tone(60,0.1,'sawtooth',0.1,0,0.02);}, // треск проклятия
+  clsPick:function(){tone(392,0.12,'triangle',0.12);tone(494,0.12,'triangle',0.12,0,0.06);tone(587,0.18,'triangle',0.13,0,0.12);tone(784,0.26,'sine',0.1,0,0.18);},
   crack:function(){noiz(0.08,0.32,450,1.2);tone(180,0.07,'square',0.16,-60);},
   swing:function(){noiz(0.12,0.36,900,1.5);},
   clack:function(){noiz(0.03,0.22,2600,6);tone(1600+R()*700,0.03,'square',0.05);},

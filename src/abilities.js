@@ -13,19 +13,32 @@ function tryPrimary(p){
     shot(a);
     if(p.dblShot)shot(a+(p.cls==='mgr'?0.12:0.09));
     if(p.cls==='mgr'){SFX.whoosh();SFX.stapler();}
-    else{SFX.notif();}
+    else{ // мегафон: дульный конус спама + синтвейв-дым (ТЗ маркетолога, кадры 2 и 4)
+      G.fx.push({type:'spamcone',x:p.x+Math.cos(a)*20,y:p.y+Math.sin(a)*20,a:a,len:60,hw:26,t:0,life:0.28});
+      G.fx.push({type:'smoke',x:p.x+Math.cos(a)*18,y:p.y+Math.sin(a)*18,t:0,life:0.6});
+      SFX.notif();
+    }
   }else{
     p.cd1=C.s1.cd*p.cdMult;p.atkT=0.18;
     var arc=p.cls==='dsn'?110:130,rad=p.cls==='dsn'?74:86;
     var swing=function(mult){
-      G.fx.push({type:'slash',x:p.x,y:p.y,a:p.aim,arc:arc*Math.PI/180,rad:rad,t:0,life:0.16});
-      NET.events.push({k:'slash',x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:arc,rad:rad});
+      G.fx.push({type:'slash',cls:p.cls,x:p.x,y:p.y,a:p.aim,arc:arc*Math.PI/180,rad:rad,t:0,life:0.16});
+      NET.events.push({k:'slash',cls:p.cls,x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:arc,rad:rad});
       meleeArc(p,arc*Math.PI/180,rad,(p.cls==='dsn'?11:14)*mult,p.cls==='dsn'?120:150,0);
     };
     swing(1);
     if(p.echoSwing)schedule(function(){swing(0.6);SFX.swing();},0.18);
     SFX.swing();
-    if(p.cls==='dev'&&R()<0.6)SFX.clack();
+    if(p.cls==='dev'){ // на ударе летят клавиши, изредка ERROR 404
+      if(R()<0.6)SFX.clack();
+      var kx0=p.x+Math.cos(p.aim)*rad*0.8,ky0=p.y+Math.sin(p.aim)*rad*0.8;
+      for(var kk=0;kk<3;kk++)G.fx.push({type:'keycap',x:kx0,y:ky0,a:p.aim+(kk-1)*0.55,dst:24+R()*20,t:0,life:0.45,ch:'QWERTY'[(R()*6)|0]});
+      if(R()<0.3)floatText(kx0,ky0-10,'ERROR 404','#f2c17e',11);
+    }else if(p.cls==='dsn'){ // выпад кисти: брызги CMYK и клякса на полу
+      var px4=p.x+Math.cos(p.aim)*rad,py4=p.y+Math.sin(p.aim)*rad;
+      G.fx.push({type:'cmyk',x:px4,y:py4,a:p.aim,t:0,life:0.4});
+      G.fx.push({type:'paint',x:px4,y:py4,r:9+R()*5,col:['#b85f7a','#5fa8b8','#c4a94e'][(R()*3)|0],t:0,life:0.5});
+    }
   }
 }
 function trySecondary(p){
@@ -34,8 +47,13 @@ function trySecondary(p){
   if(p.cls==='mgr'){
     if(!spendCoffee(p,C.s2.cost))return;
     p.cd2=C.s2.cd*p.cdMult;p.atkT=0.2;
-    G.fx.push({type:'slash',x:p.x,y:p.y,a:p.aim,arc:100*Math.PI/180,rad:80,t:0,life:0.18,big:true});
-    NET.events.push({k:'slash',x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:100,rad:80,big:1});
+    G.fx.push({type:'slash',cls:p.cls,x:p.x,y:p.y,a:p.aim,arc:100*Math.PI/180,rad:80,t:0,life:0.18,big:true});
+    NET.events.push({k:'slash',cls:p.cls,x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:100,rad:80,big:1});
+    // ноутбук-рубящий: сетка-таблица на полу + проценты
+    var gx0=p.x+Math.cos(p.aim)*62,gy0=p.y+Math.sin(p.aim)*62;
+    G.fx.push({type:'grid',x:gx0,y:gy0,r:84,t:0,life:0.55});
+    floatText(gx0-14,gy0-8,'%','#c4574e',14);
+    floatText(gx0+16,gy0+6,'%','#c4574e',12);
     SFX.thudFlesh();
     meleeArc(p,100*Math.PI/180,80,22,280,0);
   }else if(p.cls==='dev'){
@@ -44,6 +62,7 @@ function trySecondary(p){
     G.fx.push({type:'ring',x:p.x,y:p.y,rad:10,radMax:100,t:0,life:0.3});
     NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:100});
     G.shake+=4;SFX.slam();
+    for(var kb=0;kb<5;kb++)G.fx.push({type:'keycap',x:p.x,y:p.y,a:kb*TAU/5,t:0,life:0.5,dst:26+R()*16,ch:'ASDFG'[kb]});
     for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
       if(dist(p,m)<100+m.r){var a=angTo(p,m);damageMob(m,30*p.dmgMult,Math.cos(a)*360,Math.sin(a)*360,0.8);}
     }
@@ -68,8 +87,9 @@ function trySecondary(p){
   }else{ // dsn критика: wide push wave
     if(!spendCoffee(p,C.s2.cost))return;
     p.cd2=C.s2.cd*p.cdMult;p.atkT=0.25;
-    G.fx.push({type:'slash',x:p.x,y:p.y,a:p.aim,arc:200*Math.PI/180,rad:95,t:0,life:0.2,big:true});
-    NET.events.push({k:'slash',x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:200,rad:95,big:1});
+    G.fx.push({type:'slash',cls:p.cls,x:p.x,y:p.y,a:p.aim,arc:200*Math.PI/180,rad:95,t:0,life:0.2,big:true});
+    NET.events.push({k:'slash',cls:p.cls,x:Math.round(p.x),y:Math.round(p.y),a:p.aim,arc:200,rad:95,big:1});
+    G.fx.push({type:'cmyk',x:p.x+Math.cos(p.aim)*70,y:p.y+Math.sin(p.aim)*70,a:p.aim,t:0,life:0.45}); // брызги CMYK
     G.shake+=3;SFX.bell();SFX.slam();
     meleeArc(p,200*Math.PI/180,95,10,430,0);
   }

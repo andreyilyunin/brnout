@@ -34,29 +34,29 @@ function localPlayer(){
   return pool[0];
 }
 // looks presets — hooks for future customization (skin/hair/outfit per seat)
-var LOOKS=[
- {skin:'#e8c39e',hair:'#3a2a1a',hs:0,shirt:'#2c3e57',accent:'#8b2020'},
- {skin:'#d9b48f',hair:'#1e1a16',hs:1,shirt:'#2f3136',accent:'#5a616e'},
- {skin:'#f0d0b0',hair:'#7a4a20',hs:2,shirt:'#3d2f4f',accent:'#8a6d3b'},
- {skin:'#c99a75',hair:'#101010',hs:3,shirt:'#314a3c',accent:'#9ab4a0'},
- {skin:'#e8c39e',hair:'#c9c9c9',hs:2,shirt:'#5a2a2a',accent:'#d29922'},
- {skin:'#d9b48f',hair:'#5a3a1a',hs:1,shirt:'#2a3a4a',accent:'#7aa2c8'},
- {skin:'#f0d0b0',hair:'#2a2a2a',hs:0,shirt:'#43352a',accent:'#8bd17c'},
- {skin:'#c99a75',hair:'#8a2a2a',hs:2,shirt:'#333a45',accent:'#e07050'}
+var LOOKS=[ // приглушённое подземелье: тёмная шерсть, кровь и латунь
+ {skin:'#e8c39e',hair:'#3a2a1a',hs:0,shirt:'#33303a',accent:'#7a1f1f'},
+ {skin:'#d9b48f',hair:'#1e1a16',hs:1,shirt:'#2b2a2e',accent:'#54483c'},
+ {skin:'#f0d0b0',hair:'#7a4a20',hs:2,shirt:'#3e3040',accent:'#8a6d3b'},
+ {skin:'#c99a75',hair:'#101010',hs:3,shirt:'#2e3c34',accent:'#7a8a74'},
+ {skin:'#e8c39e',hair:'#c9c9c9',hs:2,shirt:'#4a2626',accent:'#c49a3d'},
+ {skin:'#d9b48f',hair:'#5a3a1a',hs:1,shirt:'#2e3a44',accent:'#6e8a9a'},
+ {skin:'#f0d0b0',hair:'#2a2a2a',hs:0,shirt:'#3c3228',accent:'#8ba36e'},
+ {skin:'#c99a75',hair:'#8a2a2a',hs:2,shirt:'#333840',accent:'#c47a54'}
 ];
-var HOODIES=[ // intern variants
- {skin:'#e8c39e',hair:'#3a2a1a',hs:1,shirt:'#4a4130',accent:'#6b5a3a'},
- {skin:'#d9b48f',hair:'#20180f',hs:1,shirt:'#39424a',accent:'#54606a'},
- {skin:'#f0d0b0',hair:'#6a3a1a',hs:0,shirt:'#4a3a44',accent:'#6a4a5a'},
- {skin:'#c99a75',hair:'#111111',hs:2,shirt:'#3a4a3a',accent:'#4a6a4a'}
+var HOODIES=[ // стажёры «правки от заказчика»: безликие серые костюмы (ТЗ мобов)
+ {skin:'#e8c39e',hair:'#3a2a1a',hs:1,shirt:'#3a3d42',accent:'#4d5158'},
+ {skin:'#d9b48f',hair:'#20180f',hs:1,shirt:'#34373c',accent:'#45494f'},
+ {skin:'#f0d0b0',hair:'#6a3a1a',hs:0,shirt:'#40434a',accent:'#53575e'},
+ {skin:'#c99a75',hair:'#111111',hs:2,shirt:'#2f3236',accent:'#404449'}
 ];
 // signature class skins — каждый класс узнаваем; место в лобби варьирует тон кожи
 var SKINS=['#e8c39e','#d9b48f','#f0d0b0','#c99a75'];
-var CLSLOOKS={
- mgr:{hair:'#3a2a1a',hs:0,shirt:'#2c3e57',accent:'#8b2020'},            // костюм + галстук
- dev:{hair:'#1e1a16',hs:1,shirt:'#2f3136',accent:'#5a616e'},            // тёмное худи с капюшоном
- mkt:{hair:'#6a3a1a',hs:2,shirt:'#5a3a6a',accent:'#c8a2e0'},            // пиджак + шарф
- dsn:{hair:'#6e3a52',hs:2,shirt:'#9c6b8e',accent:'#5fd0c0'}             // зумер-модница: сдержанная слива + бирюза
+var CLSLOOKS={ // тёмный офис-подземелье: кровь, зола, латунь, призрачная бирюза
+ mgr:{hair:'#3a2a1a',hs:0,shirt:'#33303a',accent:'#7a1f1f'},            // костюм + кровавый галстук
+ dev:{hair:'#1e1a16',hs:1,shirt:'#2b2a2e',accent:'#54483c'},            // выцветшее худи с капюшоном
+ mkt:{hair:'#6a3a1a',hs:2,shirt:'#3e3350',accent:'#a98a56'},            // пиджак + латунный шарф
+ dsn:{hair:'#6e3a52',hs:2,shirt:'#5c4a5a',accent:'#bfe3d4'}             // слива + призрачная бирюза копья
 };
 function classLook(cls,seat){
   var L={};

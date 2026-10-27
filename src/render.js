@@ -37,8 +37,8 @@ function rebuildFog(){
   var d=img.data,md=mm.data;
   for(var i=0;i<GW*GH;i++){
     var o=i*4;
-    if(!FOG.explored[i]){d[o]=4;d[o+1]=6;d[o+2]=11;d[o+3]=255;md[o]=6;md[o+1]=8;md[o+2]=13;md[o+3]=225;}
-    else if(!FOG.vis[i]){d[o]=4;d[o+1]=7;d[o+2]=13;d[o+3]=150;md[o]=6;md[o+1]=9;md[o+2]=15;md[o+3]=100;}
+    if(!FOG.explored[i]){d[o]=14;d[o+1]=10;d[o+2]=8;d[o+3]=255;md[o]=16;md[o+1]=12;md[o+2]=9;md[o+3]=225;}
+    else if(!FOG.vis[i]){d[o]=16;d[o+1]=12;d[o+2]=10;d[o+3]=150;md[o]=18;md[o+1]=13;md[o+2]=10;md[o+3]=100;}
     else d[o+3]=md[o+3]=0;
   }
   fogCtx.putImageData(img,0,0);
@@ -49,15 +49,83 @@ function drawFog(){
   ctx.imageSmoothingEnabled=true;
   ctx.drawImage(fogCv,-TILE*0.5,-TILE*0.5,MAP_W+TILE,MAP_H+TILE);
 }
+// ============================== декор офиса-подземелья ==============================
+// панорамные окна: за ними грозовая ночь (параллакс, дождь, редкие молнии);
+// настенные CRT-табло с графиками; диоды серверных стоек
+function drawNeonDecor(){
+  var Wc=cv.width/(DPR*G.zoom),Hc=cv.height/(DPR*G.zoom);
+  var vx0=G.camX-40,vy0=G.camY-40,vx1=G.camX+Wc+40,vy1=G.camY+Hc+40;
+  var i,city=cityStrip();
+  for(i=0;i<WINS.length;i++){var wn=WINS[i];
+    if(wn.x+wn.w<vx0||wn.x>vx1||wn.y+wn.h<vy0||wn.y>vy1)continue;
+    ctx.save();
+    ctx.beginPath();ctx.rect(wn.x+2,wn.y+2,wn.w-4,wn.h-4);ctx.clip();
+    var par=0.42,cw=640; // ночь «далеко»: сдвигается медленнее камеры
+    var ox=wn.x-((G.camX*par)%cw),oy=wn.y+wn.h-116+((G.camY*par*0.2)%20);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(city,ox-cw,oy);ctx.drawImage(city,ox,oy);ctx.drawImage(city,ox+cw,oy);
+    // косой дождь косыми штрихами
+    ctx.strokeStyle='rgba(160,170,190,0.28)';ctx.lineWidth=1;
+    ctx.beginPath();
+    for(var rn=0;rn<8;rn++){
+      var rx2=wn.x+((G.t*220+rn*97+wn.x)%(wn.w+20))-10;
+      var ry2=wn.y+((G.t*340+rn*53)%(wn.h+20))-10;
+      ctx.moveTo(rx2,ry2);ctx.lineTo(rx2-3,ry2+9);
+    }
+    ctx.stroke();
+    // редкая молния: короткая вспышка неба (детерминированная фаза на окно)
+    if(((G.t*0.13+wn.x*0.0007)%9)<0.08){
+      ctx.fillStyle='rgba(220,228,244,0.3)';ctx.fillRect(wn.x,wn.y,wn.w,wn.h);
+    }
+    ctx.restore();
+  }
+  for(i=0;i<HOLOS.length;i++){var ho=HOLOS[i];
+    if(ho.x+ho.w<vx0||ho.x>vx1||ho.y+ho.h<vy0||ho.y>vy1)continue;
+    var fl=0.82+0.18*Math.sin(G.t*17+ho.ph);
+    if(R()<0.012)fl=0.25; // редкий сбой табло
+    ctx.globalAlpha=Math.min(1,fl);
+    ctx.fillStyle='#0d0b08';ctx.fillRect(ho.x,ho.y,ho.w,ho.h);
+    ctx.strokeStyle='#d8a94e';ctx.lineWidth=1.4; // падающий график акций: янтарный люминофор
+    ctx.beginPath();
+    for(var g2=0;g2<6;g2++){
+      var px4=ho.x+2+(ho.w-4)*g2/5;
+      var drop=((G.t*14+ho.ph*3+g2*7)%40)/40;
+      var py4=ho.y+3+(ho.h-6)*(0.25+0.6*(g2/10+drop*0.5));
+      if(g2===0)ctx.moveTo(px4,py4);else ctx.lineTo(px4,py4);
+    }
+    ctx.stroke();
+    ctx.strokeStyle='rgba(163,38,38,0.85)';ctx.lineWidth=1; // линия обвала
+    ctx.beginPath();ctx.moveTo(ho.x+2,ho.y+ho.h-4);
+    ctx.lineTo(ho.x+ho.w-2,ho.y+ho.h-4-((G.t*26+ho.ph*11)%8));ctx.stroke();
+    ctx.fillStyle='rgba(216,207,192,0.5)'; // тикер-бегущая строка
+    for(var tick=0;tick<3;tick++){
+      var tx3=ho.x+3+((G.t*18+tick*13+ho.ph*7)%(ho.w-6));
+      ctx.fillRect(tx3,ho.y+2,3,1.5);
+    }
+    ctx.fillStyle='rgba(216,169,78,0.08)'; // строки развёртки табло
+    for(var sl2=0;sl2<ho.h;sl2+=3)ctx.fillRect(ho.x,ho.y+sl2,ho.w,1);
+    ctx.globalAlpha=1;
+  }
+  for(i=0;i<RACKS.length;i++){var rk=RACKS[i];
+    if(rk.x+16<vx0||rk.x>vx1||rk.y+28<vy0||rk.y>vy1)continue;
+    for(var led=0;led<6;led++){ // мигающие диоды стоек: янтарь и ведьмин зелёный
+      var lx2=rk.x+2+(led%2)*9,ly2=rk.y+2+((led/2)|0)*5;
+      var on=Math.sin(G.t*(6+led*1.7)+rk.ph+led*2.4)>0.1;
+      ctx.fillStyle=on?((led%3===0)?NEON.torch:NEON.green):'#1a1610';
+      ctx.fillRect(lx2,ly2,2.4,2.4);
+    }
+  }
+}
 function drawWorld(){
   var mobs=worldPool('mobs'),players=worldPool('players'),projs=worldPool('projs'),
       pickups=(NET.mode==='guest')?VIEW.pickups:G.pickups,zones=(NET.mode==='guest')?VIEW.zones:G.zones,
       boss=(NET.mode==='guest')?VIEW.boss:G.boss;
   applyScreenT();
   var W=cv.width/DPR,H=cv.height/DPR;
-  ctx.fillStyle='#05070a';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0E0A08';ctx.fillRect(0,0,W,H); // чернильная тьма офиса-подземелья
   applyWorldT();
   ctx.drawImage(floorCv,0,0);
+  drawNeonDecor();
   drawChaos();
   var i;
   for(i=0;i<zones.length;i++){var z=zones[i];
@@ -233,14 +301,19 @@ function drawWorld(){
 }
 function drawCoffeePoint(cp,charges){
   var bob=Math.sin(G.t*2+cp.x)*2;
-  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(cp.x,cp.y+8,22,10,0,0,TAU);ctx.fill();
-  ctx.fillStyle='#3a404c';rr(ctx,cp.x-20,cp.y-6,40,14,3);ctx.fill();
-  ctx.fillStyle='#22262e';ctx.fillRect(cp.x-13,cp.y-36,26,32);
-  ctx.fillStyle='#3a4049';ctx.fillRect(cp.x-9,cp.y-30,18,14);
-  ctx.fillStyle=charges>0?'#3fb950':'#555';ctx.fillRect(cp.x-7,cp.y-27,4,3);
-  ctx.fillStyle='#c9d1d9';ctx.fillRect(cp.x+7,cp.y-30,3,20);
-  for(var i=0;i<charges;i++){
-    ctx.fillStyle='#d8dce2';ctx.fillRect(cp.x-16+i*7,cp.y-14+bob*0.3,5,8);
+  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(cp.x,cp.y+8,22,10,0,0,TAU);ctx.fill();
+  // кофейник подземелья: тёмный латунный корпус, тёплая подсветка, колонна кофе
+  ctx.fillStyle='#1c1610';rr(ctx,cp.x-20,cp.y-6,40,14,3);ctx.fill();
+  ctx.strokeStyle='rgba(196,98,42,0.5)';ctx.lineWidth=1.5;rr(ctx,cp.x-20,cp.y-6,40,14,3);ctx.stroke();
+  ctx.fillStyle='#120e0a';ctx.fillRect(cp.x-13,cp.y-36,26,32);
+  ctx.fillStyle='#241c14';ctx.fillRect(cp.x-9,cp.y-30,18,14);
+  ctx.fillStyle=charges>0?'#7fb069':'#a32626';ctx.fillRect(cp.x-7,cp.y-27,4,3);
+  ctx.fillStyle='#c9bfae';ctx.fillRect(cp.x+7,cp.y-30,3,20);
+  var lvl=Math.min(1,charges/5); // запас кофе светится в колонне автомата
+  ctx.fillStyle='rgba(196,98,42,0.18)';ctx.fillRect(cp.x-11,cp.y-30,4,24);
+  if(charges>0){ctx.fillStyle='#f2c17e';ctx.fillRect(cp.x-11,cp.y-30+24*(1-lvl),4,24*lvl);}
+  for(var i=0;i<charges;i++){ // дымящиеся капсулы кофе
+    ctx.fillStyle='#e8dcc2';ctx.fillRect(cp.x-16+i*7,cp.y-14+bob*0.3,5,8);
   }
   if(charges===0){
     ctx.fillStyle='rgba(139,148,158,0.7)';ctx.font='10px Arial';ctx.textAlign='center';
@@ -276,8 +349,10 @@ function drawPickup(pk){
 }
 function drawFx(f){
   var k=f.t/f.life;
-  if(f.type==='slash'){
-    ctx.strokeStyle='rgba(223,230,238,'+(0.9*(1-k))+')';
+  if(f.type==='slash'){ // цвет дуги = свет оружия класса (тёплая палитра инферно)
+    var scol=f.cls==='dev'?'242,198,140':(f.cls==='dsn'?'192,90,138':(f.cls==='mgr'?'180,50,44':(f.cls==='mkt'?'216,169,78':'223,230,238')));
+    if(f.big&&f.cls==='dsn')scol='224,120,160';
+    ctx.strokeStyle='rgba('+scol+','+(0.9*(1-k))+')';
     ctx.lineWidth=(f.big?7:4)*(1-k*0.5);
     ctx.beginPath();ctx.arc(f.x,f.y,f.rad*0.85,f.a-f.arc/2,f.a+f.arc/2);ctx.stroke();
   }else if(f.type==='ring'){
@@ -288,7 +363,7 @@ function drawFx(f){
   }else if(f.type==='paper'){
     ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.rot);
     ctx.fillStyle='rgba(223,230,238,'+(1-k)+')';ctx.fillRect(-5,-3,10,6);ctx.restore();
-  }else if(f.type==='ember'){
+  }else if(f.type==='ember'){ // тлеющие угли подземелья
     ctx.fillStyle='rgba(255,150,50,'+(0.7*(1-k))+')';
     ctx.beginPath();ctx.arc(f.x,f.y,(f.r||3)*(1-k*0.5),0,TAU);ctx.fill();
   }else if(f.type==='paint'){
@@ -308,11 +383,12 @@ function drawFx(f){
     ctx.beginPath();ctx.arc(f.x,f.y,13,0,TAU);ctx.fill();
     ctx.beginPath();ctx.arc(f.x,f.y-14,7,0,TAU);ctx.fill();
     ctx.globalAlpha=1;
-  }else if(f.type==='flash'){
+  }else if(f.type==='flash'){ // адская вспышка: белое ядро, гало пекла
     ctx.globalCompositeOperation='lighter';
     var g3=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*(0.5+k));
-    g3.addColorStop(0,'rgba(255,250,220,'+(0.8*(1-k))+')');
-    g3.addColorStop(1,'rgba(255,250,220,0)');
+    g3.addColorStop(0,'rgba(255,240,214,'+(0.8*(1-k))+')');
+    g3.addColorStop(0.5,'rgba(255,120,40,'+(0.35*(1-k))+')');
+    g3.addColorStop(1,'rgba(255,120,40,0)');
     ctx.fillStyle=g3;ctx.beginPath();ctx.arc(f.x,f.y,f.r*(0.5+k),0,TAU);ctx.fill();
     ctx.globalCompositeOperation='source-over';
   }else if(f.type==='spark2'){
@@ -320,6 +396,75 @@ function drawFx(f){
     var rr3=20+k*46;
     ctx.beginPath();ctx.moveTo(f.x+Math.cos(f.a)*rr3*0.4,f.y+Math.sin(f.a)*rr3*0.4);
     ctx.lineTo(f.x+Math.cos(f.a)*rr3,f.y+Math.sin(f.a)*rr3);ctx.stroke();
+  }else if(f.type==='keycap'){ // импакт прогера: летят пиксель-клавиши (ТЗ, кадр 3)
+    var kd=(f.dst||30)*k;
+    var kx=f.x+Math.cos(f.a)*kd,ky=f.y+Math.sin(f.a)*kd-k*10;
+    ctx.save();ctx.translate(kx,ky);ctx.rotate((f.a||0)+Math.sin(k*9)*0.6);
+    ctx.globalAlpha=1-k;
+    ctx.fillStyle='#3a332a';rr(ctx,-4,-4,8,8,1.5);ctx.fill();
+    ctx.fillStyle='#efe5ce';rr(ctx,-4,-4,8,2.5,1);ctx.fill();
+    ctx.fillStyle='#2a241c';ctx.font='bold 7px "IBM Plex Mono",Arial,monospace';ctx.textAlign='center';
+    ctx.fillText(f.ch||'?',0,2.8);ctx.textAlign='left';
+    ctx.restore();ctx.globalAlpha=1;
+  }else if(f.type==='grid'){ // импакт менеджера: кровавая сетка-таблица на полу (AOE)
+    ctx.save();ctx.translate(f.x,f.y);
+    var ga=0.85*(1-k),gw2=f.r||80,gh2=gw2*0.62;
+    ctx.strokeStyle='rgba(180,50,44,'+ga.toFixed(3)+')';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(var gi2=0;gi2<=3;gi2++){ctx.moveTo(-gw2/2+gw2*gi2/3,-gh2/2);ctx.lineTo(-gw2/2+gw2*gi2/3,gh2/2);}
+    for(var gj2=0;gj2<=2;gj2++){ctx.moveTo(-gw2/2,-gh2/2+gh2*gj2/2);ctx.lineTo(gw2/2,-gh2/2+gh2*gj2/2);}
+    ctx.stroke();
+    if(((f.t*18)|0)%2===0){ // мигающая кровавая карточка-блокер в ячейке
+      ctx.fillStyle='rgba(163,38,38,'+(ga*0.5).toFixed(3)+')';
+      ctx.fillRect(-gw2/6-7,-gh2/4-5,14,9);
+    }
+    ctx.restore();
+  }else if(f.type==='spamcone'){ // выстрел маркетолога: конус спам-окон BUY!/SALE!
+    ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.a||0);
+    var sl2=(f.len||66)*(0.5+k*0.8),shw=(f.hw||30)*(0.5+k);
+    ctx.fillStyle='rgba(216,169,78,'+(0.15*(1-k)).toFixed(3)+')';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(sl2,-shw);ctx.lineTo(sl2,shw);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1-k;
+    for(var si2=0;si2<3;si2++){ // пергаментные окна-заголовки кликбейта
+      var px3=sl2*(0.5+si2*0.22),py3=(si2-1)*shw*0.5;
+      ctx.fillStyle='#33270f';ctx.fillRect(px3-7,py3-5,14,10);
+      ctx.strokeStyle=NEON.brass;ctx.lineWidth=1;ctx.strokeRect(px3-7,py3-5,14,10);
+      ctx.fillStyle='#e8d9b8';ctx.font='bold 6px "IBM Plex Mono",Arial,monospace';ctx.textAlign='center';
+      ctx.fillText(si2===1?'SALE!':'BUY!',px3,py3+2.5);ctx.textAlign='left';
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }else if(f.type==='cmyk'){ // импакт дизайнера: капли палитры из цели (приглушённые)
+    for(var ci3=0;ci3<4;ci3++){
+      var an3=(f.a||0)+ci3*TAU/4,d3=6+k*20;
+      ctx.globalAlpha=1-k;
+      ctx.fillStyle=['#5fa8b8','#b85f7a','#c4a94e','#2c2620'][ci3];
+      ctx.beginPath();ctx.arc(f.x+Math.cos(an3)*d3,f.y+Math.sin(an3)*d3,2.6,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }else if(f.type==='smoke'){ // возврат маркетолога: пороховой дым из мегафона
+    ctx.globalAlpha=0.4*(1-k);
+    ctx.fillStyle=f.col||'#6b5a48';
+    var sx3=f.x+Math.sin(k*9+f.x)*3,sy3=f.y-k*14;
+    ctx.fillRect(sx3-3,sy3-3,6,6);
+    ctx.fillRect(sx3-1.5,sy3-7,3,4);
+    ctx.globalAlpha=1;
+  }else if(f.type==='slang'){ // крит: сленг-облачко улетает вверх по дуге
+    var sxx=f.x+(f.dir||1)*24*Math.sin(Math.min(1,k*1.3)*Math.PI);
+    var syy=f.y-46*k*(1.7-k);
+    ctx.save();ctx.translate(sxx,syy);ctx.rotate((f.dir||1)*0.12*Math.sin(k*Math.PI));
+    ctx.globalAlpha=Math.pow(1-k,1.4);
+    ctx.font='bold 13px "Pixelify Sans","IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.strokeStyle='rgba(24,12,8,0.9)';ctx.lineWidth=3;
+    ctx.strokeText(f.txt,0,0);
+    ctx.fillStyle=f.col;ctx.fillText(f.txt,0,0);
+    ctx.textAlign='left';ctx.restore();ctx.globalAlpha=1;
+  }else if(f.type==='shard'){ // комбо разбилось: осколки-пиксели падают вниз
+    var gy2=f.y+320*k*k;
+    ctx.globalAlpha=1-k;
+    ctx.fillStyle=(f.vy<0)?'#e8c56a':'#c49a3d'; // латунные осколки
+    ctx.save();ctx.translate(f.x+(f.vx||0)*k,gy2);ctx.rotate(k*7);
+    ctx.fillRect(-2.5,-2.5,5,5);
+    ctx.restore();ctx.globalAlpha=1;
   }
 }
 // свет: статичные лампы «пекутся» в слой карты (ре-бейк 2 раза в секунду — переживает
@@ -350,7 +495,7 @@ function drawLighting(){
   if(lightCv.width!==Math.max(2,Math.round(cv.width*sc))||lightCv.height!==Math.max(2,Math.round(cv.height*sc))){lightCv.width=Math.max(2,Math.round(cv.width*sc));lightCv.height=Math.max(2,Math.round(cv.height*sc));}
   lctx.setTransform(1,0,0,1,0,0);
   lctx.clearRect(0,0,lightCv.width,lightCv.height);
-  lctx.fillStyle='rgba(3,6,12,0.45)';lctx.fillRect(0,0,lightCv.width,lightCv.height); // офис жилой, а не склеп
+  lctx.fillStyle='rgba(10,6,3,0.55)';lctx.fillRect(0,0,lightCv.width,lightCv.height); // подземелье: тёплая глубокая тьма
   lctx.globalCompositeOperation='destination-out';
   lctx.setTransform(DPR*G.zoom*sc,0,0,DPR*G.zoom*sc,-G.camX*DPR*G.zoom*sc,-G.camY*DPR*G.zoom*sc);
   function hole(x,y,r,i2){
@@ -359,17 +504,22 @@ function drawLighting(){
     lctx.globalAlpha=1;
   }
   var i;
-  if(LIGHT_LEGACY){
+if(LIGHT_LEGACY){
     for(i=0;i<LIGHTS.length;i++){var L=LIGHTS[i];
       if(L.dead)continue;
       var inten=L.dim*(0.82+0.18*Math.sin(G.t*7+L.ph)+0.08*Math.sin(G.t*23+L.sd*7));
       if(L.sput>0){L.sput-=1/60;inten*=(Math.sin(G.t*60+L.sd)>0?1:0.15);}
       else if(R()<0.0015)L.sput=0.25+R()*0.3;
+      L._g=Math.max(0,inten); // интенсивность для аддитивного glow-прохода
       if(inten>0.03)hole(L.x,L.y,215*Math.min(1,inten+0.3),Math.min(1,inten+0.3));
     }
   }else{
     if(G.t-bakeT>0.5)rebakeLights();
     lctx.drawImage(bakeCv,0,0,MAP_W,MAP_H); // весь статичный свет одной командой
+    for(i=0;i<LIGHTS.length;i++){var LB=LIGHTS[i]; // glow-проходу нужна живая интенсивность
+      if(LB.dead)continue;
+      LB._g=Math.max(0,LB.dim*(0.82+0.18*Math.sin(G.t*7+LB.ph)));
+    }
   }
   var players=worldPool('players');
   for(i=0;i<players.length;i++)if(!players[i].dead)hole(players[i].x,players[i].y,230,0.95);
@@ -380,6 +530,46 @@ function drawLighting(){
   lctx.globalCompositeOperation='source-over';
   applyScreenT();
   ctx.drawImage(lightCv,0,0,cv.width/DPR,cv.height/DPR);
+}
+// ============================== neon glow pass ==============================
+// аддитивный слой цветных ореолов (lighter) поверх сцены: свет ламп становится ЦВЕТНЫМ неоном темы.
+// разрешение 0.5× и пре-рендер спрайтов — тот же бюджет, что у lightCv
+var glowCv=document.createElement('canvas'),gctx=glowCv.getContext('2d');
+function drawGlow(){
+  var sc=0.5;
+  var gw=Math.max(2,Math.round(cv.width*sc)),gh=Math.max(2,Math.round(cv.height*sc));
+  if(glowCv.width!==gw||glowCv.height!==gh){glowCv.width=gw;glowCv.height=gh;}
+  gctx.setTransform(1,0,0,1,0,0);
+  gctx.clearRect(0,0,gw,gh);
+  gctx.globalCompositeOperation='lighter';
+  gctx.setTransform(DPR*G.zoom*sc,0,0,DPR*G.zoom*sc,-G.camX*DPR*G.zoom*sc,-G.camY*DPR*G.zoom*sc);
+  var Wc=cv.width/(DPR*G.zoom),Hc=cv.height/(DPR*G.zoom);
+  function orb(x,y,r,col,a){
+    gctx.globalAlpha=a;
+    gctx.drawImage(glowSprite(col),x-r,y-r,r*2,r*2);
+  }
+  var i;
+  for(i=0;i<LIGHTS.length;i++){var L=LIGHTS[i]; // кулеры и голо-панели: чередуем неон A/B темы
+    if(L.dead||L._g===undefined||L._g<0.05)continue;
+    if(L.x<G.camX-160||L.x>G.camX+Wc+160||L.y<G.camY-160||L.y>G.camY+Hc+160)continue;
+    var gi=Math.min(1,L._g+0.25);
+    orb(L.x,L.y,110+40*gi,(i%2)?MAPTHEME.neonB:MAPTHEME.neonA,0.13*gi);
+  }
+  for(i=0;i<COFFEES.length;i++)if(COFFEES[i].charges>0) // кофейники: тёплый янтарный свет
+    orb(COFFEES[i].x,COFFEES[i].y,70,NEON.torch,0.2+0.06*Math.sin(G.t*3+i));
+  var mobs=worldPool('mobs');
+  for(i=0;i<mobs.length;i++)if(mobs[i].type==='deadline') // дедлайны: тлеют углями
+    orb(mobs[i].x,mobs[i].y,55,NEON.ember,0.22+0.08*Math.sin(G.t*9+i));
+  var bsG=(NET.mode==='guest')?VIEW.boss:G.boss; // не называть 'boss': QA режет исходник по этому объявлению
+  if(bsG)orb(bsG.x,bsG.y,130,NEON.blood,0.18+0.08*Math.sin(G.t*5)); // аудитор давит кровавым
+  for(i=0;i<HOLOS.length;i++) // табло подсвечивают стены янтарём темы
+    orb(HOLOS[i].x+HOLOS[i].w/2,HOLOS[i].y+HOLOS[i].h/2,42,MAPTHEME.neonA,0.12+0.03*Math.sin(G.t*13+HOLOS[i].ph));
+  for(i=0;i<RACKS.length;i++) // диоды серверных стоек
+    orb(RACKS[i].x+7,RACKS[i].y+13,26,NEON.torch,0.1);
+  gctx.globalAlpha=1;
+  gctx.globalCompositeOperation='source-over';
+  applyScreenT();
+  ctx.drawImage(glowCv,0,0,cv.width/DPR,cv.height/DPR);
 }
 function drawPost(){
   applyScreenT();
@@ -445,22 +635,72 @@ function drawPost(){
     ctx.fillStyle=drawPost.rg;ctx.fillRect(0,0,W,H);
     ctx.globalAlpha=1;
   }
+  // пепел в воздухе подземелья: медленно оседает, гуще при высоком выгорании (Diablo)
+  var meS=localPlayer();
+  var boS=meS?clamp(meS.burnout/100,0,1):0;
+  if(!drawPost.ash)drawPost.ash=[];
+  if(drawPost.ash.length<12+((boS*10)|0)&&R()<0.4){
+    drawPost.ash.push({x:R()*W,y:-4,v:14+R()*22,sw:R()*TAU,r:0.8+R()*1.4});
+  }
+  ctx.fillStyle='rgba(200,190,178,0.4)';
+  for(var as2=0;as2<drawPost.ash.length;as2++){
+    var aP=drawPost.ash[as2];
+    aP.y+=aP.v/60;aP.x+=Math.sin(G.t*0.8+aP.sw)*0.4;
+    if(aP.y>H+4){drawPost.ash.splice(as2,1);as2--;continue;}
+    ctx.globalAlpha=0.18+0.2*aP.r*0.3;
+    ctx.fillRect(aP.x,aP.y,aP.r,aP.r);
+  }
+  ctx.globalAlpha=1;
 }
 function pixFont(px,bold){
   return (bold?'700 ':'500 ')+px+'px "IBM Plex Mono",Arial,monospace';
 }
 function drawCup(x,y,s,fill){
+  // кофе-мана: бумажный стаканчик to-go с капхолдером и неон-оранжевой полоской (ТЗ Cyber-HUD).
+  // «Рентген»: сквозь белый корпус видна тёмно-коричневая жидкость, убывает по пиксельным рядам
+  var me=localPlayer(),moving=me?!!me.moving:false;
+  var f=clamp(fill,0,1),i;
+  var full=f>=0.999,empty=f<=0.001;
   hctx.save();hctx.translate(x,y);hctx.scale(s,s);
-  hctx.strokeStyle='#c9d1d9';hctx.lineWidth=2;
-  hctx.fillStyle='#12161c';rr(hctx,-14,-18,28,34,4);hctx.fill();hctx.stroke();
-  var fh=30*clamp(fill,0,1);
-  hctx.fillStyle='#6f4a23';hctx.fillRect(-12,14-fh,24,fh);
-  if(fill>0.05){hctx.fillStyle='#8a5a2b';hctx.fillRect(-12,14-fh,24,2);}
-  hctx.beginPath();hctx.arc(16,-2,7,-1.3,1.3);hctx.stroke();
-  if(fill>0.25){
-    hctx.strokeStyle='rgba(200,200,200,0.35)';hctx.lineWidth=1.5;
-    hctx.beginPath();hctx.moveTo(-5,-22);hctx.quadraticCurveTo(-8,-28,-5,-34);
-    hctx.moveTo(5,-22);hctx.quadraticCurveTo(2,-28,5,-34);hctx.stroke();
+  // покачивание кофе в такт бегу: 1-2px
+  var slosh=moving?Math.sin(G.t*11)*1.6:0;
+  // крышка
+  hctx.fillStyle='#d8dce2';rr(hctx,-11,-24,22,5,2);hctx.fill();
+  hctx.fillStyle='#aeb4bd';hctx.fillRect(-11,-20,22,2);
+  // корпус: белый картон
+  hctx.fillStyle='#e8eaee';
+  hctx.beginPath();hctx.moveTo(-10,-20);hctx.lineTo(10,-20);hctx.lineTo(8,16);hctx.lineTo(-8,16);hctx.closePath();hctx.fill();
+  hctx.strokeStyle='#b9bec7';hctx.lineWidth=1;hctx.stroke();
+  // рентген-окно: тёмный кофе внутри (ряды пикселей по уровню)
+  hctx.save();
+  hctx.beginPath();hctx.moveTo(-8.5,-17);hctx.lineTo(8.5,-17);hctx.lineTo(6.8,13);hctx.lineTo(-6.8,13);hctx.closePath();hctx.clip();
+  var rows=Math.round(11*f); // 11 пиксельных рядов кофе
+  for(i=0;i<rows;i++){
+    var ry=12-i*2.6;
+    var wob=Math.sin(ry*0.7+slosh)*0.7;
+    hctx.fillStyle=(i%2===0)?'#4a2f18':'#3d2612';
+    hctx.fillRect(-9+wob,ry,18,2.4);
+  }
+  hctx.restore();
+  // картонный капхолдер с тлеющей янтарной кромкой (свет — но не неон)
+  hctx.fillStyle='#c9a06a';
+  hctx.beginPath();hctx.moveTo(-9.4,-4);hctx.lineTo(9.4,-4);hctx.lineTo(7.6,10);hctx.lineTo(-7.6,10);hctx.closePath();hctx.fill();
+  var sleeveGlow=0.5+0.15*Math.sin(G.t*4);
+  if(empty)sleeveGlow=(((G.t*5)|0)%2===0)?0.8:0.15; // пустой: тускло мигает тлеющим
+  hctx.strokeStyle='rgba(196,98,42,'+sleeveGlow.toFixed(2)+')';hctx.lineWidth=1.8;
+  hctx.beginPath();hctx.moveTo(-9,-1);hctx.lineTo(9,-1);hctx.stroke();
+  hctx.strokeStyle='rgba(232,180,110,'+(sleeveGlow*0.5).toFixed(2)+')';hctx.lineWidth=1;
+  hctx.beginPath();hctx.moveTo(-8.8,7.4);hctx.lineTo(8.8,7.4);hctx.stroke();
+  // парок над крышкой: пиксельные струйки
+  if(f>0.05)for(i=0;i<3;i++){
+    var ph3=(G.t*0.7+i*0.33)%1;
+    hctx.fillStyle='rgba(240,244,248,'+(0.4*(1-ph3)).toFixed(2)+')';
+    hctx.fillRect(-4+i*4+Math.sin(G.t*3+i)*1.5,-25-ph3*9,1.6,1.6);
+  }
+  // полный стакан: короткая пульсация ободка
+  if(full){
+    hctx.strokeStyle='rgba(255,220,140,'+(0.5+0.4*Math.sin(G.t*10)).toFixed(2)+')';
+    hctx.lineWidth=1.6;rr(hctx,-11,-24,22,5,2);hctx.stroke();
   }
   hctx.restore();
 }
@@ -473,8 +713,9 @@ function drawCup(x,y,s,fill){
     var jit=p.burnout>70?R()*3-1.5:0;
     hctx.fillStyle=p.burnout>70?'#dc2626':'#b45309';
     hctx.fillRect(12+jit,topY+2,128*clamp(p.burnout/100,0,1),8);
-    hctx.font=pixFont(13,true);hctx.fillStyle=p.burnout>70?'#e5534b':'#c9d1d9';
-    hctx.fillText(Math.round(p.burnout)+'%',146,topY+10);
+    hctx.fillStyle='rgba(11,12,16,0.8)'; // броневые сегменты и на таче
+    for(var sg3=1;sg3<4;sg3++)hctx.fillRect(10+132*sg3/4,topY+3,1.5,10);
+    hctx.font=pixFont(13,true);hctx.fillStyle=p.burnout>70?'#e5534b':'#c9d1d9';    hctx.fillText(Math.round(p.burnout)+'%',146,topY+10);
     // кофе в той же строке
     drawCup(176,topY+5,0.75,p.coffee/(p.coffeeMax||100));
     hctx.fillStyle='rgba(10,13,18,0.7)';rr(hctx,190,topY+2,92,8,3);hctx.fill();
@@ -548,26 +789,33 @@ function drawHUD(){
   hctx.textAlign='left';
   var narrow=W<640;
   var okrX=(W<1100)?Math.max(W-280,216):W-160; // узкий экран: панель OKR уходит влево от DOM-кнопок #btnPauseM/#btnFS, но не в sprint-панель (она до x=208)
-  var bx=16,by=H-58,bw=narrow?130:210,bh=18;
-  if(!isTouch){ // PC-панель выгорания внизу: на таче вместо неё верхняя строка
-  hctx.fillStyle='rgba(10,13,18,0.75)';rr(hctx,bx-8,by-26,narrow?bw+96:bw+120,bh+40,6);hctx.fill();
-  var jit=p.burnout>70?R()*3-1.5:0;
-  hctx.font=pixFont(13,true);hctx.fillStyle=p.burnout>70?'#e5534b':'#8b949e';
-  hctx.fillText('ВЫГОРАНИЕ',bx,by-12);
-  hctx.fillStyle='#12161c';rr(hctx,bx,by,bw,bh,3);hctx.fill();
-  hctx.strokeStyle='#333b47';hctx.lineWidth=1;rr(hctx,bx,by,bw,bh,3);hctx.stroke();
-  var fillW=bw*clamp(p.burnout/100,0,1);
-  if(fillW>2){
-    hctx.save();rr(hctx,bx,by,bw,bh,3);hctx.clip();
-    var grad=hctx.createLinearGradient(bx,0,bx+bw,0);
-    grad.addColorStop(0,'#6b7280');grad.addColorStop(0.5,'#b45309');grad.addColorStop(1,'#dc2626');
-    hctx.fillStyle=grad;hctx.fillRect(bx+jit,by+jit*0.5,fillW,bh);hctx.restore();
-  }
-  hctx.font=pixFont(15,true);hctx.fillStyle='#e6edf3';
-  hctx.fillText(Math.round(p.burnout)+'%',bx+bw+8,by+14);
-  drawCup(bx+bw+(narrow?42:58),by+10,narrow?0.85:1.05,p.coffee/(p.coffeeMax||100));
-  hctx.font=pixFont(13,true);hctx.fillStyle='#8b949e';
-  hctx.fillText(narrow?('☕'+Math.round(p.coffee)):('КОФЕ '+Math.round(p.coffee)),bx+bw+(narrow?64:80),by+38);
+  if(!isTouch){ // ПК: висячий статус одной строкой — иконка кофе + %, пламя выгорания + %
+    // без таблички: только иконки с процентами; при уроне строка дёргается
+  var dmgFlash=(p.flash||0)>0.4;
+  var gj2=dmgFlash?(R()*4-2):0;
+  var y0=104;
+  hctx.save();
+  hctx.translate(gj2,0);
+  // кофе: иконка-стаканчик + процент
+  drawCup(26,y0,0.72,p.coffee/(p.coffeeMax||100));
+  hctx.font=pixFont(13,true);hctx.textAlign='left';
+  hctx.strokeStyle='rgba(14,10,8,0.85)';hctx.lineWidth=3;
+  hctx.strokeText(Math.round(p.coffee)+'%',42,y0+5);
+  hctx.fillStyle='#e8dcc2';hctx.fillText(Math.round(p.coffee)+'%',42,y0+5);
+  // выгорание: пиксельное пламя (цвет = уровень) + процент
+  var bCol=p.burnout>70?'#A32626':(p.burnout>45?'#C47F1A':'#3F7A3A');
+  var flc=0.75+0.25*Math.sin(G.t*12);
+  hctx.fillStyle=bCol;
+  hctx.fillRect(78,y0-2,10,7);          // основание языка
+  hctx.fillRect(80,y0-6,6,5);
+  hctx.fillRect(82,y0-9-3*flc,3,4);     // мерцающий кончик
+  hctx.fillStyle='rgba(255,220,160,0.8)';
+  hctx.fillRect(81,y0,4,4);             // ядро пламени
+  hctx.strokeStyle='rgba(14,10,8,0.85)';hctx.lineWidth=3;
+  hctx.strokeText(Math.round(p.burnout)+'%',92,y0+5);
+  hctx.fillStyle=dmgFlash?'#ff8a7a':'#e8dcc2';
+  hctx.fillText(Math.round(p.burnout)+'%',92,y0+5);
+  hctx.restore();
   }
   drawMinimap(); // до тач-return: миникарта обязательна на любой платформе
   if(NET.mode==='guest'&&G.state==='playing'){ // живой индикатор связи: свежесть снапшотов
@@ -626,7 +874,7 @@ function drawHUD(){
   }
   if(p.haste>0){
     hctx.fillStyle='rgba(139,209,124,'+(0.7+0.3*Math.sin(G.t*10))+')';hctx.font='bold 11px Arial';
-    hctx.fillText('АСАП! +55%',bx+bw+(narrow?64:80),by-6);
+    hctx.fillText('АСАП! +55%',16,166);
   }
   // === спринт + враги: явный счётчик, чтобы смена локации не была внезапной ===
   hctx.fillStyle='rgba(10,13,18,0.8)';rr(hctx,12,12,196,66,6);hctx.fill();
@@ -655,29 +903,39 @@ function drawHUD(){
   hctx.fillText('OKR: '+G.okr,okrX+12,34);
   hctx.font=pixFont(12);hctx.fillStyle='#8b949e';
   hctx.fillText('грейд '+G.grade+' · ✦ '+(p.coins||0),okrX+12,52);
-  // комбо-счётчик
-  if(G.combo>1){
-    var cbs=1+0.1*Math.sin(G.t*12);
+  // комбо-счётчик: правый край, аркадный наклон (GTA2), латунное золото;
+  // на ударе цифра пружинит +30%, при сбросе — рассыпается осколками
+  if(drawHUD.pc===undefined)drawHUD.pc=0;
+  if(G.combo>drawHUD.pc&&G.combo>1)drawHUD.popT=0.1; // новый удар серии
+  if(drawHUD.pc>1&&G.combo<=1){ // серия оборвалась — в осколки
+    for(var sh=0;sh<10;sh++)G.fx.push({type:'shard',x:W-38,y:120,vx:(R()*2-1)*130,vy:-60-R()*140,t:0,life:0.7});
+  }
+  drawHUD.pc=G.combo;
+  drawHUD.popT=Math.max(0,(drawHUD.popT||0)-1/60);  if(G.combo>1){
+    var cbs=1+0.3*(drawHUD.popT/0.1); // pop +30% сжатие за 0.1с
     hctx.save();
-    hctx.translate(W/2,86);
+    hctx.translate(W-38,120);
+    hctx.transform(1,0,-0.18,1,0,0); // наклон вправо, гоночные аркады 90-х
     hctx.scale(cbs,cbs);
-    hctx.font=pixFont(24,true);
-    hctx.fillStyle='rgba(255,207,92,'+(0.75+0.25*Math.sin(G.t*9))+')';
-    hctx.strokeStyle='rgba(0,0,0,0.6)';hctx.lineWidth=3;
+    hctx.font='bold 30px "Pixelify Sans","IBM Plex Mono",monospace';
     hctx.textAlign='center';
-    var cbt='×'+G.combo+' '+(COMBONAMES[G.combo]||'');
+    hctx.strokeStyle='rgba(20,10,4,0.85)';hctx.lineWidth=5;
+    var cbt='×'+G.combo;
     hctx.strokeText(cbt,0,0);
+    hctx.fillStyle='rgba(232,197,106,'+(0.8+0.2*Math.sin(G.t*9)).toFixed(3)+')';
     hctx.fillText(cbt,0,0);
+    hctx.font=pixFont(11,true);
+    hctx.fillStyle='rgba(216,207,192,0.85)';
+    hctx.fillText(COMBONAMES[G.combo]||'',0,16);
     hctx.restore();
     hctx.textAlign='left';
-    // таймер-полоса
-    hctx.fillStyle='rgba(10,13,18,0.6)';rr(hctx,W/2-40,96,80,5,2);hctx.fill();
-    hctx.fillStyle='#ffcf5c';hctx.fillRect(W/2-40,96,80*clamp(G.comboT/3,0,1),5);
+    hctx.fillStyle='rgba(14,10,8,0.6)';rr(hctx,W-78,132,80,5,2);hctx.fill();
+    hctx.fillStyle='#e8c56a';hctx.fillRect(W-78,132,80*clamp(G.comboT/3,0,1),5);
   }
   if(p.adr){
-    hctx.fillStyle='rgba(229,83,75,'+(0.6+0.4*Math.sin(G.t*10))+')';
+    hctx.fillStyle='rgba(200,80,60,'+(0.6+0.4*Math.sin(G.t*10))+')';
     hctx.font='bold 12px Arial';
-    hctx.fillText('ПЕРЕДОЗ КОФЕИНА: +20% скор, +25% урон',bx,by-34);
+    hctx.fillText('ПЕРЕДОЗ КОФЕИНА: +20% скор, +25% урон',16,180);
   }
   var players=worldPool('players');
   if(players.length>1){
@@ -820,8 +1078,8 @@ function drawMinimap(){
   var low=isTouch&&H<520;
   var mx=low?14:W-mw-14,my=isTouch?76:H-mh-14;
   hctx.globalAlpha=0.92;
-  hctx.fillStyle='rgba(14,18,26,0.88)';rr(hctx,mx-6,my-6,mw+12,mh+12,4);hctx.fill();
-  hctx.strokeStyle='#7d8a99';hctx.lineWidth=2;rr(hctx,mx-6,my-6,mw+12,mh+12,4);hctx.stroke();
+  hctx.fillStyle='rgba(16,12,9,0.88)';rr(hctx,mx-6,my-6,mw+12,mh+12,4);hctx.fill();
+  hctx.strokeStyle='#8a7460';hctx.lineWidth=2;rr(hctx,mx-6,my-6,mw+12,mh+12,4);hctx.stroke();
   hctx.drawImage(mmCv,mx,my,mw,mh);
   hctx.fillStyle='rgba(230,237,243,0.07)';hctx.fillRect(mx,my,mw,mh); // карту чуть подсветить: читается с первого взгляда
   window.__mmRect={x:mx,y:my,w:mw,h:mh}; // хит-зона для layout-тестов (QA следит за миникартой)
@@ -878,7 +1136,7 @@ function renderMenu(){
     menuCam.lastVis=G.t;
     computeVis(menuCam.x,menuCam.y);
   }
-  drawWorld();drawLighting();drawPost();
+  drawWorld();drawLighting();drawGlow();drawPost();
 }
 function render(){
   ctx.setTransform(1,0,0,1,0,0);
@@ -886,7 +1144,7 @@ function render(){
   hctx.setTransform(DPR,0,0,DPR,0,0);
   hctx.clearRect(0,0,bhud.width/DPR,bhud.height/DPR);
   if(localPlayer()||VIEW.players.length){
-    drawWorld();drawLighting();drawPost();
+    drawWorld();drawLighting();drawGlow();drawPost();
     drawSouls();
     drawHUD();
   }else{

@@ -6,7 +6,7 @@
 }
 #burnout #bcv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;}
 #burnout #bhud{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;}
-#burnout .bgov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,5,9,.8);z-index:5;overflow-y:auto;overscroll-behavior:contain;}
+#burnout .bgov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,7,5,.82);z-index:5;overflow-y:auto;overscroll-behavior:contain;}
 #burnout .bghidden,#burnout .hidden{display:none;}
 #burnout .bgpanel{background:rgba(13,17,23,.97);border:1px solid #2a3038;border-radius:10px;padding:22px 30px;max-width:620px;width:88%;color:#c9d1d9;box-shadow:0 0 60px rgba(0,0,0,.8);max-height:92%;overflow-y:auto;overscroll-behavior:contain;}
 #burnout .bgcenter{text-align:center;}
@@ -17,13 +17,13 @@
 #burnout .bgtag{color:#8b949e;margin:6px 0 16px;font-style:italic;font-size:14px;}
 #burnout .bgpanel{max-width:780px;}
 #burnout .bgcards{display:flex;gap:10px;align-items:stretch;}
-#burnout .bgcard{flex:1;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:10px;padding:10px 10px 12px;cursor:pointer;transition:transform .18s ease,border-color .18s,box-shadow .18s;text-align:center;}
-#burnout .bgcard:hover{transform:translateY(-8px) scale(1.06);border-color:#42e0ff;box-shadow:0 0 22px rgba(66,224,255,0.3),0 12px 24px rgba(0,0,0,0.5);z-index:2;}
+#burnout .bgcard{flex:1;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(26,20,14,0.92),rgba(16,12,9,0.92));border:1px solid #263444;border-radius:10px;padding:10px 10px 12px;cursor:pointer;transition:transform .18s ease,border-color .18s,box-shadow .18s;text-align:center;}
+#burnout .bgcard:hover{transform:translateY(-8px) scale(1.06);border-color:#c49a3d;box-shadow:0 0 22px rgba(196,162,78,0.3),0 12px 24px rgba(0,0,0,0.5);z-index:2;}
 #burnout .bgmodel{width:100%;height:110px;display:block;image-rendering:auto;}
-#burnout .bgcard h2{margin:8px 0 6px;font-size:14px;letter-spacing:1px;color:#eaf6ff;}
+#burnout .bgcard h2{margin:8px 0 6px;font-size:14px;letter-spacing:1px;color:#fff3dc;}
 #burnout .bgdesc{font-size:11px;color:#9aa4af;margin:0;line-height:1.4;transition:opacity .18s;}
-#burnout .bgfull{position:absolute;left:0;right:0;bottom:0;top:auto;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(8,12,18,0.0),rgba(8,12,18,0.94) 30%);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:11px;color:#cfe6f2;line-height:1.75;text-align:left;}
-#burnout .bgfull b{color:#42e0ff;}
+#burnout .bgfull{position:absolute;left:0;right:0;bottom:0;top:auto;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(8,12,18,0.0),rgba(8,12,18,0.94) 30%);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:11px;color:#e8dcc2;line-height:1.75;text-align:left;}
+#burnout .bgfull b{color:#c49a3d;}
 #burnout .bgcard:hover .bgfull,#burnout .bgcard.sel .bgfull{opacity:1;transform:translateY(0);}
 #burnout .bgcard:hover .bgdesc,#burnout .bgcard.sel .bgdesc{opacity:0;}
 #burnout .bgcard:hover{border-color:#e5534b;transform:translateY(-2px);}
@@ -70,7 +70,7 @@
 #burnout .tbig{border-color:#ffce00;background:radial-gradient(circle at 35% 30%,rgba(255,206,0,.34),rgba(60,50,10,.8));color:#ffe566;box-shadow:0 0 12px rgba(255,206,0,.28);}
 #burnout .tb-abs{--cell:min(15vw,58px);right:calc(48px + env(safe-area-inset-right,0px));bottom:calc(182px + env(safe-area-inset-bottom,0px));border-color:#ffce00;color:#ffe566;box-shadow:0 0 8px rgba(255,206,0,.25);} /* СУПЕР 95° — верх дуги */
 #burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(13.5vw,50px);font-size:7px;border-color:rgba(150,158,168,.8);color:#cfd6dd;}
-#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(169px + env(safe-area-inset-bottom,0px));border-color:rgba(66,224,255,.85);}   /* ПРИЁМ 122.5° */
+#burnout .tb-alt{right:calc(110px + env(safe-area-inset-right,0px));bottom:calc(169px + env(safe-area-inset-bottom,0px));border-color:rgba(196,162,78,.85);}   /* ПРИЁМ 122.5° */
 #burnout .tb-dodge{right:calc(154px + env(safe-area-inset-right,0px));bottom:calc(125px + env(safe-area-inset-bottom,0px));border-color:rgba(31,196,174,.85);}  /* РЫВОК 150° */
 #burnout .tb-skill{right:calc(171px + env(safe-area-inset-right,0px));bottom:calc(67px + env(safe-area-inset-bottom,0px));border-color:rgba(200,162,224,.85);}  /* СКИЛ 177.5° */
 #burnout .tb-ult{right:calc(159px + env(safe-area-inset-right,0px));bottom:calc(7px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}      /* УЛЬТА 205° — конец дуги */
@@ -92,35 +92,35 @@
 #burnout #btnPauseM{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:4;width:46px;height:46px;border-radius:8px;background:rgba(33,38,45,.7);border:1px solid #30363d;color:#e6edf3;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:auto;}
 
 /* ===== неоновое главное меню ===== */
-#burnout .bgtitle{font-family:'Pixelify Sans',Arial,sans-serif;font-weight:700;font-size:clamp(24px,5.4cqw,46px);letter-spacing:2px;color:#eaf6ff;
-  text-shadow:0 0 6px rgba(66,224,255,0.85),0 0 20px rgba(21,112,127,0.75),0 0 46px rgba(138,42,90,0.5);
+#burnout .bgtitle{font-family:'Pixelify Sans',Arial,sans-serif;font-weight:700;font-size:clamp(24px,5.4cqw,46px);letter-spacing:2px;color:#fff3dc;
+  text-shadow:0 0 6px rgba(196,162,78,0.85),0 0 20px rgba(90,60,20,0.75),0 0 46px rgba(120,60,24,0.5);
   animation:boflick 4s infinite;}
 #burnout .bgtitle span{color:#ff5fa8;text-shadow:0 0 6px rgba(255,95,168,0.9),0 0 22px rgba(138,42,90,0.8);}
 #burnout .bgov{background:rgba(2,4,8,0.45);}
-#burnout .bgpanel{background:rgba(8,11,17,0.82);backdrop-filter:blur(3px);border:1px solid rgba(44,66,88,0.6);}
-#burnout .bgbtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#cfe6f2;letter-spacing:1px;transition:all .15s;}
-#burnout .bgbtn:hover{border-color:#42e0ff;color:#fff;background:rgba(21,112,127,0.18);box-shadow:0 0 14px rgba(66,224,255,0.35),inset 0 0 10px rgba(21,112,127,0.15);}
+#burnout .bgpanel{background:rgba(18,13,10,0.85);backdrop-filter:blur(3px);border:1px solid rgba(74,58,40,0.6);}
+#burnout .bgbtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#e8dcc2;letter-spacing:1px;transition:all .15s;}
+#burnout .bgbtn:hover{border-color:#c49a3d;color:#fff;background:rgba(90,60,20,0.18);box-shadow:0 0 14px rgba(196,162,78,0.35),inset 0 0 10px rgba(90,60,20,0.15);}
 #burnout .bgsnd{margin:14px auto 0;max-width:320px;}
 #burnout .sndrow{display:flex;align-items:center;gap:10px;margin:5px 0;}
 #burnout .sndlab{width:64px;font-family:'Pixelify Sans',Arial;font-size:13px;color:#7d8590;text-align:right;}
-#burnout input[type=range]{flex:1;accent-color:#15707f;height:4px;cursor:pointer;}
-#burnout .sndval{width:40px;font-family:'Pixelify Sans',Arial;font-size:12px;color:#42e0ff;text-align:right;}
+#burnout input[type=range]{flex:1;accent-color:#8a6a2e;height:4px;cursor:pointer;}
+#burnout .sndval{width:40px;font-family:'Pixelify Sans',Arial;font-size:12px;color:#c49a3d;text-align:right;}
 #burnout .bgcredit{margin-top:12px;font-size:12px;color:#7d8590;text-align:center;letter-spacing:1px;}
 #burnout .bgcredit a{color:#7d8590;text-decoration:none;border-bottom:1px dotted #4d5560;transition:color .15s,border-color .15s;}
-#burnout .bgcredit a:hover{color:#42e0ff;border-color:#42e0ff;}
+#burnout .bgcredit a:hover{color:#c49a3d;border-color:#c49a3d;}
 
 /* ===== главное меню: класс-фокус, углы ===== */
 #burnout .bgmain{display:flex;flex-direction:column;gap:8px;}
 #burnout .bgbottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;}
 #burnout .bgcorner{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
-#burnout .bgcorner:hover{border-color:#42e0ff;color:#cfe6f2;}
-#burnout .bgstart{flex:1;background:rgba(21,112,127,0.25);border:1px solid #15707f;color:#eaf6ff;border-radius:8px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:2px;cursor:pointer;min-height:44px;transition:all .15s;}
-#burnout .bgstart:hover{background:rgba(66,224,255,0.2);border-color:#42e0ff;box-shadow:0 0 16px rgba(66,224,255,0.35);}
+#burnout .bgcorner:hover{border-color:#c49a3d;color:#e8dcc2;}
+#burnout .bgstart{flex:1;background:rgba(90,60,20,0.25);border:1px solid #8a6a2e;color:#fff3dc;border-radius:8px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:2px;cursor:pointer;min-height:44px;transition:all .15s;}
+#burnout .bgstart:hover{background:rgba(196,162,78,0.2);border-color:#c49a3d;box-shadow:0 0 16px rgba(196,162,78,0.35);}
 #burnout .bgmode{display:flex;gap:6px;}
 #burnout .bgmodebtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
-#burnout .bgmodebtn.on{border-color:#42e0ff;color:#42e0ff;background:rgba(21,112,127,0.2);}
-#burnout .bgcard.sel{border-color:#42e0ff;box-shadow:0 0 18px rgba(66,224,255,0.35),inset 0 0 12px rgba(21,112,127,0.12);}
-#burnout .bgcard.sel h2{color:#42e0ff;}
+#burnout .bgmodebtn.on{border-color:#c49a3d;color:#c49a3d;background:rgba(90,60,20,0.2);}
+#burnout .bgcard.sel{border-color:#c49a3d;box-shadow:0 0 18px rgba(196,162,78,0.35),inset 0 0 12px rgba(90,60,20,0.12);}
+#burnout .bgcard.sel h2{color:#c49a3d;}
 #burnout .bgset{max-width:420px;}
 
 /* пауза: Продолжить — primary */
@@ -142,7 +142,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .bgcards{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   #burnout .bgmodel{height:84px;}
 }
-#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.bgcard):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
+#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.bgcard):focus-visible{outline:2px solid #c49a3d;outline-offset:2px;}
 #burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.bgcard):active{transform:scale(.97);}
 #burnout #joinErr{color:#e5534b;font-style:normal;}
 #burnout input[type=range]{height:28px;}
@@ -154,7 +154,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
 
 /* ===== выбор буста при уровне ===== */
 #burnout .perkcards{display:flex;gap:12px;justify-content:center;margin:14px 0 6px;flex-wrap:wrap;}
-#burnout .perkcard{flex:1;min-width:150px;max-width:240px;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:10px;padding:12px 10px;cursor:pointer;color:#e6edf3;font-family:inherit;transition:transform .15s ease,border-color .15s,box-shadow .15s;}
+#burnout .perkcard{flex:1;min-width:150px;max-width:240px;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,rgba(26,20,14,0.92),rgba(16,12,9,0.92));border:1px solid #263444;border-radius:10px;padding:12px 10px;cursor:pointer;color:#e6edf3;font-family:inherit;transition:transform .15s ease,border-color .15s,box-shadow .15s;}
 #burnout .perkcard b{font-size:14px;letter-spacing:.5px;color:#ffcf5c;}
 #burnout .perkcard span{font-size:12px;color:#9aa4af;line-height:1.4;text-align:center;}
 #burnout .perkcard i{font-style:normal;font-size:10px;letter-spacing:2px;color:#ff8a5c;border:1px solid rgba(255,138,92,0.5);border-radius:4px;padding:2px 8px;}
@@ -181,7 +181,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout.tlearn .tb .tlbl{display:block;}
 
 /* десктоп: подсказка движения в первом бою (аналог тач-joyHint) */
-#burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#cfe6f2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
+#burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#e8dcc2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
 #burnout .bgsub{font-size:11.5px;opacity:.85;margin-top:2px;}
 #burnout .bgsub b{color:#ffcf5c;}
 
