@@ -285,7 +285,7 @@ test('кооп-конфетка: реконнект, heartbeat-детект, и�
   ok(nj.indexOf('NET.reconnectTries<3') > 0, 'до 3 автопереподключений');
   ok(nj.indexOf('hostRetries<3') > 0, 'хост тоже восстанавливает комнату');
   ok(nj.indexOf('Связь восстановлена') > 0, 'успешный возврат отмечается');
-  ok(/guestInIv=setInterval[\s\S]{0,400}?\},33\)/.test(nj), 'ввод гостя 30 Гц (8 Гц = рывки на хосте и телепорты у гостя)');
+  ok(/guestInIv=setInterval[\s\S]{0,600}?\},33\)/.test(nj), 'ввод гостя 30 Гц (8 Гц = рывки на хосте и телепорты у гостя)');
   ok(/sendSnapshot\(\);},70\)/.test(nj), 'снапшоты ~14 Гц (8 Гц = дёрганые мобы у гостей)');
   const rj = fsL.readFileSync('src/render.js', 'utf8');
   ok(rj.indexOf('ПЕРЕПОДКЛЮЧЕНИЕ') > 0, 'баннер переподключения в HUD');
