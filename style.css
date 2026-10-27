@@ -85,13 +85,13 @@
 #burnout .tb-ult{right:calc(153px + env(safe-area-inset-right,0px));bottom:calc(2px + env(safe-area-inset-bottom,0px));border-color:rgba(232,58,156,.85);}
 
 @media (max-height:520px){
-  #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));}
+  #burnout .tbig{--cell:min(22vw,88px);right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(38px + env(safe-area-inset-bottom,0px));}
   #burnout .tb-abs,#burnout .tb-alt,#burnout .tb-dodge,#burnout .tb-skill,#burnout .tb-ult{--cell:min(9vw,40px);}
-  #burnout .tb-abs{right:calc(46px + env(safe-area-inset-right,0px));bottom:calc(137px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-alt{right:calc(89px + env(safe-area-inset-right,0px));bottom:calc(122px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-dodge{right:calc(120px + env(safe-area-inset-right,0px));bottom:calc(90px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-skill{right:calc(133px + env(safe-area-inset-right,0px));bottom:calc(47px + env(safe-area-inset-bottom,0px));}
-  #burnout .tb-ult{right:calc(124px + env(safe-area-inset-right,0px));bottom:calc(2px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-abs{right:calc(49px + env(safe-area-inset-right,0px));bottom:calc(183px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-alt{right:calc(104px + env(safe-area-inset-right,0px));bottom:calc(165px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-dodge{right:calc(144px + env(safe-area-inset-right,0px));bottom:calc(123px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-skill{right:calc(160px + env(safe-area-inset-right,0px));bottom:calc(68px + env(safe-area-inset-bottom,0px));}
+  #burnout .tb-ult{right:calc(149px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));}
 }
 #burnout #btnFS{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(64px + env(safe-area-inset-right,0px));z-index:6;width:46px;height:46px;border-radius:8px;background:rgba(33,38,45,.72);border:1px solid rgba(110,118,129,.8);color:#e6edf3;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;touch-action:none;}
 #burnout #btnFS:hover{background:rgba(63,185,80,.4);}
