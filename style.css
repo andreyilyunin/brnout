@@ -203,6 +203,7 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout.tlearn .tb .tlbl{display:block;}
 
 #burnout #deskHint{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:rgba(8,12,18,.82);border:1px solid rgba(125,180,240,.35);color:#e8dcc2;font-size:12px;font-weight:700;letter-spacing:.3px;pointer-events:none;z-index:4;}
+#burnout.nohint #deskHint,#burnout.nohint #joyHint{display:none!important;}
 #burnout .bgsub{font-size:11.5px;opacity:.85;margin-top:2px;}
 #burnout .bgsub b{color:#ffcf5c;}
 
