@@ -216,8 +216,18 @@ function drawChaos(){
     ctx.beginPath();ctx.arc(PFX[i].x,PFX[i].y,6+Math.sin(G.t*9+i)*2,0,TAU);ctx.fill();
   }
 }
-function drawWorldCoin(c2,ox,oy,t,withFace){
-  c2.save();c2.translate(ox,oy);
+function prnd(d,i){var s=Math.sin((d.x*0.7+d.y*1.3)*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);}
+function drawFlatCoin(c2,x,y,sc,t,ph){
+  c2.save();c2.translate(x,y);c2.scale(sc,sc);
+  c2.fillStyle='rgba(0,0,0,0.3)';c2.beginPath();c2.ellipse(0,1.6,5,2.4,0,0,TAU);c2.fill();
+  c2.fillStyle='#8a6a1e';c2.beginPath();c2.ellipse(0,0,5,3.4,0,0,TAU);c2.fill();
+  c2.fillStyle='#ffcf5c';c2.beginPath();c2.ellipse(0,-0.5,4.2,2.7,0,0,TAU);c2.fill();
+  c2.fillStyle='#e3b04b';c2.beginPath();c2.ellipse(0,-0.5,2.2,1.3,0,0,TAU);c2.fill();
+  if(((t*1.2+(ph||0)*0.37)%1)<0.08){c2.fillStyle='#fff3c4';c2.fillRect(2.6,-2.2,1.6,1.6);}
+  c2.restore();
+}
+function drawWorldCoin(c2,ox,oy,t,withFace,sc){
+  c2.save();c2.translate(ox,oy);c2.scale(sc||1,sc||1);
   c2.fillStyle='#8a6a1e';c2.beginPath();c2.arc(0,0,4.4,0,TAU);c2.fill();
   c2.fillStyle='#ffcf5c';c2.beginPath();c2.arc(-0.5,-0.5,3.6,0,TAU);c2.fill();
   if(withFace){
@@ -233,17 +243,31 @@ function drawDebris(){
     if(d.kind!=='stone'&&!tileVis(d.x,d.y))continue;
     ctx.save();ctx.translate(d.x,d.y);
     if(d.kind==='coin'){
+      ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,5,5,2.4,0,0,TAU);ctx.fill();
       var bob2=Math.sin(d.t*6+d.x)*1.2;
       ctx.translate(0,bob2);
       drawWorldCoin(ctx,0,0,d.t,true);
     }else if(d.kind==='pile'){
-      var bob3=Math.sin(d.t*6+d.x)*1.2;
+      var bob3=Math.sin(d.t*2.4+d.x*0.1)*0.7;
       ctx.translate(0,bob3);
-      var vis=Math.min(d.n,5);
-      var POFF=[[-6,2],[6,2],[-3,-2.5],[3,-2.5],[0,-7]];
-      for(var pi4=0;pi4<vis;pi4++){
-        drawWorldCoin(ctx,POFF[pi4][0],POFF[pi4][1],d.t,pi4===vis-1);
+      var vis=Math.min(d.n,4),nl=d.n>2?2:1;
+      ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,4,12,5.5,0,0,TAU);ctx.fill();
+      ctx.globalCompositeOperation='lighter';
+      var gl4=ctx.createRadialGradient(0,-2,2,0,-2,18);
+      gl4.addColorStop(0,'rgba(255,207,92,0.15)');gl4.addColorStop(1,'rgba(255,207,92,0)');
+      ctx.fillStyle=gl4;ctx.beginPath();ctx.arc(0,-2,18,0,TAU);ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+      for(var pi4=0;pi4<nl;pi4++){
+        var ja=prnd(d,pi4)*TAU,jr=8+prnd(d,pi4+5)*4;
+        drawFlatCoin(ctx,Math.cos(ja)*jr,Math.sin(ja)*jr*0.5+2,0.8+prnd(d,pi4+9)*0.3,d.t,pi4);
       }
+      for(var si4=0;si4<vis;si4++){
+        var sy4=2-si4*2.6,sx4=(prnd(d,si4+20)-0.5)*1.4;
+        ctx.fillStyle=si4%2?'#8a6a1e':'#a5812a';
+        ctx.beginPath();ctx.ellipse(sx4,sy4,5.1,3.6,0,0,TAU);ctx.fill();
+        if(si4<vis-1){ctx.fillStyle='#ffcf5c';ctx.beginPath();ctx.ellipse(sx4,sy4-1.1,5.1,2.2,0,0,TAU);ctx.fill();}
+      }
+      drawWorldCoin(ctx,(prnd(d,31)-0.5)*1.2,2-(vis-1)*2.6-1.5,d.t,true,1.2);
     }else if(d.kind==='plate'){
       ctx.rotate(Math.sin(d.t*3)*0.08+d.rot*0.06);
       var wdt=26+d.word.length*6.4;
