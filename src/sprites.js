@@ -2,7 +2,7 @@
 
 var SPRCV=document.createElement('canvas');SPRCV.width=160;SPRCV.height=160;
 var SPRC=SPRCV.getContext('2d');
-var SPR_SCALE=0.38;
+var SPR_SCALE=0.7;
 function pixWrap(o,fn){
   var sc=o.scale||1;
   SPRC.setTransform(1,0,0,1,0,0);

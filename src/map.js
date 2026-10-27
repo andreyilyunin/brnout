@@ -1021,21 +1021,21 @@ function buildMinimapBase(){
   for(var j=0;j<GH;j++)for(var i=0;i<GW;i++){
     if(!grid[j][i])continue;
     var rm=roomAtTile(i,j);
-    var col='#232830';
+    var col='#3a4250';
     if(rm){
-      if(rm.type==='pantry')col='#2e3a33';
-      else if(rm.type==='meeting')col='#33302a';
-      else if(rm.type==='wc')col='#33404a';
-      else if(rm.type==='office')col='#40342e';
-      else if(rm.type==='lobby')col='#3a3427';
-      else if(rm.arena)col='#3a2c33';
-      else{var ch=(rm.hall||0)%4;col=ch===1?'#2e3f52':(ch===2?'#3e3428':'#2a3038');}
+      if(rm.type==='pantry')col='#466052';
+      else if(rm.type==='meeting')col='#544e3e';
+      else if(rm.type==='wc')col='#4e6474';
+      else if(rm.type==='office')col='#64503f';
+      else if(rm.type==='lobby')col='#5c5236';
+      else if(rm.arena)col='#5c4150';
+      else{var ch=(rm.hall||0)%4;col=ch===1?'#45617a':(ch===2?'#5f4d38':'#414a58');}
     }
     c.fillStyle=col;
     c.fillRect(i*TILE*sc,j*TILE*sc,TILE*sc+0.5,TILE*sc+0.5);
   }
 
-  c.fillStyle='#454e5c';
+  c.fillStyle='#78849a';
   for(i=0;i<WALLS.length;i++){var w=WALLS[i];c.fillRect(w.x*sc,w.y*sc,Math.max(1,w.w*sc),Math.max(1,w.h*sc));}
 }
 
