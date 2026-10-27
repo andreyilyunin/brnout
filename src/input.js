@@ -170,14 +170,26 @@ bindBtn('btnR',function(){INPUT.ultTap=true;},function(){});
       var pr=(root.requestFullscreen||root.webkitRequestFullscreen).call(root);
       if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){});
       setTimeout(function(){ // тихий отказ вебвью — включаем псевдофуллскрин
-        if(!(document.fullscreenElement||document.webkitFullscreenElement))root.classList.add('zfsfake');
+        if(!(document.fullscreenElement||document.webkitFullscreenElement)){root.classList.add('zfsfake');if(window.__fsFakeHint)__fsFakeHint();}
       },350);
     }else if(fakeOK){
       root.classList.toggle('zfsfake'); // CSS-фуллскрин
+      if(root.classList.contains('zfsfake')&&window.__fsFakeHint)__fsFakeHint();
     }
   }
   fs.addEventListener('click',function(e){e.preventDefault();toggle();});
   fs.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();toggle();},{passive:false});
+  window.__fsToggle=function(){toggle();};
+  var pb=document.getElementById('bfsToggle');
+  if(pb)pb.addEventListener('click',function(){
+    toggle();
+    setTimeout(function(){ // exitFullscreen асинхронен — подпись по факту
+      var on=document.fullscreenElement||document.webkitFullscreenElement||root.classList.contains('zfsfake');
+      pb.textContent=on?'Выйти из полного экрана':'Полный экран';
+    },250);
+  });
+  // iOS: псевдофуллскрин расширяет поле, но хром браузера остаётся — говорим об этом один раз
+  root.addEventListener('classchange',function(){},true);
 })();
 document.getElementById('btnPauseM').addEventListener('touchstart',function(e){e.preventDefault();togglePause();},{passive:false});
 document.getElementById('btnPauseM').addEventListener('mousedown',function(e){e.preventDefault();togglePause();});

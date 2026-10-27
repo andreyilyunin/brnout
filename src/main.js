@@ -32,7 +32,7 @@ function loop(ts){
   perkMaybe();
   try{render();
     var fsB=document.getElementById('btnFS');
-    if(fsB)fsB.classList.toggle('hidden',G.state==='playing'); // случайный тап в бою исключён
+    if(fsB)fsB.classList.toggle('hidden',G.state==='playing'&&!isTouch); // тачу кнопка нужна и в бою; десктоп — от случайных кликов прячем
   }catch(e){console.error('render:',e);}
 }
 
