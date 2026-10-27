@@ -7,8 +7,5 @@
     "start": "python3 -m http.server 8080",
     "test": "node tests/run.js"
   },
-  "license": "MIT",
-  "dependencies": {
-    "trystero": "^0.21.6"
-  }
+  "license": "MIT"
 }
