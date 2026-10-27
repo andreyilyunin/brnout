@@ -771,6 +771,7 @@ function drawHUD(){
   hctx.setTransform(DPR,0,0,DPR,0,0);
   var W=bhud.width/DPR,H=bhud.height/DPR,p=localPlayer();
   if(!p)return;
+  if(G.state==='paused'){window.__interRect=null;window.__nextBtnRect=null;return;}
   hctx.textAlign='left';
   var narrow=W<640;
   var okrX=(W<1100)?Math.max(W-280,216):W-160;
@@ -964,7 +965,7 @@ function drawHUD(){
   }
   if(G.msgT>0){
     var msgFs=17,msgMaxW=W-40,msgLines=[G.msg];
-    var msgY=(G.waveState==='cleared')?Math.max(H*0.24,240):H*0.24;
+    var msgY=(G.waveState==='cleared')?Math.max(H*0.24,240):(isTouch&&H<520)?H*0.52:H*0.24;
     hctx.globalAlpha=Math.min(1,G.msgT);hctx.font=pixFont(msgFs,true);hctx.fillStyle='#e6edf3';hctx.textAlign='center';
     if(hctx.measureText(G.msg).width>msgMaxW){
       var msgMid=G.msg.length/2,msgSp=-1;
