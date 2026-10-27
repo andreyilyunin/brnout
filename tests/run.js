@@ -178,10 +178,17 @@ test('открытость: коридоров < 50% пола (20 сидов)', 
 test('маркетолог кидает твиты, не самолётики', () => {
   eq(CLS.mkt.s1.n, 'твит');
 });
-test('карточка меню: твит в описании', () => {
+test('меню: рейка портретов и детальная панель на месте', () => {
   const ih = require('fs').readFileSync('index.html', 'utf8');
-  ok(ih.includes('ЛКМ</b> твит'), 'в карточке');
-  ok(ih.includes('mdl-mkt'), 'моделька на месте');
+  ok(ih.includes('id="rmgr"') && ih.includes('id="rdsn"'), 'рейка из 4 портретов');
+  ok(ih.includes('id="bgPhoto"'), 'большой портрет');
+  ok(ih.includes('id="detSkills"'), 'блок скиллов');
+  const sp = require('fs').readFileSync('src/sprites.js', 'utf8');
+  ok(sp.includes('function renderClassPortraits'), 'портреты рисуются');
+  ok(sp.includes('drawPortraitMgr') && sp.includes('drawPortraitDsn'), 'все 4 портрета описаны');
+  ok(sp.includes('RAILSRC'), 'мини-версии для рейки');
+  const dj = require('fs').readFileSync('src/data.js', 'utf8');
+  ok(dj.includes("n:'твит'") && dj.includes('навсегда останется в интернете'), 'твит в описании');
 });
 
 console.log('source invariants:');

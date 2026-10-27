@@ -15,21 +15,31 @@
 #burnout .bgtitle.bgsmall{font-size:clamp(18px,3.4cqw,28px);}
 @keyframes boflick{0%,91%,94%,98%,100%{opacity:1}92%{opacity:.35}96%{opacity:.7}}
 #burnout .bgtag{color:#8b949e;margin:6px 0 16px;font-style:italic;font-size:14px;}
-#burnout .bgpanel{max-width:780px;}
-#burnout .bgcards{display:flex;gap:10px;align-items:stretch;}
-#burnout .bgcard{flex:1;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:10px;padding:10px 10px 12px;cursor:pointer;transition:transform .18s ease,border-color .18s,box-shadow .18s;text-align:center;}
-#burnout .bgcard:hover{transform:translateY(-8px) scale(1.06);border-color:#42e0ff;box-shadow:0 0 22px rgba(66,224,255,0.3),0 12px 24px rgba(0,0,0,0.5);z-index:2;}
-#burnout .bgmodel{width:100%;height:110px;display:block;image-rendering:auto;}
-#burnout .bgcard h2{margin:8px 0 6px;font-size:14px;letter-spacing:1px;color:#eaf6ff;}
-#burnout .bgdesc{font-size:11px;color:#9aa4af;margin:0;line-height:1.4;transition:opacity .18s;}
-#burnout .bgfull{position:absolute;left:0;right:0;bottom:0;top:auto;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(8,12,18,0.0),rgba(8,12,18,0.94) 30%);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:11px;color:#cfe6f2;line-height:1.75;text-align:left;}
-#burnout .bgfull b{color:#42e0ff;}
-#burnout .bgcard:hover .bgfull,#burnout .bgcard.sel .bgfull{opacity:1;transform:translateY(0);}
-#burnout .bgcard:hover .bgdesc,#burnout .bgcard.sel .bgdesc{opacity:0;}
-#burnout .bgcard:hover{border-color:#e5534b;transform:translateY(-2px);}
-#burnout .bgcard h2{margin:0 0 8px;font-size:15px;color:#e6edf3;letter-spacing:1px;}
-#burnout .bgdesc{font-size:12px;color:#9aa4af;margin:0 0 8px;line-height:1.45;}
-#burnout .bgskill{font-size:12px;color:#d29922;margin:0;line-height:1.4;}
+#burnout .bgpanel{max-width:860px;}
+/* ===== выбор класса: рейка портретов + детальная панель ===== */
+#burnout .bgselect{display:flex;gap:12px;align-items:stretch;min-height:0;}
+#burnout .bgrail{display:flex;flex-direction:column;gap:8px;width:96px;flex:none;}
+#burnout .brail{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:8px;padding:5px 4px;cursor:pointer;color:#9aa4af;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.4;transition:border-color .15s,box-shadow .15s,transform .15s;min-height:0;overflow:hidden;}
+#burnout .brail .rpimg{flex:1;min-height:0;width:auto;max-width:100%;object-fit:contain;-webkit-user-drag:none;}
+#burnout .brail span{flex:none;padding-top:3px;letter-spacing:.5px;}
+#burnout .brail:hover{border-color:#42e0ff;transform:translateY(-2px);}
+#burnout .brail.sel{border-color:#42e0ff;box-shadow:0 0 18px rgba(66,224,255,0.35),inset 0 0 12px rgba(21,112,127,0.12);color:#42e0ff;}
+#burnout .bgdetail{flex:1;min-width:0;display:flex;gap:14px;align-items:stretch;}
+#burnout .bgphotoframe{flex:none;align-self:stretch;display:flex;background:#070b11;border:1px solid #263444;border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
+#burnout .bgphotoframe img{height:100%;min-height:0;width:auto;box-shadow:0 0 0 1px rgba(0,0,0,0.4);-webkit-user-drag:none;}
+#burnout .bgphotoframe img.photo-pix{image-rendering:pixelated;}
+#burnout .bginfo{flex:1;min-width:0;display:flex;flex-direction:column;text-align:left;}
+#burnout .bginfo h2{font-family:'Pixelify Sans',Arial,sans-serif;font-size:26px;color:#eaf6ff;margin:0;letter-spacing:1px;line-height:1.1;}
+#burnout .bgrole{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#42e0ff;letter-spacing:2px;text-transform:uppercase;margin:4px 0 8px;}
+#burnout .bgbio{font-size:12.5px;line-height:1.55;color:#9aa4af;margin:0 0 10px;font-style:italic;}
+#burnout .bgskills{display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#263444 transparent;}
+#burnout .bgskills::-webkit-scrollbar{width:6px;}
+#burnout .bgskills::-webkit-scrollbar-thumb{background:#263444;border-radius:3px;}
+#burnout .bskill{padding:6px 0;}
+#burnout .bskill+.bskill{border-top:1px solid rgba(38,52,68,0.6);}
+#burnout .bskill b{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#ffcf5c;letter-spacing:.5px;}
+#burnout .bskill p{margin:2px 0 0;font-size:12px;line-height:1.5;color:#8b949e;}
+#burnout .bgcommon{font-size:10.5px;color:#4d5560;margin-top:8px;font-style:italic;line-height:1.5;}
 #burnout .bghint{margin-top:16px;font-size:11px;color:#6e7681;text-align:center;}
 #burnout .bghint2{margin-top:4px;font-size:11px;color:#4d5560;text-align:center;font-style:italic;}
 #burnout .bgrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
@@ -108,8 +118,6 @@
 #burnout .bgmode{display:flex;gap:6px;}
 #burnout .bgmodebtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
 #burnout .bgmodebtn.on{border-color:#42e0ff;color:#42e0ff;background:rgba(21,112,127,0.2);}
-#burnout .bgcard.sel{border-color:#42e0ff;box-shadow:0 0 18px rgba(66,224,255,0.35),inset 0 0 12px rgba(21,112,127,0.12);}
-#burnout .bgcard.sel h2{color:#42e0ff;}
 #burnout .bgset{max-width:420px;}
 
 /* пауза: Продолжить — primary */
@@ -128,17 +136,21 @@
 html,body{overflow:hidden;margin:0;padding:0;}
 
 @media (orientation:portrait){
-  #burnout .bgcards{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  #burnout .bgmodel{height:84px;}
+  #burnout .bgselect{flex-direction:column;}
+  #burnout .bgrail{flex-direction:row;width:100%;gap:6px;}
+  #burnout .brail{flex:1;padding:3px 2px;}
+  #burnout .brail span{font-size:9.5px;}
+  #burnout .bgdetail{gap:10px;}
+  #burnout .bginfo h2{font-size:20px;}
 }
-#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.bgcard):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
-#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.bgcard):active{transform:scale(.97);}
+#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
+#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):active{transform:scale(.97);}
 #burnout #joinErr{color:#e5534b;font-style:normal;}
 #burnout input[type=range]{height:28px;}
 #burnout .sndrow{padding:6px 0;}
 @media (prefers-reduced-motion:reduce){
   #burnout .bgtitle{animation:none;}
-  #burnout .bgcard,#burnout .perkcard{transition:none;}
+  #burnout .brail,#burnout .perkcard{transition:none;}
 }
 
 /* ===== выбор буста при уровне ===== */
@@ -159,12 +171,6 @@ html,body{overflow:hidden;margin:0;padding:0;}
 #burnout .crrow.on{color:#9aa4af;}
 #burnout .crrow span{font-size:11px;font-style:italic;}
 
-/* тач-устройства: без клавиатурных подсказок (ЛКМ/ПКМ/ПРОБЕЛ) — короткие фразы про приёмы */
-#burnout .bgtouch{display:none;}
-@media (pointer:coarse){
-  #burnout .bgtkeys>div:not(.bgtouch){display:none;}
-  #burnout .bgtouch{display:block;font-size:10.5px;line-height:1.6;}
-}
 /* первые секунды первого боя: подписи над тач-кнопками, чтобы не угадывать иконки */
 #burnout .tb .tlbl{display:none;}
 #burnout.tlearn .tb .tlbl{display:block;}

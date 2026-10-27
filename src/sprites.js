@@ -43,11 +43,11 @@ function drawHumanoidBody(c,o){
   c.rotate(sway);
   if(frenzy)c.rotate(Math.sin(G.t*26)*0.04);
   // ===== НОГИ (GTA2): стоят — стопы выглядывают назад из-под торса; шаг — вынос вдоль оси движения =====
-  var sexy=o.cls==='dsn';
+  var sexy=false; // по референсу дизайнер в куртке и джинсах, не в платье
   var stride=Math.sin(ph)*15*mv;
   var footLx=-4.6*s,footRx=4.6*s;
   var footLy=-9*s-stride,footRy=-9*s+stride;
-  var PANTS={dev:'#3d5a80',mgr:'#2f3542',mkt:'#7a6848',dsn:'#241d2e',intern:'#43506b'}[o.cls]||'#43506b';
+  var PANTS={dev:'#262a33',mgr:'#26262c',mkt:'#4c5166',dsn:'#4a6a9c',intern:'#43506b'}[o.cls]||'#43506b';
   function leg(footX,footY){
     c.strokeStyle=PANTS;c.lineWidth=5.5*s;c.lineCap='round';
     c.beginPath();c.moveTo(footX,4.5*s);c.quadraticCurveTo(footX*1.05,(footY+4.5*s)/2,footX,footY-2.5*s);c.stroke();
@@ -470,28 +470,275 @@ function drawBoss(b,remote){
 function s2(){return 2.6;}
 
 
-// ===== портреты в стиле Dave the Diver: детальный рендер в буфер 64x52,
-// апскейл без сглаживания => честные крупные пиксели с плавными тональными переходами =====
-function renderClassPreviews(){
-  var ids=[['mdl-mgr','mgr'],['mdl-dev','dev'],['mdl-mkt','mkt'],['mdl-dsn','dsn']];
-  for(var i=0;i<ids.length;i++){
-    var el=document.getElementById(ids[i][0]);
-    if(!el)continue;
-    var cls=ids[i][1];
-    var c=el.getContext('2d');
-    var W=el.width,H=el.height;
-    c.setTransform(1,0,0,1,0,0);
-    c.clearRect(0,0,W,H);
-    // модель как в игре, головой вверх, в общий спрайт-буфер
-    SPRC.setTransform(1,0,0,1,0,0);
-    SPRC.clearRect(0,0,160,160);
-    SPRC.save();
-    SPRC.translate(80,80);
-    SPRC.scale(SPR_SCALE*5.2,SPR_SCALE*5.2);
-    drawHumanoidBody(SPRC,{x:0,y:0,cls:cls,look:classLook(cls,0),face:Math.PI/2,step:0,scale:1,moving:false,haste:0,castT:0,casting:null});
-    SPRC.restore();
-    // блит 1:1 по центру карточки (пиксели остаются чёткими)
-    c.imageSmoothingEnabled=false;
-    c.drawImage(SPRCV,(W-160)/2,(H-160)/2);
+// ===== портреты выбора класса: пиксель-арт по референсам пользователя =====
+// буфер 124x154 (4:5), 1 пиксель буфера = 1 арт-пиксель, показывается с pixelated.
+// референсы: mgr — бородач с кофе и ноутом на синем; dev — капюшон за столом на сером;
+// dsn — девушка в оранжевом жакете на белом; mkt — девушка с телефоном-«лайком» на синем.
+var PW=124,PH=154;
+var PHOTOSRC={},RAILSRC={};
+var PORTRAIT_FILES={mgr:'art/portraits/mgr.png',dev:'art/portraits/dev.png',mkt:'art/portraits/mkt.png',dsn:'art/portraits/dsn.png'}; // файл-фото подменит процедурный портрет класса
+function pbg(c,stops){var g=c.createLinearGradient(0,0,0,PH);for(var i=0;i<stops.length;i++)g.addColorStop(stops[i][0],stops[i][1]);c.fillStyle=g;c.fillRect(0,0,PW,PH);}
+function pr(c,x,y,w,h,col){c.fillStyle=col;c.fillRect(x,y,w,h);}
+function pshadow(c,cx,cy,w,col){c.fillStyle=col;c.beginPath();c.ellipse(cx,cy,w,3.5,0,0,TAU);c.fill();}
+// ---- менеджер: бородач, серая футболка, ноут под рукой, стакан с паром ----
+function drawPortraitMgr(c){
+  pbg(c,[[0,'#6e9cc4'],[1,'#b0cfe6']]);
+  var glow=c.createRadialGradient(62,70,10,62,70,70);
+  glow.addColorStop(0,'rgba(255,255,255,0.20)');glow.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=glow;c.fillRect(0,0,PW,PH);
+  pshadow(c,62,144,24,'rgba(25,45,65,0.4)');
+  // ===== ноги =====
+  pr(c,46,92,34,10,'#2e3440');                                    // бёдра
+  pr(c,46,92,34,3,'#232833');                                     // ремень
+  pr(c,48,102,13,34,'#2e3440');pr(c,65,102,13,34,'#343b49');
+  pr(c,48,120,13,2,'#262b36');pr(c,65,122,13,2,'#2b323e');      // складки коленей
+  pr(c,48,134,13,2,'#3a4150');pr(c,65,134,13,2,'#3f4756');      // манжеты
+  // туфли
+  c.fillStyle='#1a1b20';
+  c.beginPath();c.ellipse(53,139,9,4.5,0,0,TAU);c.fill();
+  c.beginPath();c.ellipse(71,139,10,4.5,0,0,TAU);c.fill();
+  pr(c,44,141,19,2,'#0a0a0c');pr(c,62,141,20,2,'#0a0a0c');
+  // ===== ноут под левой рукой =====
+  c.fillStyle='#e8eaed';
+  c.beginPath();c.moveTo(30,86);c.lineTo(50,80);c.lineTo(51,92);c.lineTo(31,98);c.closePath();c.fill();
+  c.strokeStyle='#a8adb4';c.lineWidth=1;
+  c.beginPath();c.moveTo(30.5,86.5);c.lineTo(50.5,80.5);c.stroke();
+  c.fillStyle='#7d838a';
+  c.beginPath();c.moveTo(31,92);c.lineTo(51,86);c.lineTo(51,92);c.lineTo(31,98);c.closePath();c.fill();
+  // ===== торс =====
+  c.fillStyle='#757c83';
+  c.beginPath();
+  c.moveTo(48,50);c.quadraticCurveTo(62,46,76,50);
+  c.lineTo(80,60);c.lineTo(81,92);c.lineTo(43,92);c.lineTo(44,60);
+  c.closePath();c.fill();
+  pr(c,44,60,4,30,'#61686f');                                     // теневая сторона
+  pr(c,77,52,4,38,'#82898f');                                     // светлая сторона
+  pr(c,50,51,24,3,'#868d94');                                     // свет по плечам
+  pr(c,56,52,7,3,'#5f666d');                                      // ворот
+  c.strokeStyle='rgba(70,78,86,0.8)';c.lineWidth=0.8;             // складки ткани
+  c.beginPath();c.moveTo(58,62);c.quadraticCurveTo(56,74,59,86);c.stroke();
+  c.beginPath();c.moveTo(68,60);c.quadraticCurveTo(70,72,67,88);c.stroke();
+  c.beginPath();c.moveTo(50,70);c.quadraticCurveTo(49,80,51,90);c.stroke();
+  // лямка рюкзака
+  c.fillStyle='#4c5258';
+  c.beginPath();c.moveTo(70,50);c.lineTo(75,50);c.lineTo(72,84);c.lineTo(67,84);c.closePath();c.fill();
+  pr(c,68,80,6,2,'#3a4046');
+  // ===== левая рука вниз, кисть на ноутбуке =====
+  c.fillStyle='#5f666d';
+  c.beginPath();c.moveTo(45,53);c.lineTo(51,54);c.lineTo(47,70);c.lineTo(41,69);c.closePath();c.fill(); // плечо-рукав
+  pr(c,49,68,1.5,2,'#565d64');                                   // край рукава
+  c.fillStyle='#e0aa7c';
+  c.beginPath();c.moveTo(42,69);c.lineTo(47,70);c.lineTo(44,86);c.lineTo(39,85);c.closePath();c.fill(); // предплечье
+  pr(c,38,84,9,6,'#e0aa7c');                                      // кисть
+  pr(c,38,84,9,2,'#d09a6c');
+  // ===== правая рука поднята со стаканом =====
+  c.fillStyle='#5f666d';
+  c.beginPath();c.moveTo(74,52);c.lineTo(80,53);c.lineTo(85,68);c.lineTo(79,70);c.closePath();c.fill(); // рукав
+  c.fillStyle='#e0aa7c';
+  c.beginPath();c.moveTo(79,69);c.lineTo(85,67);c.lineTo(87,46);c.lineTo(81,47);c.closePath();c.fill(); // предплечье вверх
+  pr(c,81,32,10,7,'#e0aa7c');                                     // кисть
+  pr(c,81,32,10,2,'#d09a6c');
+  // стакан
+  pr(c,80,14,14,19,'#efe8d8');
+  pr(c,90,14,4,19,'#e2dbc9');                                    // теневая грань
+  pr(c,80,14,14,3,'#8a5a34');                                     // крышка
+  pr(c,80,25,14,4,'#b06a3a');                                     // картонная манжета
+  pr(c,82,20,2,4,'#d8d1bf');
+  // пар
+  c.strokeStyle='rgba(255,255,255,0.6)';c.lineWidth=1.4;c.lineCap='round';
+  c.beginPath();c.moveTo(84,11);c.quadraticCurveTo(82,7,85,3);c.stroke();
+  c.beginPath();c.moveTo(89,12);c.quadraticCurveTo(92,8,90,4);c.stroke();
+  c.strokeStyle='rgba(255,255,255,0.35)';
+  c.beginPath();c.moveTo(86,9);c.quadraticCurveTo(88,6,86,2);c.stroke();
+  // ===== шея и голова =====
+  pr(c,57,42,11,8,'#e0aa7c');
+  pr(c,57,42,11,2,'rgba(120,70,40,0.35)');                        // тень от челюсти
+  // уши
+  pr(c,47,30,3,6,'#dfa878');pr(c,74,30,3,6,'#dfa878');
+  // лицо
+  c.fillStyle='#efbf95';
+  c.beginPath();c.ellipse(62,31,13,15,0,0,TAU);c.fill();
+  pr(c,55,40,15,4,'#efbf95');                                     // подбородок
+  // борода: нижняя часть лица, минус губы
+  c.fillStyle='#4a2f1d';
+  c.beginPath();
+  c.moveTo(49.5,34);c.quadraticCurveTo(50,45,58,49);
+  c.quadraticCurveTo(62,50.5,66,49);c.quadraticCurveTo(74,45,74.5,34);
+  c.lineTo(71,36);c.lineTo(53,36);c.closePath();c.fill();
+  pr(c,57,38,11,2,'#4a2f1d');                                     // усы
+  c.strokeStyle='#3a2415';c.lineWidth=0.7;                        // текстура бороды
+  c.beginPath();c.moveTo(55,41);c.lineTo(55,46);c.moveTo(59,42);c.lineTo(59,48);
+  c.moveTo(63,42);c.lineTo(63,48);c.moveTo(67,41);c.lineTo(67,46);c.stroke();
+  pr(c,59,42,7,1.5,'#8a5a3c');                                    // нижняя губа
+  // волосы
+  c.fillStyle='#4a2f1d';
+  c.beginPath();
+  c.moveTo(49,28);c.quadraticCurveTo(48,15,62,14);
+  c.quadraticCurveTo(76,15,75,28);c.lineTo(75,24);
+  c.quadraticCurveTo(72,20,62,20);c.quadraticCurveTo(52,20,49,24);
+  c.closePath();c.fill();
+  pr(c,49,24,4,8,'#4a2f1d');pr(c,73,24,4,8,'#4a2f1d');          // виски
+  c.strokeStyle='#5c3d26';c.lineWidth=0.7;                        // пряди
+  c.beginPath();c.moveTo(56,16);c.quadraticCurveTo(58,15,60,16);
+  c.moveTo(64,15.5);c.quadraticCurveTo(66,15,68,16.5);c.stroke();
+  // брови, глаза
+  pr(c,52,24,7,1.8,'#3a2617');pr(c,65,24,7,1.8,'#3a2617');
+  pr(c,53,26.5,6,3.5,'#fff');pr(c,66,26.5,6,3.5,'#fff');
+  pr(c,55,26.8,2.6,3,'#4a3220');pr(c,68,26.8,2.6,3,'#4a3220');
+  pr(c,55.5,27.2,1,1,'#fff');pr(c,68.5,27.2,1,1,'#fff');        // блики
+  pr(c,53,26,6,0.8,'#c08c5e');pr(c,66,26,6,0.8,'#c08c5e');      // веки
+  // нос
+  pr(c,61,29,1.5,5,'#dba26f');
+  pr(c,60,34,4,1.2,'#c98f60');
+  pr(c,59.5,33.5,1,1,'#b57f52');pr(c,63.5,33.5,1,1,'#b57f52');
+  // румянец
+  c.fillStyle='rgba(220,140,100,0.28)';
+  c.beginPath();c.arc(52,33,2.2,0,TAU);c.fill();
+  c.beginPath();c.arc(72.5,33,2.2,0,TAU);c.fill();
+  // ===== контровой свет справа =====
+  c.strokeStyle='rgba(225,242,255,0.5)';c.lineWidth=1.2;c.lineCap='round';
+  c.beginPath();
+  c.moveTo(74.5,20);c.quadraticCurveTo(76.5,26,75,32);
+  c.moveTo(79.5,54);c.quadraticCurveTo(81.5,60,84.5,66);
+  c.moveTo(89,46);c.lineTo(90,36);
+  c.stroke();
+}
+// ---- программист: капюшон, очки в тени, стол с ноутбуком ----
+function drawPortraitDev(c){
+  pbg(c,[[0,'#c3c0cb'],[1,'#a29fac']]);
+  pshadow(c,62,142,34,'rgba(60,55,70,0.4)');
+  // стол: столешница и ножки
+  pr(c,16,96,92,4,'#c9a878');pr(c,16,100,92,7,'#b08f60');
+  pr(c,20,107,6,32,'#4a3b2e');pr(c,98,107,6,32,'#4a3b2e');
+  // ноги под столом
+  pr(c,42,107,10,26,'#3a2b38');pr(c,72,107,10,26,'#3a2b38');
+  pr(c,40,131,13,6,'#241d22');pr(c,71,131,13,6,'#241d22');
+  // руки на столе
+  pr(c,34,64,9,34,'#4d3b4a');pr(c,30,90,10,8,'#4d3b4a');pr(c,32,94,9,5,'#d9a878');
+  pr(c,81,64,9,34,'#4d3b4a');pr(c,84,90,10,8,'#4d3b4a');pr(c,83,94,9,5,'#d9a878');
+  // ноутбук: спинка экрана к зрителю + клавиатура
+  pr(c,50,60,26,36,'#3a8a84');
+  pr(c,52,58,22,3,'#2c6e69');pr(c,50,60,3,36,'#2c6e69');pr(c,73,60,3,36,'#2c6e69');
+  pr(c,59,72,8,8,'#8fd8cc');pr(c,61,74,4,4,'#d8f2ea');
+  pr(c,48,96,30,3,'#22484a');
+  pr(c,44,99,38,5,'#56c0b4');pr(c,46,100,34,2,'#7ad2c6');
+  // мышь
+  pr(c,88,96,8,6,'#2a2a30');pr(c,89,95,6,2,'#3a3a42');
+  // торс в капюшоне
+  pr(c,44,52,38,46,'#4d3b4a');
+  pr(c,44,52,5,46,'#3a2b38');pr(c,77,52,5,46,'#3a2b38');
+  pr(c,61,52,4,46,'#5f4a5c');pr(c,60,52,1,46,'#2e222c');           // молния
+  pr(c,68,66,6,7,'#3a2b38');pr(c,69,68,3,2,'#8a7a5a');             // карман с молнией
+  pr(c,48,74,4,20,'#5a5a66');                                      // футболка из-под куртки
+  // капюшон поверх
+  pr(c,44,16,38,14,'#4d3b4a');pr(c,40,24,46,22,'#4d3b4a');
+  pr(c,46,12,30,6,'#5f4a5c');pr(c,44,14,4,30,'#5f4a5c');pr(c,78,14,4,30,'#5f4a5c');
+  pr(c,44,44,4,8,'#3a2b38');pr(c,78,44,4,8,'#3a2b38');
+  // лицо в тени капюшона
+  pr(c,52,26,22,20,'#241d22');
+  pr(c,54,32,7,5,'#3a2f38');pr(c,65,32,7,5,'#3a2f38');
+  pr(c,55,33,5,2,'#e8a05c');pr(c,66,33,5,2,'#e8a05c');             // блик очков
+  pr(c,61,34,2,1,'#241d22');pr(c,54,40,18,1,'#1a151c');            // дужка, тень подбородка
+  // шнурки капюшона
+  pr(c,56,46,2,6,'#8a7a6a');pr(c,68,46,2,6,'#8a7a6a');
+}
+// ---- дизайнер: оранжевый жакет, белая футболка, рваные джинсы ----
+function drawPortraitDsn(c){
+  pbg(c,[[0,'#f4f2ee'],[1,'#e4e1da']]);
+  pshadow(c,62,142,24,'rgba(120,110,100,0.35)');
+  // джинсы
+  pr(c,48,86,28,8,'#4a6a9c');
+  pr(c,48,92,12,40,'#4a6a9c');pr(c,66,92,12,40,'#50729f');
+  pr(c,52,110,3,4,'#e0aa7c');pr(c,69,106,4,3,'#e0aa7c');           // дырки
+  pr(c,48,126,12,4,'#8fa8c4');pr(c,66,126,12,4,'#8fa8c4');         // подвёрнутые штанины
+  // кроссовки
+  pr(c,45,130,16,8,'#e8933c');pr(c,64,130,17,8,'#e8933c');
+  pr(c,45,136,16,3,'#f5f0e8');pr(c,64,136,17,3,'#f5f0e8');
+  pr(c,47,131,4,3,'#f5f0e8');pr(c,68,131,4,3,'#f5f0e8');
+  // футболка с ромбом
+  pr(c,54,36,20,54,'#f6f4ef');
+  pr(c,58,52,10,10,'#e8933c');pr(c,60,54,6,6,'#f5b45c');pr(c,62,56,2,2,'#fff');
+  // жакет: плечи и полы
+  pr(c,40,32,46,10,'#e8933c');
+  pr(c,40,38,14,56,'#e8933c');pr(c,72,38,14,56,'#e8933c');
+  pr(c,40,38,4,56,'#c97f2c');pr(c,82,38,4,56,'#c97f2c');
+  pr(c,50,38,4,56,'#c97f2c');pr(c,72,38,4,56,'#d98a30');
+  pr(c,40,90,14,4,'#f5b45c');pr(c,72,90,14,4,'#f5b45c');           // низ пола
+  pr(c,44,32,10,4,'#f5b45c');pr(c,72,32,10,4,'#f5b45c');           // ворот
+  // голова и волосы
+  pr(c,58,30,10,4,'#efbf95');                                       // шея
+  pr(c,52,12,22,22,'#efbf95');
+  pr(c,50,8,26,12,'#3a2e33');pr(c,48,14,4,14,'#3a2e33');pr(c,74,14,4,14,'#3a2e33');
+  pr(c,52,20,6,10,'#3a2e33');pr(c,68,20,8,8,'#3a2e33');            // чёлка
+  pr(c,46,26,6,36,'#3a2e33');pr(c,74,26,7,34,'#332a2e');           // волосы по бокам
+  pr(c,46,58,6,3,'#4a3d42');pr(c,74,56,7,3,'#4a3d42');             // волна на концах
+  pr(c,56,22,4,2,'#fff');pr(c,68,22,4,2,'#fff');pr(c,58,22,2,2,'#3a5a7a');pr(c,68,22,2,2,'#3a5a7a');
+  pr(c,55,19,6,1,'#2a2024');pr(c,67,19,6,1,'#2a2024');
+  pr(c,60,28,7,1,'#c46a5a');                                        // улыбка
+  pr(c,53,25,2,2,'rgba(230,150,120,0.5)');pr(c,72,25,2,2,'rgba(230,150,120,0.5)');
+  pr(c,50,50,2,3,'#e8b8a0');                                        // серьга
+}
+// ---- маркетолог: телефон-«лайк» с бабблом, оранжевый верх, юбка в горошек ----
+function drawPortraitMkt(c){
+  pbg(c,[[0,'#4662c4'],[1,'#3a51ac']]);
+  pshadow(c,60,141,20,'rgba(15,20,50,0.45)');
+  // ноги и туфли
+  pr(c,52,102,9,32,'#efbf95');pr(c,64,102,9,32,'#e8b488');
+  pr(c,50,132,12,6,'#2a2026');pr(c,64,132,13,6,'#2a2026');
+  pr(c,50,136,12,2,'#171216');pr(c,64,136,13,2,'#171216');
+  // юбка в горошек
+  pr(c,44,74,38,30,'#3a2a4a');
+  for(var sy=0;sy<4;sy++)for(var sx=0;sx<6;sx++)pr(c,46+sx*6+(sy%2?3:0),77+sy*7,2,2,'#cfc6da');
+  pr(c,44,100,38,3,'#2e2138');
+  // верх — оранжевый кроп
+  pr(c,48,50,30,24,'#e8933c');
+  pr(c,48,50,4,24,'#c97f2c');pr(c,74,50,4,24,'#c97f2c');
+  pr(c,52,50,22,3,'#f5b45c');
+  pr(c,48,70,30,4,'#efbf95');                                       // талия
+  // левая рука вниз
+  pr(c,42,52,7,26,'#e8933c');pr(c,42,74,7,6,'#e8933c');pr(c,42,78,7,6,'#efbf95');
+  // правая рука с телефоном вверх
+  pr(c,74,52,7,10,'#e8933c');pr(c,76,44,7,10,'#e8933c');pr(c,77,38,7,8,'#e8933c');
+  pr(c,77,34,8,6,'#efbf95');
+  pr(c,78,24,9,12,'#26160c');pr(c,79,25,7,9,'#4aa8d8');pr(c,80,27,2,2,'#c8e8f8');
+  // баббл с сердцем
+  pr(c,84,4,34,26,'#26160c');pr(c,85,5,32,24,'#e8933c');
+  pr(c,86,42,6,4,'#26160c');pr(c,84,45,5,3,'#26160c');              // хвост к телефону
+  pr(c,95,12,6,6,'#f8d8c8');pr(c,105,12,6,6,'#f8d8c8');pr(c,97,17,12,5,'#f8d8c8');pr(c,100,21,6,3,'#f8d8c8');
+  // голова и волосы
+  pr(c,56,32,12,5,'#efbf95');
+  pr(c,52,12,22,24,'#efbf95');
+  pr(c,50,8,26,10,'#8a4a28');pr(c,48,12,5,20,'#8a4a28');pr(c,73,12,5,20,'#7a3f20');
+  pr(c,46,28,6,52,'#8a4a28');pr(c,74,28,7,50,'#7a3f20');            // волны по бокам
+  pr(c,46,58,6,3,'#a05c34');pr(c,74,56,7,3,'#95532e');pr(c,46,72,6,3,'#a05c34');pr(c,74,70,7,3,'#95532e');
+  pr(c,52,14,8,8,'#8a4a28');pr(c,66,14,8,6,'#8a4a28');              // чёлка
+  pr(c,56,20,4,2,'#fff');pr(c,68,20,4,2,'#fff');pr(c,58,20,2,2,'#2a2018');pr(c,68,20,2,2,'#2a2018');
+  pr(c,55,17,6,1,'#5c3018');pr(c,67,17,6,1,'#5c3018');
+  pr(c,61,27,5,1,'#c4506a');                                        // губы
+  pr(c,53,24,2,2,'rgba(230,150,120,0.5)');pr(c,72,24,2,2,'rgba(230,150,120,0.5)');
+}
+function portraitCanvas(cls,fn){
+  var cv=document.createElement('canvas');cv.width=PW*2;cv.height=PH*2;
+  var c=cv.getContext('2d');
+  c.scale(2,2);
+  fn(c);
+  return cv;
+}
+function renderClassPortraits(){
+  var FNS={mgr:drawPortraitMgr,dev:drawPortraitDev,mkt:drawPortraitMkt,dsn:drawPortraitDsn};
+  var list=['mgr','dev','mkt','dsn'];
+  for(var i=0;i<list.length;i++){
+    var cls=list[i];
+    if(PORTRAIT_FILES[cls]){PHOTOSRC[cls]=PORTRAIT_FILES[cls];RAILSRC[cls]=PORTRAIT_FILES[cls];continue;}
+    var big=portraitCanvas(cls,FNS[cls]);
+    PHOTOSRC[cls]=big.toDataURL('image/png');
+    var sm=document.createElement('canvas');sm.width=PW/2;sm.height=PH/2; // мини-версия 1:2 без мусора
+    var sc=sm.getContext('2d');sc.imageSmoothingEnabled=false;
+    sc.drawImage(big,0,0,sm.width,sm.height);
+    RAILSRC[cls]=sm.toDataURL('image/png');
+  }
+  for(var j=0;j<list.length;j++){
+    var im=document.getElementById('rp-'+list[j]);
+    if(im)im.src=RAILSRC[list[j]];
   }
 }
