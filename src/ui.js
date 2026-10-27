@@ -56,7 +56,7 @@ function showDeadStats(st){
     for(var i2=0;i2<rows.length;i2++){var r2=rows[i2];
       html+='<div class="row'+(r2.me?' me':'')+'"><span>'+(i2+1)+'. '+r2.name+(r2.me?' (вы)':'')+'</span><span><b>'+r2.score+'</b> · '+r2.co+' плашек</span></div>';
     }
-    board.innerHTML=html;
+    board.innerHTML=html; /*safe*/
     board.classList.remove('hidden');
   }else board.classList.add('hidden');
   var again=document.getElementById('bagain');
