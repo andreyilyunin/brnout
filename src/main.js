@@ -99,10 +99,13 @@ function $(id){return document.getElementById(id);}
 var menuMode='solo';
 var selCls='mgr';
 function refreshMenuUI(){
-  var cards=['bmgr','bdev','bmkt','dsn'];
-  for(var i=0;i<cards.length;i++){
-    var el=document.getElementById(cards[i]);
-    if(el)el.classList.toggle('sel',cards[i]==='b'+selCls);
+  for(var i=0;i<_cards.length;i++){
+    var el=document.getElementById(_cards[i][0]);
+    if(el){
+      var on=_cards[i][1]===selCls;
+      el.classList.toggle('sel',on);
+      el.setAttribute('aria-pressed',on?'true':'false');
+    }
   }
   var joining=!!PENDING_JOIN;
   $('mSolo').classList.toggle('on',!joining&&menuMode==='solo');
@@ -116,33 +119,49 @@ function selectClass(cls){
   NET.cls=cls;
   audioInit();SFX.clsPick(); // сочный аккорд на выбор класса (ТЗ UI)
   refreshMenuUI();
-  syncAria();
+  updateDetail();
 }
-var _cards=[['bmgr','mgr'],['bdev','dev'],['bmkt','mkt'],['bdsn','dsn']];
+function updateDetail(){
+  var C=CLS[selCls];
+  if(!C)return;
+  $('detName').textContent=(C.name||'').toUpperCase();
+  $('detRole').textContent=C.role||'';
+  $('detBio').textContent=C.bio||'';
+  var ph=$('bgPhoto');
+  if(ph&&PHOTOSRC[selCls]){
+    ph.src=PHOTOSRC[selCls];
+    ph.classList.toggle('photo-pix',!PORTRAIT_FILES[selCls]); // процедурные 88×156 — только pixelated
+  }
+  var box=$('detSkills');
+  if(!box)return;
+  box.innerHTML='';
+  var list=[C.s1,C.s2,C.ult,C.sk];
+  for(var i=0;i<list.length;i++){
+    var s=list[i];
+    if(!s)continue;
+    var row=document.createElement('div');row.className='bskill';
+    var nm=document.createElement('b');nm.textContent=s.n;
+    var ds=document.createElement('p');ds.textContent=s.d||'';
+    row.appendChild(nm);row.appendChild(ds);
+    box.appendChild(row);
+  }
+}
+var _cards=[['rmgr','mgr'],['rdev','dev'],['rmkt','mkt'],['rdsn','dsn']];
 for(var _ci=0;_ci<_cards.length;_ci++)(function(cid,cls){
   var el=document.getElementById(cid);
   el.addEventListener('click',function(){selectClass(cls);});
-  el.addEventListener('keydown',function(e){
-    if(e.code==='Enter'||e.code==='Space'){e.preventDefault();selectClass(cls);}
-  });
 })(_cards[_ci][0],_cards[_ci][1]);
 document.getElementById('classCards').addEventListener('keydown',function(e){
   var idx=-1;
-  for(var i=0;i<_cards.length;i++)if(_cards[i][0]==='b'+selCls)idx=i;
-  if(e.code==='ArrowRight'||e.code==='ArrowLeft'){
+  for(var i=0;i<_cards.length;i++)if(_cards[i][1]===selCls)idx=i;
+  if(e.code==='ArrowRight'||e.code==='ArrowLeft'||e.code==='ArrowUp'||e.code==='ArrowDown'){
     e.preventDefault();
-    var ni=(idx+(e.code==='ArrowRight'?1:_cards.length-1))%_cards.length;
+    var ni=(idx+(e.code==='ArrowRight'||e.code==='ArrowDown'?1:_cards.length-1))%_cards.length;
     selectClass(_cards[ni][1]);
     var nel=document.getElementById(_cards[ni][0]);
     if(nel)nel.focus();
   }else if(e.code==='Enter'&&OV_OPEN==='bmenu'){document.getElementById('mStart').click();}
 });
-function syncAria(){
-  for(var i=0;i<_cards.length;i++){
-    var el=document.getElementById(_cards[i][0]);
-    if(el)el.setAttribute('aria-pressed',_cards[i][1]===selCls?'true':'false');
-  }
-}
 $('mSolo').addEventListener('click',function(){menuMode='solo';refreshMenuUI();});
 $('mCoop').addEventListener('click',function(){menuMode='coop';refreshMenuUI();});
 function connectGuest(code){
@@ -190,7 +209,8 @@ function careerRender(){
   $('crAch').innerHTML=html; /*safe: имена/описания только из констант ACHS*/
 }
 refreshMenuUI();
-renderClassPreviews();
+renderClassPortraits();
+updateDetail();
 $('cHost').addEventListener('click',function(){
   showOv('bhost');
   $('roomCode').textContent='…';
