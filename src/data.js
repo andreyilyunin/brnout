@@ -26,7 +26,7 @@ var CLS={
     ult:{n:'мудборд',cd:10,cost:35,d:'Раскрывает мудборд: палитра, шрифты, вдохновение. Враги получают урон и полторы секунды осознания, что их бренд никогда не взлетит.'},
     sk:{n:'логотип побольше',cd:8,cost:15,d:'Кричит то, что слышит каждый день. Волна на 360° отбрасывает всех вокруг и сбивает замахи: клиенты разлетаются, правки отменяются.'}}
 };
-var NET={mode:'solo',peer:null,conns:[],hostConn:null,code:'',myId:'me',snapT:0,events:[],cls:'mgr',lastSent:0,started:false,broker:'',lastRecv:0,reconnecting:false,reconnectTries:0};
+var NET={mode:'solo',peer:null,conns:[],hostConn:null,code:'',myId:'me',snapT:0,events:[],cls:'mgr',lastSent:0,started:false,lastRecv:0,reconnecting:false,reconnectTries:0,hostPid:null};
 var PCOLORS=['#e6edf3','#d29922','#7aa2c8','#3fb950'];
 var G={state:'menu',t:0,players:[],mobs:[],projs:[],fx:[],texts:[],pickups:[],zones:[],
   boss:null,wave:0,waveState:'calm',waveT:1.5,rushT:0,spawnQ:[],spawnT:0,okr:0,grade:1,
