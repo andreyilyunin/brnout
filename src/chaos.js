@@ -34,9 +34,18 @@ function spawnDebris(d){
 }
 
 function spawnCoinBurst(x,y,n){
-  for(var i=0;i<n;i++){
+  if(n<=0)return;
+  if(n===1){
     spawnDebris({kind:'coin',x:x+R()*20-10,y:y-10,vx:R()*220-110,vy:-150-R()*170,vr:0,
       floorY:y+18+R()*30,g:980,phys:1,coined:1,t:0,life:7+R()*2});
+    return;
+  }
+  var left=n;
+  while(left>0){
+    var pc=Math.min(left,2+((R()*3)|0));
+    left-=pc;
+    spawnDebris({kind:'pile',n:pc,x:x+R()*30-15,y:y-10,vx:R()*170-85,vy:-140-R()*140,vr:0,
+      floorY:y+18+R()*26,g:980,phys:1,coined:1,t:0,life:7+R()*2});
   }
 }
 
@@ -119,22 +128,24 @@ function updateChaos(dt){
       }
       if(blockedAt(d.x,d.y,3)&&d.kind==='plate'){d.vx*=-0.55;d.vr*=-0.6;d.x+=d.vx*dt*2;}
 
-      if(d.kind==='coin'){
+      if(d.kind==='coin'||d.kind==='pile'){
         var me=localPlayer();
         if(me&&!me.dead){
+          var pr=d.kind==='pile'?24:18;
           var dd2=Math.hypot(d.x-me.x,d.y-me.y);
           if(dd2<74){d.x+=(me.x-d.x)*10*dt;d.y+=(me.y-d.y)*10*dt;}
-          if(dd2<18){
+          if(dd2<pr){
+            var got=d.kind==='pile'?d.n:1;
             DEBRIS.splice(i,1);
-            me.coins=(me.coins||0)+1;
-            me._coinAcc=(me._coinAcc||0)+1;me._coinT=0.5;
-            G.fx.push({type:'flash',x:d.x,y:d.y,r:18,t:0,life:0.14});
-            for(var ci=0;ci<3;ci++){
+            me.coins=(me.coins||0)+got;
+            me._coinAcc=(me._coinAcc||0)+got;me._coinT=0.5;
+            G.fx.push({type:'flash',x:d.x,y:d.y,r:16+got*2,t:0,life:0.14});
+            for(var ci=0;ci<Math.min(2+got,8);ci++){
               var ca=-Math.PI/2+(R()*1.6-0.8);
               G.fx.push({type:'coinpop',x:d.x,y:d.y,t:0,life:0.4+R()*0.15,a:ca,sp:26+R()*30});
             }
             SFX.pickup();
-            if(NET.mode==='guest'&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'coin'});
+            if(NET.mode==='guest'&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'coin',n:got});
             continue;
           }
         }
@@ -205,6 +216,17 @@ function drawChaos(){
     ctx.beginPath();ctx.arc(PFX[i].x,PFX[i].y,6+Math.sin(G.t*9+i)*2,0,TAU);ctx.fill();
   }
 }
+function drawWorldCoin(c2,ox,oy,t,withFace){
+  c2.save();c2.translate(ox,oy);
+  c2.fillStyle='#8a6a1e';c2.beginPath();c2.arc(0,0,4.4,0,TAU);c2.fill();
+  c2.fillStyle='#ffcf5c';c2.beginPath();c2.arc(-0.5,-0.5,3.6,0,TAU);c2.fill();
+  if(withFace){
+    c2.fillStyle='#8a6a1e';c2.font='bold 6px Arial';c2.textAlign='center';
+    c2.fillText('₽',0,2);c2.textAlign='left';
+    if(Math.sin(t*4)>0.92){c2.fillStyle='#fff3c4';c2.fillRect(2,-4,1.6,1.6);}
+  }
+  c2.restore();
+}
 function drawDebris(){
   var i;
   for(i=0;i<DEBRIS.length;i++){var d=DEBRIS[i];
@@ -213,11 +235,15 @@ function drawDebris(){
     if(d.kind==='coin'){
       var bob2=Math.sin(d.t*6+d.x)*1.2;
       ctx.translate(0,bob2);
-      ctx.fillStyle='#8a6a1e';ctx.beginPath();ctx.arc(0,0,4.4,0,TAU);ctx.fill();
-      ctx.fillStyle='#ffcf5c';ctx.beginPath();ctx.arc(-0.5,-0.5,3.6,0,TAU);ctx.fill();
-      ctx.fillStyle='#8a6a1e';ctx.font='bold 6px Arial';ctx.textAlign='center';
-      ctx.fillText('₽',0,2);ctx.textAlign='left';
-      if(Math.sin(d.t*4+d.y)>0.92){ctx.fillStyle='#fff3c4';ctx.fillRect(2,-4,1.6,1.6);}
+      drawWorldCoin(ctx,0,0,d.t,true);
+    }else if(d.kind==='pile'){
+      var bob3=Math.sin(d.t*6+d.x)*1.2;
+      ctx.translate(0,bob3);
+      var vis=Math.min(d.n,5);
+      var POFF=[[-6,2],[6,2],[-3,-2.5],[3,-2.5],[0,-7]];
+      for(var pi4=0;pi4<vis;pi4++){
+        drawWorldCoin(ctx,POFF[pi4][0],POFF[pi4][1],d.t,pi4===vis-1);
+      }
     }else if(d.kind==='plate'){
       ctx.rotate(Math.sin(d.t*3)*0.08+d.rot*0.06);
       var wdt=26+d.word.length*6.4;
