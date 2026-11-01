@@ -34,7 +34,7 @@ const AUDIT_SRC = () => {
   }
   for (const ov of document.querySelectorAll('.bgov')) {
     if (ov.classList.contains('bghidden')) continue;
-    for (const b of ov.querySelectorAll('button,input,.bgmodebtn,#roomCode')) {
+    for (const b of ov.querySelectorAll('button,input')) {
       const r = b.getBoundingClientRect();
       if (r.width < 2) continue;
       push(b.id || ('ov:' + (b.textContent || b.placeholder || '').trim().slice(0, 16)), 'rect', r);

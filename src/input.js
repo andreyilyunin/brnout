@@ -8,13 +8,11 @@ function refreshAim(){
   if(isTouch){
     if(!me)return;
     var best=null,bd=460;
-    var pool=(NET.mode==='guest')?VIEW.mobs:G.mobs;
-    for(var i=0;i<pool.length;i++){var m=pool[i];
+    for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
       var d=Math.hypot(m.x-me.x,m.y-me.y);
       if(d<bd){bd=d;best=m;}
     }
-    var boss=(NET.mode==='guest')?VIEW.boss:G.boss;
-    if(boss){var db=dist(me,boss);if(db<bd){best=boss;}}
+    if(G.boss){var db=dist(me,G.boss);if(db<bd){best=G.boss;}}
     if(best)INPUT.aim=angTo(me,best);
     else if(Math.hypot(INPUT.ix,INPUT.iy)>0.1)INPUT.aim=Math.atan2(INPUT.iy,INPUT.ix);
   }else{

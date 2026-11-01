@@ -50,40 +50,47 @@ function drawHumanoidBody(c,o){
     c.strokeStyle='rgba(139,209,124,'+(0.3+0.15*Math.sin(G.t*14))+')';c.lineWidth=2;
     c.beginPath();c.arc(0,0,19*s,0,TAU);c.stroke();
   }
-  c.rotate(f+Math.PI/2);
+  // GTA 2-механика (ART-RULES §1/§5): ноги шагают вдоль ВЕКТОРА ДВИЖЕНИЯ (мировая
+  // система), корпус поворачивается на прицел, голова за замахом не скрутится.
   var mv=o.moving?1:0;
   var ph=(o.step||0)*TAU;
-  var sw=Math.sin(ph)*3*mv,sway=Math.sin(ph)*0.07*mv;
-  c.rotate(sway);
-  if(frenzy)c.rotate(Math.sin(G.t*26)*0.04);
-
-  var sexy=false;
-  var stride=Math.sin(ph)*15*mv;
-  var footLx=-4.6*s,footRx=4.6*s;
-  var footLy=-9*s-stride,footRy=-9*s+stride;
+  var atkPr=clamp(1-(o.atkT||0)/0.2,0,1);
+  var sw=(o.atkT||0)>0?-0.9+atkPr*1.6:0; // замах сквозь прицел: -0.9 → +0.7
+  var mAng=mv?(o.moveAng!==undefined?o.moveAng:f):f;
+  var fdx=Math.cos(mAng),fdy=Math.sin(mAng),qx2=-fdy,qy2=fdx;
+  var stride=Math.sin(ph)*13*mv;
+  var bob=Math.abs(Math.sin(ph))*1.4*mv;
+  var fL=[fdx*stride-qx2*4.8*s,fdy*stride-qy2*4.8*s];
+  var fR=[-fdx*stride+qx2*4.8*s,-fdy*stride+qy2*4.8*s];
   var PANTS={dev:'#262a33',mgr:'#26262c',mkt:'#4c5166',dsn:'#4a6a9c',intern:'#43506b'}[o.cls]||'#43506b';
-  function leg(footX,footY){
+  function leg(fp){
     c.strokeStyle=PANTS;c.lineWidth=5.5*s;c.lineCap='round';
-    c.beginPath();c.moveTo(footX,4.5*s);c.quadraticCurveTo(footX*1.05,(footY+4.5*s)/2,footX,footY-2.5*s);c.stroke();
+    c.beginPath();c.moveTo(fp[0]*0.25,fp[1]*0.25+2*s);
+    c.quadraticCurveTo((fp[0]+fdx*3*s)/2,(fp[1]+fdy*3*s+2*s)/2,fp[0]-fdx*2.5*s,fp[1]-fdy*2.5*s);c.stroke();
   }
-  function shoe(footX,footY,main,sole,accent,heel){
-    c.fillStyle=main;rr(c,footX-3.3*s,footY-4.5*s,6.6*s,9*s,2.6*s);c.fill();
-    c.fillStyle=sole;c.fillRect(footX-3.3*s,footY+2.2*s,6.6*s,2.2*s);
-    if(accent){c.fillStyle=accent;c.fillRect(footX-3.3*s,footY-0.8*s,6.6*s,1.5*s);}
-    if(heel){c.fillStyle=sole;c.fillRect(footX-2.7*s,footY+3.4*s,2.3*s,2.6*s);}
+  function shoe(fp,main,sole,accent){
+    c.save();c.translate(fp[0],fp[1]);c.rotate(mAng+Math.PI/2); // носок по ходу движения
+    c.fillStyle=main;rr(c,-3.3*s,-4.5*s,6.6*s,9*s,2.6*s);c.fill();
+    c.fillStyle=sole;c.fillRect(-3.3*s,2.3*s,6.6*s,2.2*s);
+    if(accent){c.fillStyle=accent;c.fillRect(-3.3*s,-0.8*s,6.6*s,1.5*s);}
+    c.restore();
   }
-  leg(footLx,footLy);leg(footRx,footRy);
+  leg(fL);leg(fR);
   if(o.cls==='dev'){
-    shoe(footLx,footLy,'#e8e8ee','#23262e',L.accent);shoe(footRx,footRy,'#e8e8ee','#23262e',L.accent);
+    shoe(fL,'#e8e8ee','#23262e',L.accent);shoe(fR,'#e8e8ee','#23262e',L.accent);
   }else if(o.cls==='mgr'){
-    shoe(footLx,footLy,'#3a2a1a','#241a10','#ffcf5c');shoe(footRx,footRy,'#3a2a1a','#241a10','#ffcf5c');
+    shoe(fL,'#3a2a1a','#241a10','#ffcf5c');shoe(fR,'#3a2a1a','#241a10','#ffcf5c');
   }else if(o.cls==='mkt'){
-    shoe(footLx,footLy,'#8a5a2a','#4a3018','rgba(255,255,255,0.3)');shoe(footRx,footRy,'#8a5a2a','#4a3018','rgba(255,255,255,0.3)');
-  }else if(sexy){
-    shoe(footLx,footLy,'#241d2e','#171221',L.accent,true);shoe(footRx,footRy,'#241d2e','#171221',L.accent,true);
+    shoe(fL,'#8a5a2a','#4a3018','rgba(255,255,255,0.3)');shoe(fR,'#8a5a2a','#4a3018','rgba(255,255,255,0.3)');
   }else{
-    shoe(footLx,footLy,'#d8d8de','#2a2d34');shoe(footRx,footRy,'#d8d8de','#2a2d34');
+    shoe(fL,'#d8d8de','#2a2d34');shoe(fR,'#d8d8de','#2a2d34');
   }
+
+  c.translate(0,-bob);
+  c.rotate(f+Math.PI/2);
+  c.rotate(sw);
+  if(frenzy)c.rotate(Math.sin(G.t*26)*0.04);
+  var sexy=false;
 
   if(sexy){
     var gs=c.createLinearGradient(-11*s,0,11*s,0);
@@ -169,6 +176,7 @@ function drawHumanoidBody(c,o){
   }
   arm(sexy?-9.5*s:-11.5*s,0);arm(sexy?9.5*s:11.5*s,1);
 
+  c.rotate(-sw); // голова всегда по прицелу — за замахом не скрутится
   if(o.cls==='intern'){
     drawInternHead(c,o,s);
   }else{
@@ -278,11 +286,14 @@ function drawJiraIcon(c,sc){
 
 function drawWeapon(c,o,s){
   var f=o.face||0;
+  if((o.atkT||0)>0){var wpr=clamp(1-o.atkT/0.2,0,1);f+=(-0.9+wpr*1.6)*0.7;} // оружие едет за скруткой корпуса
   var fx=Math.cos(f),fy=Math.sin(f),hx,hy;
   if((o.atkT||0)>0){hx=o.x+fx*13*s;hy=o.y+fy*13*s;}
   else{hx=o.x+(fx*10-fy*7)*s;hy=o.y+(fy*10+fx*7)*s;}
   var frenzy=o.casting==='type';
-  var swing=(o.atkT||0)>0?(o.atkT/0.2)*1.1:0;
+  // замах как в эталонной демке: нарастает сквозь цель (-0.9 → +0.7),
+  // а не возвращается назад — оружие проносится, а не отводится
+  var swing=(o.atkT||0)>0?((1-o.atkT/0.2)*1.6-0.9):0;
   var cast=o.castT>0;
   var atk=(o.atkT||0)>0;
   var wsum=atk?(o.atkT/0.2):0;
@@ -336,7 +347,7 @@ function drawWeapon(c,o,s){
 
     c.save();
     c.translate(0,-5*s);
-    c.rotate(-0.62-(atk?wsum*0.5:0));
+    c.rotate(-0.62+(atk?swing*0.5:0));
     c.fillStyle='#101820';rr(c,-13*s,-19*s,26*s,19*s,2*s);c.fill();
     c.fillStyle='#182634';rr(c,-10.5*s,-16.5*s,21*s,14*s,1.5*s);c.fill();
     c.strokeStyle='#5fa8d8';c.lineWidth=1.6;
@@ -446,7 +457,7 @@ function drawPlayer(p,isMe){
     ctx.strokeStyle=badge>=3?'rgba(255,95,168,.9)':(badge>=1?'rgba(255,207,92,.9)':'rgba(120,230,255,.8)');
     ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x,p.y+2,24,0,TAU);ctx.stroke();
   }
-  drawHumanoid(ctx,{x:p.x,y:p.y,face:p.face,step:p.step,look:p.look,cls:p.cls,scale:1.55,moving:p.moving,atkT:p.atkT,
+  drawHumanoid(ctx,{x:p.x,y:p.y,face:p.face,moveAng:p.moveAng,step:p.step,look:p.look,cls:p.cls,scale:1.55,moving:p.moving,atkT:p.atkT,
     weapon:CLS[p.cls]?CLS[p.cls].weapon:'laptop',casting:(p.cls==='dev'&&p.qT>0)?'type':null,
     castT:p.castT||0,haste:p.haste||0,shieldOn:p.shield>0});
   if(!isMe){
@@ -488,7 +499,7 @@ function drawInternHead(c,o,s){
   }
   c.restore();
 }
-function drawIntern(m,remote){
+function drawIntern(m){
   var L=HOODIES[(m.tint||0)%HOODIES.length];
   var wob=Math.sin(G.t*2.4+(m.tilt||0))*0.12;
   var elite=m.elite;
@@ -541,7 +552,7 @@ function drawIntern(m,remote){
       }
     }
   }
-  drawHumanoid(ctx,{x:m.x,y:m.y,face:(m.face||0)+wob,step:remote?G.t*2.6:(m.step||m.tilt||0),look:L,cls:'intern',scale:elite?1.75:1.35,moving:true,
+  drawHumanoid(ctx,{x:m.x,y:m.y,face:(m.face||0)+wob,moveAng:(m.face||0)+wob,step:m.step||m.tilt||0,look:L,cls:'intern',scale:elite?1.75:1.35,moving:true,
     weapon:'laptop',casting:(m.cf>0)?'type':null,elite:elite});
   if(m.wu>0){
     var wprog=1-m.wu/0.5;
@@ -581,16 +592,16 @@ function drawIntern(m,remote){
     }
     ctx.stroke();ctx.restore();
   }
-  var hpF=remote?m.hpF:(m.hp/m.hpMax);
+  var hpF=m.hp/m.hpMax;
   if(hpF!==undefined&&hpF<1){
     ctx.fillStyle='#1a1e24';ctx.fillRect(m.x-12,m.y-24,24,3);
     ctx.fillStyle='#c23b32';ctx.fillRect(m.x-12,m.y-24,24*Math.max(0,hpF),3);
   }
 }
-function drawDeadline(m,remote){
+function drawDeadline(m){
 
   var t=G.t+(m.tilt||0);
-  var hpF=remote?(m.hpF===undefined?1:m.hpF):(m.hp/m.hpMax);
+  var hpF=m.hp/m.hpMax;
   var inst=hpF<0.55?2:1;
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath();ctx.ellipse(m.x+2.6,m.y+6.5,14,9,0,0,TAU);ctx.fill();
@@ -642,12 +653,12 @@ function drawDeadline(m,remote){
     }
   });
 }
-function drawColleague(m,remote){
+function drawColleague(m){
   var role=m.type;
   var L=COLLLOOKS[role]||COLLLOOKS.hr;
   var scale=role==='lead'?1.9:(role==='patron'?1.85:(role==='rival'?1.3:(role==='waiter'?1.25:1.35)));
   var ringCol=role==='hr'?'rgba(178,132,232,.6)':(role==='rival'?'rgba(229,83,75,.55)':(role==='bartender'?'rgba(139,209,124,.6)':(role==='waiter'?'rgba(216,162,78,.6)':(role==='patron'?'rgba(125,219,78,.62)':'rgba(216,169,78,.62)'))));
-  var hpF=remote?(m.hpF===undefined?1:m.hpF):(m.hp/m.hpMax);
+  var hpF=m.hp/m.hpMax;
 
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath();ctx.ellipse(m.x+2.6,m.y+6.5,14,9,0,0,TAU);ctx.fill();
@@ -663,7 +674,7 @@ function drawColleague(m,remote){
     ctx.lineWidth=3;ctx.setLineDash([9,6]);
     ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x+Math.cos(m.face||0)*teleLen,m.y+Math.sin(m.face||0)*teleLen);ctx.stroke();ctx.restore();
   }
-  drawHumanoid(ctx,{x:m.x,y:m.y,face:(m.face||0),step:remote?G.t*2.6:(m.step||m.tilt||0),look:L,cls:role==='hr'?'mkt':(role==='rival'?'dev':(role==='waiter'?'dsn':(role==='patron'?'dev':'mgr'))),scale:scale,moving:true,
+  drawHumanoid(ctx,{x:m.x,y:m.y,face:(m.face||0),moveAng:m.face||0,step:m.step||m.tilt||0,look:L,cls:role==='hr'?'mkt':(role==='rival'?'dev':(role==='waiter'?'dsn':(role==='patron'?'dev':'mgr'))),scale:scale,moving:true,
     weapon:role==='rival'?'keyboard':(role==='hr'?'tickets':null),atkT:m.wu>0?0.2:0,
     casting:(m.cf>0)?'type':null,castT:0,bossTie:role==='lead',elite:false});
   var ps=scale*0.9;
@@ -677,7 +688,7 @@ function drawColleague(m,remote){
     ctx.beginPath();ctx.moveTo(m.x+7*ps,m.y-12*ps);ctx.quadraticCurveTo(m.x+11*ps,m.y-8*ps,m.x+8*ps,m.y-5*ps);ctx.stroke();
     ctx.fillStyle='rgba(178,132,232,'+(0.5+0.3*Math.sin(G.t*6)).toFixed(2)+')';
     ctx.beginPath();ctx.arc(m.x+8*ps,m.y-5*ps,1.6*ps,0,TAU);ctx.fill();
-  }else if(role==='rival'&&!remote){
+  }else if(role==='rival'){
     var sp2=Math.min(1,m.spd/260);
     ctx.strokeStyle='rgba(229,83,75,'+(0.25*sp2).toFixed(2)+')';ctx.lineWidth=2;
     for(var rl=0;rl<3;rl++){
@@ -768,24 +779,24 @@ function drawColleague(m,remote){
   }
 }
 var COLLLOOKS={
-  hr:{skin:'#e8c39e',hair:'#4a2a3a',hs:0,shirt:'#5e3a6e',accent:'#c8a2e8'},
+  hr:{skin:'#d9b896',hair:'#4a2a3a',hs:0,shirt:'#4e3a56',accent:'#a892c0'},
   rival:{skin:'#d9b48f',hair:'#101010',hs:1,shirt:'#3a3d42',accent:'#c4574e'},
   lead:{skin:'#c9b8a3',hair:'#b9bcc2',hs:0,shirt:'#232a33',accent:'#8b6d3b'},
-  bartender:{skin:'#d9b48f',hair:'#2a1a10',hs:0,shirt:'#1e2e1a',accent:'#7ddb4e'},
+  bartender:{skin:'#d9b48f',hair:'#2a1a10',hs:0,shirt:'#24301e',accent:'#8aa86a'},
   waiter:{skin:'#e8c39e',hair:'#101010',hs:1,shirt:'#2c2620',accent:'#d8a24e'},
-  patron:{skin:'#c99a75',hair:'#5a3a1a',hs:2,shirt:'#3c3228',accent:'#7ddb4e'}
+  patron:{skin:'#c99a75',hair:'#5a3a1a',hs:2,shirt:'#3c3228',accent:'#8aa86a'}
 };
-function drawBoss(b,remote){
+function drawBoss(b){
   var release=b.kind==='release';
   var look=release?{skin:'#d9b48f',hair:'#2a2118',hs:1,shirt:'#173427',accent:'#42e0ff'}:{skin:'#c9b8a3',hair:'#b9bcc2',hs:0,shirt:'#232a33',accent:'#8b2020'};
-  var hpF=remote?(b.hpF||0):clamp(b.hp/b.hpMax,0,1);
+  var hpF=clamp(b.hp/b.hpMax,0,1);
   var wu=b.windup>0?Math.min(1,(b.wuT||0)/1.0):0;
   drawHumanoid(ctx,{x:b.x,y:b.y,face:b.face,step:b.step||0,look:look,cls:release?'mkt':'mgr',scale:2.85,moving:true,atkT:wu>0?0.2:0,
     weapon:wu>0?null:(release?'laptop':'stamp'),bossTie:!release});
 
   var gd=14;
   ctx.save();ctx.translate(b.x+Math.cos(b.face)*gd*1.2,b.y+Math.sin(b.face)*gd*1.2);ctx.rotate(b.face+Math.PI/2);
-  ctx.strokeStyle=remote&&b.phase===2?(release?'#42e0ff':'#e5534b'):'#9aa4af';ctx.lineWidth=2;
+  ctx.strokeStyle='#9aa4af';ctx.lineWidth=2;
   if(release){
     ctx.beginPath();ctx.arc(0,0,9*s2()*0.45,Math.PI*1.05,Math.PI*1.95);ctx.stroke();
     ctx.beginPath();ctx.moveTo(8*s2()*0.45,1);ctx.lineTo(12*s2()*0.45,6);ctx.stroke();
@@ -793,11 +804,6 @@ function drawBoss(b,remote){
   }else{
     ctx.beginPath();ctx.arc(-5*s2(),0,4.5,0,TAU);ctx.arc(5*s2(),0,4.5,0,TAU);ctx.stroke();
     ctx.beginPath();ctx.moveTo(-1,0);ctx.lineTo(1,0);ctx.stroke();
-  }
-  if(remote&&b.phase===2){
-    ctx.fillStyle=release?'#42e0ff':'#e5534b';
-    ctx.beginPath();ctx.arc(-5*s2(),0,2,0,TAU);ctx.fill();
-    ctx.beginPath();ctx.arc(5*s2(),0,2,0,TAU);ctx.fill();
   }
   ctx.restore();
 

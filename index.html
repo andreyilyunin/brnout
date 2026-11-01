@@ -52,10 +52,6 @@
       <button class="bgcorner" id="mCareer">📁 КАРЬЕРА</button>
       <button class="bgcorner" id="mSettings">⚙ НАСТРОЙКИ</button>
       <button class="bgstart" id="mStart">НАЧАТЬ СМЕНУ</button>
-      <div class="bgmode">
-        <button class="bgmodebtn" id="mSolo">СОЛО</button>
-        <button class="bgmodebtn" id="mCoop">ОНЛАЙН</button>
-      </div>
     </div>
     <div class="bgcredit"><a href="https://github.com/AndreyIlyunin/brnout" target="_blank" rel="noopener">исходники на GitHub ↗</a></div>
   </div>
@@ -90,55 +86,10 @@
   </div>
 </div>
 
-<div class="bgov bghidden" id="bcoop">
-  <div class="bgpanel bgcenter">
-    <div class="bgtitle bgsmall">КООП: КОМНАТА</div>
-    <div class="bgtag">P2P WebRTC. Сервер игры не нужен — только сигнальный брокер.</div>
-    <button class="bgbtn bgwide" id="cHost">Создать комнату</button>
-    <button class="bgbtn bgwide" id="cJoin">Войти по коду</button>
-    <button class="bgbtn bgwide" id="bBack2">Назад</button>
-  </div>
-</div>
-
-<div class="bgov bghidden" id="bjoin">
-  <div class="bgpanel bgcenter">
-    <div class="bgtitle bgsmall">ВХОД ПО КОДУ</div>
-    <input id="joinCode" class="bginput" maxlength="5" placeholder="код комнаты" autocomplete="off" autocapitalize="off">
-    <div class="bgtag" id="joinErr" role="alert"></div>
-    <button class="bgbtn bgwide" id="bjoinGo">Подключиться</button>
-    <button class="bgbtn bgwide" id="bBack3">Назад</button>
-  </div>
-</div>
-
-<div class="bgov bghidden" id="bhost">
-  <div class="bgpanel bgcenter">
-    <div class="bgtitle bgsmall">ЛОББИ</div>
-    <div class="bgtag">Код комнаты:</div>
-    <div id="roomCode">-----</div>
-    <button class="bgbtn bgwide bshare" id="bshare">Поделиться ссылкой</button>
-    <div class="bgtag" id="shareHint">ссылка сама введёт код другу · или продиктуйте код</div>
-    <div id="lobbyList" class="bglobby"></div>
-    <button class="bgbtn bgwide" id="bstart">Начать спринт</button>
-    <button class="bgbtn bgwide" id="bBack4">Выйти</button>
-  </div>
-</div>
-
-<div class="bgov bghidden" id="bwait">
-  <div class="bgpanel bgcenter">
-    <div class="bgtitle bgsmall">КОМНАТА</div>
-    <div class="bgtag" id="netStatus">Подключение…</div>
-    <div class="bgtag hidden" id="waitCode" style="color:#3fb950;letter-spacing:3px;font-weight:700"></div>
-    <div id="lobbyList2" class="bglobby"></div>
-    <button class="bgbtn bgwide" id="bLeaveWait">Покинуть</button>
-  </div>
-</div>
-
 <div class="bgov bghidden" id="bpause">
   <div class="bgpanel bgcenter">
     <div class="bgtitle bgsmall" style="color:#d29922">ПАУЗА</div>
     <div class="bgtag">Отдых — это тоже задача. Неоплачиваемая.</div>
-    <div id="pauseNet" class="bgtag hidden">Комната: <b id="pauseCode" style="color:#3fb950;letter-spacing:3px"></b></div>
-    <button class="bgbtn bgwide hidden" id="pauseShare">Поделиться ссылкой</button>
     <button class="bgbtn bgwide" id="bresume">Продолжить</button>
     <button class="bgbtn bgwide" id="bfsToggle">Полный экран</button>
     <button class="bgbtn bgwide" id="brestart">Заново</button>
@@ -186,24 +137,22 @@
 </div>
 </div>
 
-<link rel="stylesheet" href="style.css?v=107">
-<script src="src/utils.js?v=107"></script>
-<script src="src/neonfx.js?v=107"></script>
-<script src="lib/trystero-torrent.min.js?v=107"></script>
-<script src="lib/trystero-nostr.min.js?v=107"></script>
-<script src="src/data.js?v=107"></script>
-<script src="src/audio.js?v=107"></script>
-<script src="src/music.js?v=107"></script>
-<script src="src/map.js?v=107"></script>
-<script src="src/chaos.js?v=107"></script>
-<script src="src/combat.js?v=107"></script>
-<script src="src/abilities.js?v=107"></script>
-<script src="src/sim.js?v=107"></script>
-<script src="src/guest.js?v=107"></script>
-<script src="src/sprites.js?v=107"></script>
-<script src="src/render.js?v=107"></script>
-<script src="src/input.js?v=107"></script>
-<script src="src/ui.js?v=107"></script>
-<script src="src/net.js?v=107"></script>
-<script src="src/main.js?v=107"></script>
+<link rel="stylesheet" href="style.css?v=110">
+<script src="src/utils.js?v=110"></script>
+<script src="src/events.js?v=110"></script>
+<script src="src/neonfx.js?v=110"></script>
+<script src="src/data.js?v=110"></script>
+<script src="src/audio.js?v=110"></script>
+<script src="src/music.js?v=110"></script>
+<script src="src/map.js?v=110"></script>
+<script src="src/chaos.js?v=110"></script>
+<script src="src/combat.js?v=110"></script>
+<script src="src/mobs.js?v=110"></script>
+<script src="src/abilities.js?v=110"></script>
+<script src="src/sim.js?v=110"></script>
+<script src="src/sprites.js?v=110"></script>
+<script src="src/render.js?v=110"></script>
+<script src="src/input.js?v=110"></script>
+<script src="src/ui.js?v=110"></script>
+<script src="src/main.js?v=110"></script>
 

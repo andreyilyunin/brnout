@@ -45,8 +45,8 @@ function musicTick(){
     var bar=((stepAbs/16)|0)%8;
     var sec=bar<2?0:(bar<4?1:(bar<6?2:3));
     var pr=PROG[bar];
-    var mobsN=(NET.mode==='guest')?VIEW.mobs.length:G.mobs.length;
-    var inten=clamp(mobsN/8+G.wave*0.04+((NET.mode==='guest'?VIEW.boss:G.boss)?0.35:0),0,1);
+    var mobsN=G.mobs.length;
+    var inten=clamp(mobsN/8+G.wave*0.04+(G.boss?0.35:0),0,1);
 
     for(var b=0;b<BPAT.length;b++){var bn=BPAT[b];
       if(bn.s!==s)continue;

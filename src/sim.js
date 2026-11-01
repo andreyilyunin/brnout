@@ -13,7 +13,7 @@ function updatePlayer(p,dt){
   if(p.dead){
     p.respT+=dt;
     if(p.respT>=9){
-      p.dead=false;p.burnout=55;p.coffee=50;p.inv=1.5;p.kx=0;p.ky=0;
+      p.dead=false;p.burnout=55;p.coffee=50;p.inv=1.5;p.kx=0;p.ky=0;p.vx=0;p.vy=0;
       var lb=lobbySpawn();
       var sp=snapReachable({x:lb.x+lb.w/2,y:lb.y+lb.h/2});
       p.x=sp.x;p.y=sp.y;
@@ -31,10 +31,20 @@ function updatePlayer(p,dt){
   if(p.adr)p.burnout=Math.min(100,p.burnout+1.0*dt);
   if(p.root>0)p.root-=dt;
   if(p.cdU>0)p.cdU-=dt;
+  // движение с весом (ART-RULES §1): разгон + трение, ноги шагают вдоль скорости
+  var spdMax=p.spd*p.spdMult*(p.haste>0?1.55:1)*(p.adr?1.15:1)*(G.plan>0?1.15:1)*(inZone(p.x,p.y)?0.55:1);
   if(p.moving&&!(p.root>0)){
-    var spd=p.spd*p.spdMult*(p.haste>0?1.55:1)*(p.adr?1.15:1)*(G.plan>0?1.15:1)*(inZone(p.x,p.y)?0.55:1)*Math.min(1,l);
-    collideMove(p,p.ix/l*spd*dt,p.iy/l*spd*dt);
-    p.step+=dt*spd*0.012;
+    var acc=spdMax*9*Math.min(1,l);
+    p.vx+=p.ix/l*acc*dt;p.vy+=p.iy/l*acc*dt;
+  }
+  var dampV=Math.exp(-9*dt);
+  p.vx*=dampV;p.vy*=dampV;
+  var vsp=Math.hypot(p.vx,p.vy);
+  if(vsp>spdMax&&vsp>0){p.vx*=spdMax/vsp;p.vy*=spdMax/vsp;vsp=spdMax;}
+  if(vsp>2){
+    collideMove(p,p.vx*dt,p.vy*dt);
+    p.step+=dt*vsp*0.012;
+    p.moveAng=Math.atan2(p.vy,p.vx);
   }
   collideMove(p,p.kx*dt,p.ky*dt);p.kx*=Math.exp(-7*dt);p.ky*=Math.exp(-7*dt);
   p.x=clamp(p.x,p.r,MAP_W-p.r);p.y=clamp(p.y,p.r,MAP_H-p.r);
@@ -54,12 +64,12 @@ function updatePlayer(p,dt){
     if(p.qPulse<=0){
       p.qPulse=0.8;
       G.fx.push({type:'ring',x:p.x,y:p.y,rad:30,radMax:260,t:0,life:0.4,yellow:true});
-      NET.events.push({k:'ring',x:Math.round(p.x),y:Math.round(p.y),rm:260,yellow:1});
       SFX.clacks(5);
+      var qSrc={kind:'ability',id:'ult',player:p};
       for(i=0;i<G.mobs.length;i++){var m2=G.mobs[i];
-        if(dist(p,m2)<260+m2.r)damageMob(m2,8*p.dmgMult,0,0,1.7);
+        if(dist(p,m2)<260+m2.r)damageMob(m2,8*p.dmgMult,0,0,1.7,qSrc);
       }
-      if(G.boss&&dist(p,G.boss)<260+G.boss.r)damageMob(G.boss,8*p.dmgMult,0,0,0);
+      if(G.boss&&dist(p,G.boss)<260+G.boss.r)damageMob(G.boss,8*p.dmgMult,0,0,0,qSrc);
     }
   }
   if(p.burnout>70){p.heart-=dt;if(p.heart<=0){p.heart=0.9;SFX.heart();}}
@@ -87,16 +97,6 @@ function steerMove(m,ux,uy,step){
   collideMove(m,ux*step,uy*step);
 }
 function updateMobs(dt){
-  function sepMob(mi,mm,dt2){
-    for(var j=mi+1;j<G.mobs.length;j++){var m2=G.mobs[j];
-      if(m2.dead)continue;
-      var dd=dist(mm,m2);
-      if(dd<mm.r+m2.r&&dd>0.01){
-        var ax=(mm.x-m2.x)/dd,ay=(mm.y-m2.y)/dd,f=(mm.r+m2.r-dd)*2;
-        mm.x+=ax*f*dt2*3;mm.y+=ay*f*dt2*3;
-      }
-    }
-  }
   for(var i=0;i<G.mobs.length;i++){var m=G.mobs[i];
     if(m.dead)continue;
 
@@ -136,7 +136,9 @@ function updateMobs(dt){
       if(m.chTick<=0){m.chTick=0.5;
         m.hp-=m.chDmg;
         m.dmgAcc=(m.dmgAcc||0)+m.chDmg;m.dmgHits=(m.dmgHits||0)+1;m.dmgT=0.25;
-        if(m.hp<=0&&!m.dead){m.dead=true;killMob(m);continue;}}
+        var chSrc=m.chSrcObj||null;
+        emitGameEvent('mobHit',{mob:m,amount:m.chDmg,crit:false,killed:m.hp<=0&&!m.dead,src:chSrc});
+        if(m.hp<=0&&!m.dead){m.dead=true;killMob(m,chSrc);continue;}}
     }
     if(m.stun>0){m.stun-=dt;continue;}
     collideMove(m,m.kx*dt,m.ky*dt);m.kx*=Math.exp(-8*dt);m.ky*=Math.exp(-8*dt);
@@ -157,205 +159,9 @@ function updateMobs(dt){
     var tgt=nearestPlayerTo(m);
     if(!tgt)continue;
     var d=dist(m,tgt);
-    if(m.type==='deadline'){
-      var a=(d>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
-      m.face=angTo(m,tgt);
-      steerMove(m,Math.cos(a),Math.sin(a),m.spd*slow*dt);
-      m.emb-=dt;
-      if(m.emb<=0){m.emb=0.07;
-        G.fx.push({type:'ember',x:m.x+R()*10-5,y:m.y+R()*10-5,vx:R()*20-10,vy:-30-R()*20,t:0,life:0.5,r:2+R()*3});
-      }
-      if(d<m.r+tgt.r+4){
-        addBurnout(tgt,12+1.1*G.wave,'deadline');
-        G.fx.push({type:'ring',x:m.x,y:m.y,rad:6,radMax:76,t:0,life:0.35,orange:true});
-        G.fx.push({type:'flash',x:m.x,y:m.y,r:60,t:0,life:0.22});
-        for(var e2=0;e2<14;e2++)G.fx.push({type:'ember',x:m.x,y:m.y,vx:R()*260-130,vy:R()*260-130,t:0,life:0.6,r:2+R()*4});
-        NET.events.push({k:'ring',x:Math.round(m.x),y:Math.round(m.y),rm:76,orange:1});
-        NET.events.push({k:'hs',v:0.05});
-        G.shake+=5;G.hitStop=Math.max(G.hitStop,0.05);
-        SFX.explode();m.dead=true;
-      }
-    }else if(m.type==='hr'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=2.6;
-          if(d<560){
-            spawnStone(m.x,m.y-14,tgt.x,tgt.y,m.phrase||HRWORDS[(R()*HRWORDS.length)|0],(8+0.8*G.wave)|0,tgt.id);
-            SFX.swish&&SFX.swish();
-          }
-        }
-      }else{
-        if(d>340)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
-        else if(d<210)steerMove(m,-Math.cos(m.face),-Math.sin(m.face),m.spd*0.7*slow*dt);
-        else{
-          m.wt-=dt;
-          if(m.wt<=0){m.wt=0.7+R();m.wx=R()*2-1;m.wy=R()*2-1;}
-          var pa=m.face+Math.PI/2*((m.tint%2)?1:-1);
-          steerMove(m,Math.cos(pa)*0.6+m.wx*0.4,Math.sin(pa)*0.6+m.wy*0.4,m.spd*0.5*slow*dt);
-        }
-        if(m.cd<=0&&d<540){m.wu=0.6;floatText(m.x,m.y-30,'на 1:1!','#b18ae8',11,'I');}
-      }
-      sepMob(i,m,dt);
-    }else if(m.type==='rival'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=1.15;
-          if(d<m.r+tgt.r+30){
-            addBurnout(tgt,9+0.9*G.wave,'rival');
-            var ra=angTo(m,tgt);
-            tgt.kx+=Math.cos(ra)*280;tgt.ky+=Math.sin(ra)*280;
-            G.fx.push({type:'flash',x:m.x,y:m.y,r:34,t:0,life:0.2});
-            SFX.thudFlesh&&SFX.thudFlesh();
-          }
-        }
-      }else{
-        if(d>m.r+tgt.r-2)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
-        if(d<m.r+tgt.r+12&&m.cd<=0){m.wu=0.38;floatText(m.x,m.y-30,'мой грейд!','#e5534b',11,'I');}
-      }
-      sepMob(i,m,dt);
-    }else if(m.type==='lead'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=1.9;
-          G.fx.push({type:'ring',x:m.x,y:m.y,rad:12,radMax:92,t:0,life:0.4,orange:true});
-          NET.events.push({k:'ring',x:Math.round(m.x),y:Math.round(m.y),rm:92,orange:1});
-          SFX.slam&&SFX.slam();
-          G.shake+=4;
-          for(var pl2=0;pl2<G.players.length;pl2++){var lp=G.players[pl2];
-            if(lp.dead)continue;
-            if(dist(m,lp)<92+lp.r){
-              addBurnout(lp,15+1.1*G.wave,'lead');
-              var la=angTo(m,lp);
-              lp.kx+=Math.cos(la)*320;lp.ky+=Math.sin(la)*320;
-            }
-          }
-        }
-      }else{
-        if(d>m.r+tgt.r-2)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
-        if(d<m.r+tgt.r+16&&m.cd<=0){m.wu=0.55;floatText(m.x,m.y-34,'РАЗБОР ПОЛЁТОВ!','#e8c56a',12,'I');}
-      }
-      sepMob(i,m,dt);
-    }else if(m.type==='bartender'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=2.4;
-          if(d<560){
-            spawnStone(m.x,m.y-14,tgt.x,tgt.y,m.phrase||PUBWORDS[(R()*PUBWORDS.length)|0],(8+0.8*G.wave)|0,tgt.id);
-            SFX.swish&&SFX.swish();
-          }
-        }
-      }else{
-        if(d>320)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
-        else if(d<200)steerMove(m,-Math.cos(m.face),-Math.sin(m.face),m.spd*0.7*slow*dt);
-        else{
-          m.wt-=dt;
-          if(m.wt<=0){m.wt=0.7+R();m.wx=R()*2-1;m.wy=R()*2-1;}
-          var bpa=m.face+Math.PI/2*((m.tint%2)?1:-1);
-          steerMove(m,Math.cos(bpa)*0.6+m.wx*0.4,Math.sin(bpa)*0.6+m.wy*0.4,m.spd*0.5*slow*dt);
-        }
-        if(m.cd<=0&&d<540){m.wu=0.6;floatText(m.x,m.y-30,'на стойку!','#8bd17c',11,'I');}
-      }
-      sepMob(i,m,dt);
-    }else if(m.type==='waiter'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=0.9;
-          if(d<m.r+tgt.r+30){
-            addBurnout(tgt,8+0.9*G.wave,'waiter');
-            var wa2=angTo(m,tgt);
-            tgt.kx+=Math.cos(wa2)*240;tgt.ky+=Math.sin(wa2)*240;
-            G.fx.push({type:'flash',x:m.x,y:m.y,r:32,t:0,life:0.2});
-            SFX.thudFlesh&&SFX.thudFlesh();
-          }
-        }
-      }else{
-        if(d>m.r+tgt.r-2)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
-        if(d<m.r+tgt.r+14&&m.cd<=0){m.wu=0.24;floatText(m.x,m.y-30,'вот ваш заказ!','#d8a24e',11,'I');}
-      }
-      sepMob(i,m,dt);
-    }else if(m.type==='patron'){
-      m.aggro=true;
-      m.face=angTo(m,tgt);
-      if(m.wu>0){
-        m.wu-=dt;
-        if(m.wu<=0){
-          m.cd=2.1;
-          G.fx.push({type:'ring',x:m.x,y:m.y,rad:12,radMax:120,t:0,life:0.4,green:true});
-          NET.events.push({k:'ring',x:Math.round(m.x),y:Math.round(m.y),rm:120,green:1});
-          SFX.slam&&SFX.slam();
-          G.shake+=5;
-          for(var pl3=0;pl3<G.players.length;pl3++){var lp3=G.players[pl3];
-            if(lp3.dead)continue;
-            var pdd=dist(m,lp3);
-            if(pdd<m.r+lp3.r+34&&Math.abs(angDiff(m.face,angTo(m,lp3)))<1.3){
-              addBurnout(lp3,16+1.2*G.wave,'patron');
-              var pa3=angTo(m,lp3);
-              lp3.kx+=Math.cos(pa3)*420;lp3.ky+=Math.sin(pa3)*420;
-            }
-          }
-        }
-      }else{
-        m.wt-=dt;
-        if(m.wt<=0){m.wt=0.5+R()*0.8;m.wx=R()*2-1;m.wy=R()*2-1;}
-        var sway=Math.sin(G.t*3+(m.tilt||0))*0.7;
-        var ux2=Math.cos(m.face)+(m.wx+sway)*0.55,uy2=Math.sin(m.face)+(m.wy-sway)*0.55;
-        var ul2=Math.hypot(ux2,uy2)||1;
-        if(d>m.r+tgt.r-2)steerMove(m,ux2/ul2,uy2/ul2,m.spd*slow*dt);
-        if(d<m.r+tgt.r+22&&m.cd<=0){m.wu=0.7;floatText(m.x,m.y-34,'А Я ТЕБЯ ЗНАЮ?!','#7ddb4e',12,'I');}
-      }
-      sepMob(i,m,dt);
-    }else{
-      m.aggro=true;
-      if(m.aggro){
-        if(d>m.r+tgt.r+4){
-          var a2=(d>90&&flowDir(m.x,m.y)!==null)?flowDir(m.x,m.y):angTo(m,tgt);
-          m.face=angTo(m,tgt);
-          steerMove(m,Math.cos(a2),Math.sin(a2),m.spd*slow*dt);
-        }else if(m.wu>0){
-          m.wu-=dt;
-          if(m.wu<=0){
-            m.cd=1.4;
-            var inFlight=0;
-            for(var si=0;si<STONES.length;si++)if(STONES[si].tgtId===tgt.id)inFlight++;
-          if(inFlight<2+(G.wave>=6?1:0)+(G.wave>=9?1:0)){
-              var snapx=tgt.x,snapy=tgt.y;
-              spawnStone(m.x,m.y-12,snapx,snapy,STONEWORDS[(R()*STONEWORDS.length)|0],(7+0.7*G.wave)|0,tgt.id);
-              SFX.swish&&SFX.swish();
-            }
-          }
-        }else if(m.cd<=0&&G.wave>=2){
-          m.wu=0.5;
-        }
-        if(!m.said&&d<300){m.said=true;if(R()<0.5&&flavorOK())floatText(m.x,m.y-24,['а дизайн уже согласовали?','у меня один вопрос…','а куда нажимать?'][(R()*3)|0],'#8b949e',11,'F');}
-      }else{
-        m.wt-=dt;
-        if(m.wt<=0){m.wt=1+R()*2;m.wx=R()*2-1;m.wy=R()*2-1;}
-        steerMove(m,m.wx,m.wy,30*slow*dt);
-      }
-      for(var j=i+1;j<G.mobs.length;j++){var m2=G.mobs[j];
-        if(m2.dead)continue;
-        var dd=dist(m,m2);
-        if(dd<m.r+m2.r&&dd>0.01){
-          var ax=(m.x-m2.x)/dd,ay=(m.y-m2.y)/dd,f=(m.r+m2.r-dd)*2;
-          m.x+=ax*f*dt*3;m.y+=ay*f*dt*3;
-        }
-      }
-    }
+    var def=MOB_DEFS[m.type];
+    if(!def||typeof def.update!=='function')throw new Error('updateMobs: нет определения для типа "'+m.type+'" — добавь registerMob в src/mobs.js');
+    def.update(m,tgt,d,dt,{slow:slow,idx:i});
   }
   G.mobs=G.mobs.filter(function(m){return !m.dead;});
 }
@@ -397,9 +203,7 @@ function updateBoss(dt){
     if(b.windup<=0){
       G.shake+=14;SFX.slam();
       G.hitStop=Math.max(G.hitStop,0.09);
-      NET.events.push({k:'hs',v:0.09});
       G.fx.push({type:'stamp',x:b.tx,y:b.ty,rad:150+20*b.phase,t:0,life:5});
-      NET.events.push({k:'stamp',x:Math.round(b.tx),y:Math.round(b.ty),rad:150+20*b.phase});
       aoeFurn(b.tx,b.ty,150+20*b.phase,60);
       var d=dist(p,{x:b.tx,y:b.ty});
       if(d<150+20*b.phase+p.r){
@@ -480,18 +284,18 @@ function updateProjs(dt){
     if(!dead){
       for(var m=0;m<G.mobs.length;m++){var mob=G.mobs[m];
         if(dist(pr,mob)<mob.r+5){
-          damageMob(mob,pr.dmg,pr.vx*0.3,pr.vy*0.3,0);
+          damageMob(mob,pr.dmg,pr.vx*0.3,pr.vy*0.3,0,pr.src);
           if(pr.split&&!pr.didSplit){
             pr.didSplit=1;
             for(var sp2=0;sp2<2;sp2++){
               var na=Math.atan2(pr.vy,pr.vx)+(sp2?0.55:-0.55);
-              G.projs.push({id:++G.pkSeq,kind:pr.kind,x:pr.x,y:pr.y,vx:Math.cos(na)*Math.hypot(pr.vx,pr.vy),vy:Math.sin(na)*Math.hypot(pr.vx,pr.vy),dmg:pr.dmg*0.5,life:0.8,rot:R()*TAU});
+              G.projs.push({id:++G.pkSeq,kind:pr.kind,x:pr.x,y:pr.y,vx:Math.cos(na)*Math.hypot(pr.vx,pr.vy),vy:Math.sin(na)*Math.hypot(pr.vx,pr.vy),dmg:pr.dmg*0.5,life:0.8,rot:R()*TAU,src:pr.src});
             }
           }
           dead=true;break;
         }
       }
-      if(!dead&&G.boss&&dist(pr,G.boss)<G.boss.r+6){damageMob(G.boss,pr.dmg,0,0,0);dead=true;}
+      if(!dead&&G.boss&&dist(pr,G.boss)<G.boss.r+6){damageMob(G.boss,pr.dmg,0,0,0,pr.src);dead=true;}
     }
     if(dead){G.projs.splice(i,1);i--;}
   }
@@ -504,7 +308,6 @@ function updateFx(dt){
     for(var pi4=G.pickups.length-1;pi4>=0;pi4--){var pk=G.pickups[pi4];
       if(Math.hypot(pk.x-me.x,pk.y-me.y)<22){
         G.pickups.splice(pi4,1);
-        NET.events.push({k:'pkup',id:pk.id});
         if(pk.kind==='coffee'){me.burnout=Math.max(0,me.burnout-16);me.coffee=Math.min(me.coffeeMax,me.coffee+40);SFX.slurp();}
         else if(pk.kind==='espresso'){me.coffee=me.coffeeMax;me.burnout=Math.max(0,me.burnout-15);SFX.slurp();SFX.pickup();}
         else if(pk.kind==='folder'){me.superC=Math.min(1,(me.superC||0)+(pk.s||0.5));SFX.grade();floatText(me.x,me.y-40,'папка возвращена','#8bd17c',14);}
@@ -560,9 +363,9 @@ function updateFx(dt){
       z.tk=(z.tk||0)+dt;
       if(z.tk>0.4){z.tk=0;
         for(var zm=0;zm<G.mobs.length;zm++){var mzf=G.mobs[zm];
-          if(mzf.x>z.x&&mzf.x<z.x+z.w&&mzf.y>z.y&&mzf.y<z.y+z.h)damageMob(mzf,7,0,0,0.4);
+          if(mzf.x>z.x&&mzf.x<z.x+z.w&&mzf.y>z.y&&mzf.y<z.y+z.h)damageMob(mzf,7,0,0,0.4,z.src);
         }
-        if(G.boss&&G.boss.x>z.x&&G.boss.x<z.x+z.w&&G.boss.y>z.y&&G.boss.y<z.y+z.h)damageMob(G.boss,10,0,0,0);
+        if(G.boss&&G.boss.x>z.x&&G.boss.x<z.x+z.w&&G.boss.y>z.y&&G.boss.y<z.y+z.h)damageMob(G.boss,10,0,0,0,z.src);
       }
       if(R()<0.5)G.fx.push({type:'ember',x:z.x+R()*z.w,y:z.y+R()*z.h,vx:R()*30-15,vy:-20-R()*40,t:0,life:0.8});
     }
@@ -576,19 +379,18 @@ function updateFx(dt){
     if(own&&own.dead)dm.t=Math.min(dm.t,0.5);
     if(own){var dx2=own.x+Math.cos(dm.ph)*54,dy2=own.y+Math.sin(dm.ph)*40-34;
       dm.x+=(dx2-dm.x)*Math.min(1,dt*5);dm.y+=(dy2-dm.y)*Math.min(1,dt*5);}
-    if(dm.cd<=0&&NET.mode!=='guest'){
+    if(dm.cd<=0){
       var tgt=null,bd2=1e9;
       for(i=0;i<G.mobs.length;i++){var md=G.mobs[i];var ddd=(md.x-dm.x)*(md.x-dm.x)+(md.y-dm.y)*(md.y-dm.y);if(ddd<bd2){bd2=ddd;tgt=md;}}
       if(G.boss){var db=(G.boss.x-dm.x)*(G.boss.x-dm.x)+(G.boss.y-dm.y)*(G.boss.y-dm.y);if(db<bd2){bd2=db;tgt=G.boss;}}
       if(tgt){var da=Math.atan2(tgt.y-dm.y,tgt.x-dm.x);
-        G.projs.push({id:++G.pkSeq,kind:'comic',x:dm.x,y:dm.y,vx:Math.cos(da)*430,vy:Math.sin(da)*430,dmg:12*dm.owner.dmgMult,life:1.4,rot:da});
+        G.projs.push({id:++G.pkSeq,kind:'comic',x:dm.x,y:dm.y,vx:Math.cos(da)*430,vy:Math.sin(da)*430,dmg:12*dm.owner.dmgMult,life:1.4,rot:da,src:dm.src});
         SFX.notif();}
       dm.cd=0.5;
     }
     if(dm.t<=0)G.demon=null;
   }
   for(i=0;i<COFFEES.length;i++){var cp=COFFEES[i];if(cp.charges<2){cp.t-=dt;if(cp.t<=0){cp.charges++;if(cp.charges<2)cp.t=90;}}}
-  if(NET.mode==='solo')NET.events.length=0;
   if(G.hsCd>0)G.hsCd-=dt;
   if(G.flavorT>0)G.flavorT-=dt;
   G.shake=Math.min(10,Math.max(0,G.shake-dt*45));
@@ -653,14 +455,13 @@ function updateWaves(dt){
       var nth=themeForSpecial(nextSp);
       G.nextTheme=nth?nth.name:themeNameFor(G.pendSeed);
       G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,kc:G.killsC};
-      broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats,sp:G.nextSpecial});
     }
   }
   if(G.winT>0){
     G.winT-=dt;
     if(G.winT<=0){
-      G.state='win';showVictory();broadcast({t:'stt',s:'win'});
-      if(NET.mode!=='guest'){CAREER.wins++;award('win');careerEndRun(NET.mode!=='solo');saveCareer();}
+      G.state='win';showVictory();
+      CAREER.wins++;award('win');careerEndRun();saveCareer();
     }
   }
 }
@@ -672,9 +473,8 @@ function update(dt){
   for(di=G.delays.length-1;di>=0;di--){
     if(G.delays[di].t<=0){var fn=G.delays[di].fn;G.delays.splice(di,1);try{fn();}catch(e){}}
   }
-  if(NET.mode==='guest'){guestUpdate(dt);return;}
   if(G.state!=='playing')return;
-  if(OV_OPEN==='bperk'&&NET.mode==='solo')return;
+  if(OV_OPEN==='bperk')return;
 
   FLOW.t-=dt;
   var fp=null;
@@ -692,13 +492,10 @@ function update(dt){
 function gameOver(){
   if(G.state==='dead')return;
   G.state='dead';SFX.die();
-  if(NET.mode!=='guest'){
-    CAREER.deaths++;
-    if(CAREER.deaths>=10)award('dead10');
-    careerEndRun(NET.mode!=='solo');
-  }
+  CAREER.deaths++;
+  if(CAREER.deaths>=10)award('dead10');
+  careerEndRun();
   showDeadStats();
-  broadcast({t:'stt',s:'dead',stats:{sprint:Math.max(0,G.wave-1),okr:G.okr,ki:G.killsI,kd:G.killsD,gr:G.grade}});
 }
 
 function regenLocation(seed){
@@ -714,7 +511,6 @@ function regenLocation(seed){
     p.x=lb.x+lb.w/2+(R()*120-60);p.y=lb.y+lb.h/2+(R()*120-60);
     p.kx=0;p.ky=0;p.inv=Math.max(p.inv,1.5);
   }
-  NET.events.push({k:'map',seed:seed,th:nth?nth.name:null});
   floatText(lb.x+lb.w/2,lb.y+lb.h/2-30,'переезд: «'+MAPTHEME.name+'»','#42e0ff',14);
   updateCamera(0.016,true);
 }
