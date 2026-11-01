@@ -86,6 +86,12 @@ function showDeadStats(st){
   document.getElementById('dHr').textContent=HRPHRASES[(Math.random()*HRPHRASES.length)|0];
   showOv('bdead');
 }
+function showVictory(){
+  var te=document.getElementById('winTitle'),tg=document.getElementById('winTag');
+  if(te)te.textContent='ПРОЕКТ ЗАВЕРШЁН';
+  if(tg)tg.textContent='Проект сдан. Первая правка от заказчика уже ждёт нового героя.';
+  showOv('bwin');
+}
 function togglePause(){
   if(G.state==='playing'){
     G.state='paused';showOv('bpause');

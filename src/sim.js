@@ -378,12 +378,12 @@ function updateBoss(dt){
           G.fx.push({type:'flash',x:b.x,y:b.y,r:80,t:0,life:0.25});
           G.fx.push({type:'ring',x:btp.x,y:btp.y,rad:20,radMax:120,t:0,life:0.5,red:true});
           b.x=btp.x;b.y=btp.y;b.kx=0;b.ky=0;
-          floatText(b.x,b.y-70,'АУДИТ ПЕРЕПЛАНИРОВАЛСЯ','#e5534b',13,'C');
+          floatText(b.x,b.y-70,b.kind==='release'?'ДЕМО ПЕРЕНЕСЕНО. СРОКИ — ПРЕДЛОЖЕНИЕ.':'АУДИТ ПЕРЕПЛАНИРОВАЛСЯ','#e5534b',13,'C');
           G.shake+=6;SFX.demon();
         }else{
           aoeFurn(b.x,b.y,110,999);
           G.shake+=8;SFX.slam();
-          floatText(b.x,b.y-70,'АУДИТ НЕ ЖДЁТ','#e5534b',13,'C');
+          floatText(b.x,b.y-70,b.kind==='release'?'ДЕМО САМО НЕ ПРИДЁТ':'АУДИТ НЕ ЖДЁТ','#e5534b',13,'C');
           for(var sm2=0;sm2<8;sm2++)G.fx.push({type:'paper',x:b.x,y:b.y,vx:R()*260-130,vy:R()*260-130,rot:R()*3,vr:R()*8-4,t:0,life:0.7});
         }
       }else if(bm>=60)b._stuckN=0;
@@ -432,7 +432,7 @@ function updateBoss(dt){
   b.atkCd-=dt;b.summonCd-=dt;b.tapeCd-=dt;
   if(b.hp<b.hpMax/2&&b.phase===1){
     b.phase=2;b.spd=95;
-    msg('Аудит получил предписание. Аудит ускорился.',3);
+    msg(b.kind==='release'?'Правки запрошены. Заказчик ускорился — впервые за проект.':'Аудит получил предписание. Аудит ускорился.',3);
   }
   if(b.atkCd<=0&&dist(b,p)<460){
     b.windup=1.0;b.wuT=0;b.tx=p.x;b.ty=p.y;
@@ -610,9 +610,10 @@ function updateWaves(dt){
     G.interT-=dt;
     if(G.interT<=0){
       G.waveState='calm';G.waveT=3.2;
+      var coming=G.nextSpecial?SPECIALS[G.nextSpecial]:null;
       regenLocation(G.pendSeed);
       G.fadeT=1.5;
-      msg('Новый офис. Обустраиваемся…',3);
+      msg(coming?('СЛЕДУЮЩИЙ СПРИНТ: '+coming.n+' — '+(coming.brief||'особый спринт')):'Новый офис. Обустраиваемся…',4);
     }
   }else{
 
@@ -647,16 +648,18 @@ function updateWaves(dt){
       if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
       G.waveState='cleared';G.interT=20;
       G.pendSeed=(R()*1e9)|0;
-      var nth=themeForSpecial(specialForWave(G.wave+1,G.pendSeed));
+      var nextSp=specialForWave(G.wave+1,G.pendSeed);
+      G.nextSpecial=nextSp?nextSp.id:null;
+      var nth=themeForSpecial(nextSp);
       G.nextTheme=nth?nth.name:themeNameFor(G.pendSeed);
       G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,kc:G.killsC};
-      broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats});
+      broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats,sp:G.nextSpecial});
     }
   }
   if(G.winT>0){
     G.winT-=dt;
     if(G.winT<=0){
-      G.state='win';showOv('bwin');broadcast({t:'stt',s:'win'});
+      G.state='win';showVictory();broadcast({t:'stt',s:'win'});
       if(NET.mode!=='guest'){CAREER.wins++;award('win');careerEndRun(NET.mode!=='solo');saveCareer();}
     }
   }

@@ -35,7 +35,7 @@ function hostStartGame(){
 }
 function resetWorld(){
   G.mobs.length=0;G.projs.length=0;G.fx.length=0;G.texts.length=0;G.pickups.length=0;G.zones.length=0;
-  G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;
+  G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;G.nextSpecial=null;
   G.okr=0;G.grade=1;G.killsI=0;G.killsD=0;G.bossN=0;G.winShown=false;G.winT=0;
   G.level=1;G.xp=0;G.xpN=G.training?30:40;G.perkQueue=0;
   G.shake=0;G.hitStop=0;G.msg='';G.msgT=0;G.capT=10;G.caption='';
@@ -258,7 +258,7 @@ function guestOnMsg(d){
     G.waveState='calm';G.interT=0;G.fadeT=0.9;
   }
   if(d.t==='inter'){
-    G.waveState='cleared';G.interT=d.d;G.nextTheme=d.th;G.interStats=d.st;
+    G.waveState='cleared';G.interT=d.d;G.nextTheme=d.th;G.nextSpecial=d.sp||null;G.interStats=d.st;
   }
   if(d.t==='lobby'){
     LOBBY=d.list.map(function(l,i){return{id:l.me?guestPid:'p'+i,cls:l.cls};});
@@ -270,6 +270,7 @@ function guestOnMsg(d){
   if(d.t==='stt'){
     if(d.s==='paused')VIEW.paused=true;
     if(d.s==='playing'&&G.state==='paused'){G.state='playing';showOv(null);VIEW.paused=false;}
+    if(d.s==='win'&&G.state!=='win'){G.state='win';showVictory();document.getElementById('bcontinue').classList.add('hidden');}
   }
   if(d.t==='over')showDeadStats(d.stats);
 }

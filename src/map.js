@@ -1144,7 +1144,9 @@ function themeForSpecial(sp){
   return (sp&&sp.theme)?THEMEBYNAME[sp.theme]:null;
 }
 function specialForWave(w,seed){
-  return (w%5===0)?pickSpecial(w,seed):null;
+  if(w===G.campaign)return SPECIALS.release||null;
+  if(w===3||w===5||w===8)return pickSpecial(w,seed);
+  return null;
 }
 
 var FOG={explored:new Uint8Array(GW*GH),vis:new Uint8Array(GW*GH),t:0,dirty:true};

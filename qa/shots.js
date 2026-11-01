@@ -181,18 +181,27 @@ async function auditLayout(page, scene, need) {
 
     await page.evaluate(() => {
       G.mobs.length = 0; G.spawnQ.length = 0; G.boss = null;
-      G.interStats = { w: 2, ki: 9, kd: 3, okr: 4, co: 120 };
-      G.nextTheme = 'Ретро-архив';
     });
-    await new Promise(r => setTimeout(r, 900));
+    await new Promise(r => setTimeout(r, 250));
+    await page.evaluate(() => {
+      G.waveState = 'cleared'; G.interT = 20;
+      G.interStats = { w: 2, ki: 9, kd: 3, okr: 4, kc: 2 };
+      G.nextTheme = 'Ретро-архив';
+      G.nextSpecial = 'review';
+    });
+    await new Promise(r => setTimeout(r, 650));
     await page.screenshot({ path: OUT + '/' + vp.name + '-interstitial.png' });
     await auditLayout(page, 'interstitial', 'mm');
     const btnRect = await page.evaluate(() => window.__nextBtnRect ? 1 : 0);
     if (!btnRect) fail('хит-зона кнопки следующего спринта не создана');
     else ok('кнопка следующего спринта отрисована');
-    const interRect = await page.evaluate(() => window.__interRect);
+    const interRect = await page.evaluate(() => window.__interRect ? { h: window.__interRect.h } : null);
     if (!interRect) fail('итоговая статистика спринта не отрисована (__interRect)');
-    else ok('итоги спринта на месте (' + Math.round(interRect.w) + 'x' + Math.round(interRect.h) + ')');
+    else {
+      const needH = vp.mobile ? 80 : 230;
+      if (!(interRect.h >= needH)) fail('карточка интермиссии без брифинга особого спринта: h=' + Math.round(interRect.h));
+      else ok('итоги и брифинг особого спринта на месте (' + Math.round(interRect.h) + 'px)');
+    }
 
     await page.evaluate(() => { G.waveState = 'calm'; G.waveT = 9; togglePause(); });
     await new Promise(r => setTimeout(r, 400));

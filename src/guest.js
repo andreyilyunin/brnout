@@ -36,7 +36,8 @@ function guestApplySnapshot(s){
     if(!k)VIEW.mobs.splice(i,1);
   }
   if(s.b){
-    if(!VIEW.boss)VIEW.boss={x:s.b.x,y:s.b.y,r:44,face:0,phase:1,step:0};
+    if(!VIEW.boss)VIEW.boss={x:s.b.x,y:s.b.y,r:44,face:0,phase:1,step:0,kind:s.b.k||'audit'};
+    else VIEW.boss.kind=s.b.k||'audit';
     VIEW.boss.tgt=s.b;
   }else VIEW.boss=null;
   var newPr=[];
@@ -68,7 +69,7 @@ function guestApplySnapshot(s){
   }
   for(i=0;i<s.ev.length;i++)guestEvent(s.ev[i]);
   if(s.st==='dead'&&G.state!=='dead'){G.state='dead';showDeadStats(s.stats);}
-  if(s.st==='win'&&G.state!=='win'){G.state='win';showOv('bwin');document.getElementById('bcontinue').classList.add('hidden');}
+  if(s.st==='win'&&G.state!=='win'){G.state='win';showVictory();document.getElementById('bcontinue').classList.add('hidden');}
   if(s.st==='playing'&&(G.state==='win')){G.state='playing';showOv(null);document.getElementById('bcontinue').classList.remove('hidden');}
 }
 function guestEvent(e){
@@ -215,7 +216,7 @@ function sendSnapshot(){
   var m=G.mobs.map(function(mo){return[mo.id,MOBTYPE_IDX[mo.type]===undefined?1:MOBTYPE_IDX[mo.type],Math.round(mo.x),Math.round(mo.y),Math.round(clamp(mo.hp/mo.hpMax,0,1)*100),mo.stun>0?1:0,mo.tint||0,Math.round(mo.face*100)/100,
     Math.round((mo.ch||0)*10)/10,Math.round((mo.cf||0)*10)/10,mo.mk>0?1:0,mo.chSrc===undefined?-1:mo.chSrc,mo.elite?1:0,Math.round((mo.wu||0)*10)/10];});
   var b=null;
-  if(G.boss)b={x:Math.round(G.boss.x),y:Math.round(G.boss.y),hp:Math.round(clamp(G.boss.hp/G.boss.hpMax,0,1)*100),ph:G.boss.phase,f:Math.round(G.boss.face*100)/100,
+  if(G.boss)b={x:Math.round(G.boss.x),y:Math.round(G.boss.y),hp:Math.round(clamp(G.boss.hp/G.boss.hpMax,0,1)*100),ph:G.boss.phase,f:Math.round(G.boss.face*100)/100,k:G.boss.kind||'audit',
     wu:G.boss.windup>0?1:0,wt:Math.round(G.boss.wuT*100)/100,tx:Math.round(G.boss.tx),ty:Math.round(G.boss.ty)};
   var KINDIDX={ticket:0,tw:1,tg:2,ig:3,plane:1,key:4,comic:5};
   var pr=G.projs.map(function(q){return[q.id,KINDIDX[q.kind]===undefined?0:KINDIDX[q.kind],Math.round(q.x),Math.round(q.y),Math.round(q.vx),Math.round(q.vy)];});

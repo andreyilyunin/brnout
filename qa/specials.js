@@ -7,6 +7,12 @@ const CHROME = process.env.QA_CHROME || (fs.existsSync('/usr/sbin/chromium') ? '
 const BASE = process.env.QA_BASE || 'http://127.0.0.1:8099';
 const OUT = __dirname + '/shots';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const CASES = [
+  { type: 'audit', wave: 5 },
+  { type: 'review', wave: 5 },
+  { type: 'pub', wave: 5 },
+  { type: 'release', wave: 10, seed: 42 }
+];
 
 let failures = 0;
 const fail = msg => { console.log('  ✗ ' + msg); failures++; };
@@ -16,8 +22,8 @@ const ok = msg => console.log('  ✓ ' + msg);
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await puppeteer.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 
-  for (const type of ['audit', 'review', 'pub']) {
-    console.log('\n[' + type + ']');
+  for (const c of CASES) {
+    console.log('\n[' + c.type + ' · спринт ' + c.wave + ']');
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
     const pageErrors = [];
@@ -25,21 +31,21 @@ const ok = msg => console.log('  ✓ ' + msg);
     await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await sleep(1000);
 
-    const seed = await page.evaluate(want => {
+    const seed = c.seed || await page.evaluate((want, wave) => {
       for (let s = 1; s < 500; s++) {
         buildMap(s);
-        if (pickSpecial(5).id === want) return s;
+        if (pickSpecial(wave).id === want) return s;
       }
       return 0;
-    }, type);
-    if (!seed) fail('нет сида для особого спринта ' + type);
+    }, c.type, c.wave);
+    if (!seed) fail('нет сида для особого спринта ' + c.type);
     else ok('сид выбора: ' + seed);
 
-    await page.evaluate(s => {
+    await page.evaluate((s, wave) => {
       CAREER.tutorialDone = 1;
       startLocal();
       G.training = false;
-      G.wave = 4;
+      G.wave = wave - 1;
       G.waveState = 'active';
       regenLocation(s);
       G.waveState = 'active';
@@ -51,7 +57,7 @@ const ok = msg => console.log('  ✓ ' + msg);
       startWave();
       while (G.spawnQ.length) spawnMob(G.spawnQ.shift());
       for (const p of G.players) { p.inv = 999; p.burnout = 5; p.dead = false; }
-    }, seed);
+    }, seed, c.wave);
     await page.evaluate(() => {
       const hint = document.getElementById('deskHint');
       if (hint) hint.classList.add('hidden');
@@ -61,17 +67,19 @@ const ok = msg => console.log('  ✓ ' + msg);
         p.x = target.x + 130;
         p.y = target.y;
         p.inv = 999;
+        if (G.boss) G.fx.push({ type: 'stamp', x: target.x, y: target.y, rad: 180, t: 0, life: 5 });
         computeVis(p.x, p.y);
         FOG.dirty = true;
         updateCamera(0.016, true);
       }
     });
     await sleep(250);
-    await page.screenshot({ path: OUT + '/special-' + type + '.png' });
+    await page.screenshot({ path: OUT + '/special-' + c.type + '.png' });
 
     const info = await page.evaluate(() => ({
       special: G.special,
       boss: !!G.boss,
+      bossKind: G.boss ? G.boss.kind : null,
       bossHp: G.boss ? G.boss.hp : 0,
       mobs: G.mobs.length,
       roles: G.mobs.reduce((a, m) => { a[m.type] = (a[m.type] || 0) + 1; return a; }, {}),
@@ -80,20 +88,21 @@ const ok = msg => console.log('  ✓ ' + msg);
       hud: window.__hudInfo,
       msg: G.msg
     }));
-    if (info.special !== type) fail('спринт=' + info.special + ', ожидался ' + type);
+    if (info.special !== c.type) fail('спринт=' + info.special + ', ожидался ' + c.type);
     else ok('тип спринта в игре: ' + info.special);
-    if (!info.hud || info.hud.wave !== 5) fail('HUD не на 5-м спринте: ' + JSON.stringify(info.hud));
-    else ok('HUD: спринт 5, целей ' + info.hud.remain);
+    if (!info.hud || info.hud.wave !== c.wave) fail('HUD не на спринте ' + c.wave + ': ' + JSON.stringify(info.hud));
+    else ok('HUD: спринт ' + c.wave + ', целей ' + info.hud.remain);
 
-    if (type === 'audit') {
-      if (!info.boss || info.bossHp <= 0) fail('аудит без живого босса');
-      else ok('аудит: босс ' + Math.round(info.bossHp) + ' HP плюс ' + info.mobs + ' обычных целей');
+    if (c.type === 'audit' || c.type === 'release') {
+      if (!info.boss || info.bossHp <= 0) fail(c.type + ' без живого босса');
+      else ok(c.type + ': босс ' + (info.bossKind || 'audit') + ', ' + Math.round(info.bossHp) + ' HP плюс ' + info.mobs + ' обычных целей');
+      if (c.type === 'release' && info.bossKind !== 'release') fail('финальный босс не помечен как release');
     } else {
-      if (info.boss) fail(type + ' не должен спавнить босса');
-      else ok(type + ': босса нет, роли ' + JSON.stringify(info.roles));
+      if (info.boss) fail(c.type + ' не должен спавнить босса');
+      else ok(c.type + ': босса нет, роли ' + JSON.stringify(info.roles));
     }
-    if (type === 'pub' && !info.pubTheme) fail('паб-спринт не переключил тему паба: ' + info.theme);
-    if (type === 'pub' && info.pubTheme) ok('локация: «' + info.theme + '»');
+    if (c.type === 'pub' && !info.pubTheme) fail('паб-спринт не переключил тему паба: ' + info.theme);
+    if (c.type === 'pub' && info.pubTheme) ok('локация: «' + info.theme + '»');
 
     await page.evaluate(() => {
       for (const m of G.mobs.slice()) damageMob(m, 1e9);
@@ -104,8 +113,14 @@ const ok = msg => console.log('  ✓ ' + msg);
     });
     await sleep(300);
     const cleared = await page.evaluate(() => ({ state: G.waveState, winT: G.winT, stats: G.interStats }));
-    if (cleared.state !== 'cleared') fail(type + ' не завершается: ' + JSON.stringify(cleared));
-    else ok(type + ' завершён, итоги: ' + JSON.stringify(cleared.stats));
+    if (cleared.state !== 'cleared') fail(c.type + ' не завершается: ' + JSON.stringify(cleared));
+    else ok(c.type + ' завершён, итоги: ' + JSON.stringify(cleared.stats));
+
+    await page.evaluate(() => { G.winShown = true; G.winT = 0.01; });
+    await sleep(200);
+    const win = await page.evaluate(() => ({ state: G.state, title: document.getElementById('winTitle').textContent, tag: document.getElementById('winTag').textContent }));
+    if (win.state !== 'win' || win.title !== 'ПРОЕКТ ЗАВЕРШЁН') fail('финальный экран: ' + JSON.stringify(win));
+    else ok('финальный экран: «' + win.title + '» / ' + win.tag);
 
     if (pageErrors.length) fail('JS-ошибки: ' + pageErrors.slice(0, 3).join(' | '));
     else ok('JS-ошибок нет');
@@ -113,7 +128,7 @@ const ok = msg => console.log('  ✓ ' + msg);
   }
 
   await browser.close();
-  console.log('\nскриншотов: 3 → ' + OUT);
+  console.log('\nскриншотов: 4 → ' + OUT);
   if (failures) { console.log('SPECIALS QA: ✗ ' + failures + ' проблем'); process.exit(1); }
   console.log('SPECIALS QA: ✓ всё чисто');
 })().catch(e => { console.error('QA упал:', e); process.exit(1); });

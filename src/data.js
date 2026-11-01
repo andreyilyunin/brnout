@@ -30,7 +30,7 @@ var NET={mode:'solo',peer:null,conns:[],hostConn:null,code:'',myId:'me',snapT:0,
 var PCOLORS=['#e6edf3','#d29922','#7aa2c8','#3fb950'];
 var G={state:'menu',t:0,players:[],mobs:[],projs:[],fx:[],texts:[],pickups:[],zones:[],
   boss:null,wave:0,waveState:'calm',waveT:1.5,rushT:0,spawnQ:[],spawnT:0,okr:0,grade:1,
-  interT:0,fadeT:0,pendSeed:0,nextTheme:'',interStats:null,
+  interT:0,fadeT:0,pendSeed:0,nextTheme:'',nextSpecial:null,interStats:null,
   level:1,xp:0,xpN:40,plan:0,sepT:0,demon:null,ultAt:4,campaign:10,perkQueue:0,
   killsI:0,killsD:0,bossN:0,winShown:false,winT:0,shake:0,hitStop:0,msg:'',msgT:0,caption:'',capT:8,delays:[],
   combo:0,comboT:0,hsCd:0,flavorT:0,
@@ -177,8 +177,11 @@ var MOBNAMES={
   waiter:['официант-стажёр','метрдотель в погоне','официант с двумя подносами'],
   patron:['посетитель «ещё по одной»','патрон барной стойки','тот самый заказчик']
 };
+function bossName(b){
+  return (b&&b.kind==='release')?'ЗАКАЗЧИК':'АУДИТ';
+}
 function mobName(m){
-  if(m.type==='boss')return'АУДИТ';
+  if(m.type==='boss')return bossName(m);
   var list=MOBNAMES[m.type]||MOBNAMES.intern;
   return list[(m.tint||0)%list.length];
 }

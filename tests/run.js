@@ -462,27 +462,55 @@ const seedForSpecial = (w, want) => {
 const seedAudit5 = seedForSpecial(5, 'audit');
 const seedReview5 = seedForSpecial(5, 'review');
 const seedPub5 = seedForSpecial(5, 'pub');
-test('реестр: audit, review и pub зарегистрированы, все достижимы на 5-й волне', () => {
-  ok(seedAudit5 > 0 && seedReview5 > 0 && seedPub5 > 0, 'все особые спринты достижимы на 5-й волне');
-  eq(SPECIAL_ORDER.length, 3);
-  ok(SPECIAL_ORDER.indexOf('audit') >= 0 && SPECIAL_ORDER.indexOf('review') >= 0 && SPECIAL_ORDER.indexOf('pub') >= 0);
-  ok(SPECIALS.audit.fill && SPECIALS.review.fill && SPECIALS.review.announce, 'контракт def: fill+announce');
-  ok(SPECIALS.pub.fill && SPECIALS.pub.announce && SPECIALS.pub.theme, 'pub: fill+announce+theme');
+test('реестр: случайные средние спринты и отдельный финальный релиз', () => {
+  ok(seedAudit5 > 0 && seedReview5 > 0 && seedPub5 > 0, 'audit/review/pub достижимы в середине кампании');
+  eq(SPECIAL_ORDER.length, 4);
+  ok(SPECIALS.release && SPECIALS.release.final === true, 'release не участвует в случайном пуле');
+  ok(SPECIALS.audit.fill && SPECIALS.review.fill && SPECIALS.pub.fill && SPECIALS.release.fill, 'все спринты имеют состав');
 });
-test('выбор особого спринта: детерминирован по сиду карты (хост и гость сходятся)', () => {
+test('средние спринты 3/5/8 случайны и детерминированы; финал 10 всегда release', () => {
   for (const s of [7, 42, 1337]) {
     buildMap(s);
-    const a5 = pickSpecial(5).id, a10 = pickSpecial(10).id, a15 = pickSpecial(15).id;
+    const a3 = pickSpecial(3).id, a5 = pickSpecial(5).id, a8 = pickSpecial(8).id;
     buildMap(s);
+    eq(pickSpecial(3).id, a3);
     eq(pickSpecial(5).id, a5);
-    eq(pickSpecial(10).id, a10);
-    eq(pickSpecial(15).id, a15);
+    eq(pickSpecial(8).id, a8);
+    eq(specialForWave(10, s).id, 'release', 'финал не зависит от сида');
+    eq(specialForWave(4, s), null);
+    eq(specialForWave(6, s), null);
   }
-  ok(seedPub5 > 0, 'сид с пабом на 5-й волне найден');
-  buildMap(seedPub5);
-  eq(pickSpecial(5).id, 'pub');
-  buildMap(seedPub5);
-  eq(pickSpecial(5).id, 'pub', 'повторный buildMap тот же выбор');
+  ok(['audit', 'review', 'pub'].indexOf(pickSpecial(10).id) >= 0, 'случайный пул не содержит release');
+});
+test('кампания: 10 спринтов и единый финальный заголовок проекта', () => {
+  eq(G.campaign, 10, 'кампания рассчитана на 10 спринтов');
+  const ih = fs2.readFileSync('index.html', 'utf8');
+  const dj = fs2.readFileSync('src/data.js', 'utf8');
+  const uj = fs2.readFileSync('src/ui.js', 'utf8');
+  ok(ih.includes('пережить 10 спринтов'), 'цель в меню обновлена');
+  ok(dj.includes('пройти все 10 спринтов'), 'достижение обновлено');
+  ok(uj.includes("te.textContent='ПРОЕКТ ЗАВЕРШЁН'"), 'финальный заголовок единый');
+  ok(uj.includes('Первая правка от заказчика'), 'финальный текст обновлён');
+});
+test('перед особым спринтом есть явный брифинг следующего типа', () => {
+  global.updateCamera = () => {};
+  buildMap(seedAudit5);
+  G.training = false; G.wave = 4; G.waveState = 'active';
+  G.players = [newPlayer('t', 'mgr')];
+  G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.pendSeed = seedReview5; G.campaign = 10; G.winShown = false; G.winT = 0;
+  const oldR = R;
+  R = () => seedReview5 / 1e9;
+  updateWaves(0.016);
+  R = oldR;
+  eq(G.nextSpecial, 'review', 'интермиссия знает тип следующего спринта');
+  ok(SPECIALS.review.brief && SPECIALS.review.brief.length > 10, 'у аттестации есть описание');
+  updateWaves(20);
+  ok(G.msg.indexOf('СЛЕДУЮЩИЙ СПРИНТ') >= 0 && G.msg.indexOf('АТТЕСТАЦИЯ') >= 0, 'перед стартом показывается брифинг');
+  const sm = fs2.readFileSync('src/sim.js', 'utf8');
+  const nj = fs2.readFileSync('src/net.js', 'utf8');
+  ok(sm.includes('sp:G.nextSpecial'), 'хост отправляет nextSpecial гостю');
+  ok(nj.includes('G.nextSpecial=d.sp||null'), 'гость применяет nextSpecial');
 });
 test('5-й спринт: аудит — настоящий босс плюс обычная очередь', () => {
   buildMap(seedAudit5);
@@ -495,7 +523,7 @@ test('5-й спринт: аудит — настоящий босс плюс о�
   ok(G.spawnQ.length > 0 && G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
   eq(G.msg.indexOf('АУДИТ') >= 0, true);
 });
-test('5-й спринт: аттестация — три роли коллег в очереди, босса нет', () => {
+test('5-й спринт: аттестация — расширенный состав коллег, босса нет', () => {
   buildMap(seedReview5);
   G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
   G.players = [newPlayer('t', 'mgr')];
@@ -505,19 +533,35 @@ test('5-й спринт: аттестация — три роли коллег �
   eq(G.boss, null);
   const counts = { hr: 0, rival: 0, lead: 0 };
   for (const t of G.spawnQ) counts[t]++;
-  eq(G.spawnQ.length, 7);
-  eq(counts.hr, 3); eq(counts.rival, 3); eq(counts.lead, 1);
+  eq(G.spawnQ.length, 14, 'аттестация должна быть заметно длиннее');
+  eq(counts.hr, 5); eq(counts.rival, 7); eq(counts.lead, 2);
   eq(G.msg.indexOf('АТТЕСТАЦИЯ') >= 0, true);
+});
+test('финальный спринт 10 — всегда закрытие проекта у владельца продукта', () => {
+  for (const s of [1, 7, 42, seedAudit5]) {
+    buildMap(s);
+    eq(specialForWave(10, s).id, 'release', 'финал не зависит от сида ' + s);
+  }
+  buildMap(42);
+  G.training = false; G.campaign = 10; G.wave = 9; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 10);
+  eq(G.special, 'release');
+  ok(G.boss && G.boss.kind === 'release', 'финальный босс — заказчик');
+  eq(bossName(G.boss), 'ЗАКАЗЧИК');
+  eq(G.spawnQ.length, 5, 'к боссу добавлена горящая очередь');
+  ok(G.msg.indexOf('ЗАКРЫТИЕ ПРОЕКТА') >= 0);
 });
 test('обычные волны не тронуты: состояние сброшено, только стажёры и дедлайны', () => {
   buildMap(seedReview5);
-  G.training = false; G.wave = 2; G.spawnQ.length = 0; G.boss = null; G.special = 'review';
+  G.training = false; G.wave = 1; G.spawnQ.length = 0; G.boss = null; G.special = 'review';
   G.players = [newPlayer('t', 'mgr')];
   startWave();
-  eq(G.wave, 3);
+  eq(G.wave, 2);
   eq(G.special, null, 'special сброшен на обычной волне');
   eq(G.boss, null);
-  eq(G.spawnQ.length, 26); // w3: ni=20, nd=6 — прежняя формула
+  eq(G.spawnQ.length, 18); // w2: ni=15, nd=3
   ok(G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
 });
 test('аттестация: спавн коллег — различимые роли, завершение волны и победа', () => {
@@ -529,7 +573,7 @@ test('аттестация: спавн коллег — различимые р�
   eq(G.special, 'review');
   G.mobs.length = 0;
   for (const t of G.spawnQ.slice()) spawnMob(t);
-  eq(G.mobs.length, 7);
+  eq(G.mobs.length, 14);
   for (const m of G.mobs) {
     ok(m.hp > 0 && m.hpMax === m.hp, m.type + ' hp');
     eq(m.r, MOBRAD[m.type]);
@@ -543,13 +587,14 @@ test('аттестация: спавн коллег — различимые р�
   const kc0 = G.killsC, okr0 = G.okr;
   for (const m of G.mobs.slice()) { m.dead = true; killMob(m); }
   G.mobs = G.mobs.filter(m => !m.dead);
-  eq(G.killsC, kc0 + 7);
+  eq(G.killsC, kc0 + 14);
   ok(G.okr > okr0, 'коллеги дают OKR');
   G.spawnQ.length = 0; G.waveState = 'active'; G.campaign = 5; G.winShown = false; G.winT = 0;
   updateWaves(0.016);
   eq(G.waveState, 'cleared');
   ok(G.winT > 0, 'финальная волна без босса завершает забег');
-  eq(G.interStats.kc, kc0 + 7);
+  eq(G.interStats.kc, kc0 + 14);
+  G.campaign = 10;
 });
 test('паб: спринт 5 — бармен/официант/посетитель в очереди, босса нет, анонс пятницы', () => {
   buildMap(seedPub5);
@@ -634,6 +679,7 @@ test('паб: бой, награды и завершение кампании', 
   updateWaves(0.016);
   eq(G.waveState, 'cleared');
   ok(G.winT > 0, 'финальная паб-волна завершает забег');
+  G.campaign = 10;
 });
 test('кооп: типы коллег и особое состояние едут в снапшотах', () => {
   const gj = fs2.readFileSync('src/guest.js', 'utf8');
@@ -642,6 +688,8 @@ test('кооп: типы коллег и особое состояние еду�
   ok(gj.indexOf('G.special=s.sp||null') > 0, 'гость применяет special из снапшота');
   ok(gj.indexOf('sp:G.special||null') > 0, 'хост отправляет special');
   ok(gj.indexOf('wu:sm[13]||0') > 0, 'гость получает замах (wu) для телеграфа');
+  ok(gj.indexOf('k:G.boss.kind||\'audit\'') > 0, 'хост отправляет тип босса');
+  ok(gj.indexOf('kind:s.b.k||\'audit\'') > 0, 'гость применяет тип босса');
   buildMap(555);
   guestApplySnapshot({ p: [], m: [[1, 2, 100, 100, 80, 0, 0, 0, 0, 0, 0, -1, 0, 0], [2, 4, 200, 200, 50, 0, 0, 0, 0, 0, 0, -1, 0, 3]], b: null, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 5, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'review', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
   eq(VIEW.mobs.length, 2);
@@ -649,6 +697,9 @@ test('кооп: типы коллег и особое состояние еду�
   eq(VIEW.mobs[1].type, 'lead');
   eq(VIEW.mobs[1].tgt.wu, 3);
   eq(G.special, 'review');
+  guestApplySnapshot({ p: [], m: [], b: { x: 100, y: 100, hp: 80, ph: 1, f: 0, k: 'release', wu: 0, wt: 0, tx: 0, ty: 0 }, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 10, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'release', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.boss.kind, 'release', 'гость видит финального владельца продукта');
+  eq(G.special, 'release');
 });
 test('кооп: паб-мобы и паб-тема едут в снапшотах (гость строит ту же тему)', () => {
   const gj = fs2.readFileSync('src/guest.js', 'utf8');

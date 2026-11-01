@@ -53,17 +53,20 @@ function specialRoll(w,seed){
   return s/4294967296;
 }
 function pickSpecial(w,seed){
-  if(!SPECIAL_ORDER.length)return null;
-  return SPECIALS[SPECIAL_ORDER[(specialRoll(w,seed)*SPECIAL_ORDER.length)|0]]||null;
+  var pool=[];
+  for(var i=0;i<SPECIAL_ORDER.length;i++)if(!SPECIALS[SPECIAL_ORDER[i]].final)pool.push(SPECIAL_ORDER[i]);
+  if(!pool.length)return null;
+  return SPECIALS[pool[(specialRoll(w,seed)*pool.length)|0]]||null;
 }
 registerSpecial('audit',{
   n:'АУДИТ',
   hud:'АУДИТ ИДЁТ',
   hudCol:'#e5534b',
+  brief:'босс плюс горящие задачи',
   announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ';},
   fill:function(w,c){
     var ni=Math.min(c.ni,5),nd=Math.min(c.nd,2);
-    spawnBoss();
+    spawnBoss('audit');
     var q=[];
     for(var i=0;i<ni;i++)q.push('intern');
     for(i=0;i<nd;i++)q.push('deadline');
@@ -71,7 +74,7 @@ registerSpecial('audit',{
   }
 });
 function reviewRoster(w){
-  var q=[],nHR=2+((w/5)|0),nRival=2+((w/4)|0),nLead=1+((w/10)|0);
+  var q=[],tier=(w/5)|0,nHR=4+tier,nRival=6+tier,nLead=2+((tier/3)|0);
   for(var i=0;i<nHR;i++)q.push('hr');
   for(i=0;i<nRival;i++)q.push('rival');
   for(i=0;i<nLead;i++)q.push('lead');
@@ -81,7 +84,8 @@ registerSpecial('review',{
   n:'АТТЕСТАЦИЯ',
   hud:'АТТЕСТАЦИЯ ИДЁТ',
   hudCol:'#b18ae8',
-  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АТТЕСТАЦИЯ: PERFORMANCE REVIEW КОМАНДЫ';},
+  brief:'длительная аттестация команды',
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АТТЕСТАЦИЯ КОМАНДЫ';},
   fill:function(w){return reviewRoster(w);}
 });
 function pubRoster(w){
@@ -97,9 +101,23 @@ registerSpecial('pub',{
   n:'ПЯТНИЦА',
   hud:'ПЯТНИЦА: КОРПОРАТИВ В ПАБЕ',
   hudCol:'#8bd17c',
+  brief:'бар открыт, персонал и посетители бунтуют',
   theme:PUBTHEME.name,
   announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · ПЯТНИЦА: КОРПОРАТИВ БЕЗ ЛИМИТА. БАР ОТКРЫТ';},
   fill:function(w){return pubRoster(w);}
+});
+// Финальный спринт кампании: не участвует в случайном пуле и всегда закрывает проект.
+registerSpecial('release',{
+  n:'ЗАКРЫТИЕ ПРОЕКТА',
+  hud:'ЗАКАЗЧИК ПРОСИТ ПРАВКУ',
+  hudCol:'#42e0ff',
+  brief:'финал: заказчик снова придумал правку',
+  final:true,
+  announce:function(w){return 'ФИНАЛЬНЫЙ СПРИНТ · ЗАКРЫТИЕ ПРОЕКТА: ЗАКАЗЧИК ЖДЁТ ДЕМО И НОВУЮ ПРАВКУ';},
+  fill:function(){
+    spawnBoss('release');
+    return ['intern','intern','intern','deadline','deadline'];
+  }
 });
 function startWave(){
   try{
@@ -109,22 +127,14 @@ function startWave(){
   G.spawnQ.length=0;
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
   var ni=(w===1)?(G.training?5:8):Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
-  var specialWave=(w%5===0);
+  var special=specialForWave(w);
+  var specialWave=!!special;
   var horde=(w%4===0)&&!specialWave&&w>3;
-  G.special=null;
-  var special=null;
-  if(specialWave){
-    special=pickSpecial(w);
-    if(special){
-      G.special=special.id;
-      var sq=special.fill(w,{ni:ni,nd:nd});
-      for(var qi=0;qi<sq.length;qi++)G.spawnQ.push(sq[qi]);
-    }else{
-      G.special='audit';
-      ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();
-      for(var bi=0;bi<ni;bi++)G.spawnQ.push('intern');
-      for(bi=0;bi<nd;bi++)G.spawnQ.push('deadline');
-    }
+  G.special=null;G.nextSpecial=null;
+  if(special){
+    G.special=special.id;
+    var sq=special.fill(w,{ni:ni,nd:nd});
+    for(var qi=0;qi<sq.length;qi++)G.spawnQ.push(sq[qi]);
   }
   if(!special){
     if(horde)ni=Math.round(ni*1.7);
@@ -242,7 +252,7 @@ function spawnMob(type){
     SFX.grade();
   }
 }
-function spawnBoss(){
+function spawnBoss(kind){
   var arena=bossArena();
   var cx=arena.x+arena.w/2,cy=arena.y+arena.h/2,p=null;
 
@@ -271,7 +281,7 @@ function spawnBoss(){
   G.bossN++;
   bossStinger();
   var bh=680*(1+0.4*(G.bossN-1))*waveScale(G.wave)*(1+0.35*Math.max(0,G.players.length-1));
-  G.boss={type:'boss',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
+  G.boss={type:'boss',kind:kind||'audit',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
     atkCd:2.5,summonCd:8,tapeCd:12,windup:0,wuT:0,tx:0,ty:0,face:0,cd:0,step:0,chgCd:5};
 }
 function addXp(n,x,y){
@@ -446,19 +456,19 @@ function killMob(m){
   else if(m.type==='hr'||m.type==='rival'||m.type==='lead'||m.type==='bartender'||m.type==='waiter'||m.type==='patron'){G.killsC++;addOkr(m.type==='lead'||m.type==='patron'?3:2);}
   else if(m.type==='boss'){
     SFX.deathCry(0.5);
-    CAREER.totalBoss++;award('boss1');
+    if(m.kind!=='release'){CAREER.totalBoss++;award('boss1');}
     spawnDebris({kind:'soul',x:m.x,y:m.y-10,pitch:0.55,elite:1,mood:R()<0.5?'agony':'relief',t:0,life:2.4});
     setTimeout(function(){if(R()<0.5)SFX.soulAgony(0.55);else SFX.soulSigh(0.55);},150);
   }
   if(m.type!=='boss')dramaOfDeath(m.x,m.y,m.type,m.elite);
   else if(m.type==='boss'){
-    G.okr+=10;msg('Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
+    G.okr+=10;msg(m.kind==='release'?'Проект сдан. Заказчик уже придумал первую правку.':'Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
     for(var i=0;i<3;i++)dropPickup(m.x+R()*60-30,m.y+R()*60-30,'coffee');
     dropPickup(m.x,m.y,'espresso');
     dropPickup(m.x+20,m.y,'espresso');
     addXp(150,m.x,m.y);
     if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
-    else if(G.wave<G.campaign)msg('Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
+    else if(G.wave<G.campaign)msg(m.kind==='release'?'Демо прошло. Релиз откладывается до лучших времён.':'Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
     G.boss=null;return;
   }
   if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13);
