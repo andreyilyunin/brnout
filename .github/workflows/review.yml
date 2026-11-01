@@ -39,13 +39,17 @@ jobs:
           base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.event.pull_request.head.sha }}"
           {
-            echo 'stats<<EOF'
+            echo 'stats<<EOF_DIFFSTATS'
             git diff --stat "$base" "$head" | tail -5
-            echo 'EOF'
+            echo 'EOF_DIFFSTATS'
           } >> "$GITHUB_OUTPUT"
           big=$(git diff "$base" "$head" --numstat | awk '{if ($1+$2 > 400) print $3}' | head -5)
           if [ -n "$big" ]; then
-            echo "bigfiles=$big" >> "$GITHUB_OUTPUT"
+            {
+              echo 'bigfiles<<EOF_BIGFILES'
+              printf '%s\n' "$big"
+              echo 'EOF_BIGFILES'
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: отчёт ревью-бота
