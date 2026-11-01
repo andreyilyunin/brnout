@@ -31,19 +31,89 @@ function flavorOK(){
 }
 var WSCALE=[1,1,1.15,1.32,1.5,1.7,1.95,2.3,2.7,3.1,3.5];
 function waveScale(w){return WSCALE[Math.max(1,Math.min(10,w))];}
+
+var SPECIALS={},SPECIAL_ORDER=[];
+// Регистрация особого спринта (5,10,15…): def={n,hud,hudCol,announce(w),fill(w,ctx)}.
+// fill возвращает очередь спавна (строки типов мобов); босс, если нужен, ставится сам.
+// Не добавляй сюда мобов: новый тип — в spawnMob/combat.js, MOBNAMES+MOBTYPES/MOBRAD/data.js,
+// поведение в updateMobs/sim.js, отрисовка в drawColleague/sprites.js.
+function registerSpecial(id,def){
+  def.id=id;
+  SPECIALS[id]=def;
+  SPECIAL_ORDER.push(id);
+  return def;
+}
+function specialActive(){
+  var sp=G.special?SPECIALS[G.special]:null;
+  return (sp&&!G.boss)?sp:null;
+}
+function specialRoll(w){
+  var s=(MAPSEED^Math.imul(w,2654435761))>>>0;
+  s^=s>>>16;s=Math.imul(s,2246822519)>>>0;s^=s>>>13;s=Math.imul(s,3266489917)>>>0;s=(s^(s>>>16))>>>0;
+  return s/4294967296;
+}
+function pickSpecial(w){
+  if(!SPECIAL_ORDER.length)return null;
+  return SPECIALS[SPECIAL_ORDER[(specialRoll(w)*SPECIAL_ORDER.length)|0]]||null;
+}
+registerSpecial('audit',{
+  n:'АУДИТ',
+  hud:'АУДИТ ИДЁТ',
+  hudCol:'#e5534b',
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ';},
+  fill:function(w,c){
+    var ni=Math.min(c.ni,5),nd=Math.min(c.nd,2);
+    spawnBoss();
+    var q=[];
+    for(var i=0;i<ni;i++)q.push('intern');
+    for(i=0;i<nd;i++)q.push('deadline');
+    return q;
+  }
+});
+function reviewRoster(w){
+  var q=[],nHR=2+((w/5)|0),nRival=2+((w/4)|0),nLead=1+((w/10)|0);
+  for(var i=0;i<nHR;i++)q.push('hr');
+  for(i=0;i<nRival;i++)q.push('rival');
+  for(i=0;i<nLead;i++)q.push('lead');
+  return q;
+}
+registerSpecial('review',{
+  n:'АТТЕСТАЦИЯ',
+  hud:'АТТЕСТАЦИЯ ИДЁТ',
+  hudCol:'#b18ae8',
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АТТЕСТАЦИЯ: PERFORMANCE REVIEW КОМАНДЫ';},
+  fill:function(w){return reviewRoster(w);}
+});
 function startWave(){
   try{
   G.wave++;
   var w=G.wave;
+  if(G.training&&w>=4){G.training=false;CAREER.tutorialDone=1;saveCareer();refreshMenuUI();}
   G.spawnQ.length=0;
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
-  var ni=(w===1)?8:Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
-  var bossWave=(w===5)||(w>5&&(w-5)%5===0);
-  var horde=(w%4===0)&&!bossWave&&w>3;
-  if(bossWave){ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();}
-  if(horde)ni=Math.round(ni*1.7);
-  for(var i=0;i<ni;i++)G.spawnQ.push('intern');
-  for(i=0;i<nd;i++)G.spawnQ.push('deadline');
+  var ni=(w===1)?(G.training?5:8):Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
+  var specialWave=(w%5===0);
+  var horde=(w%4===0)&&!specialWave&&w>3;
+  G.special=null;
+  var special=null;
+  if(specialWave){
+    special=pickSpecial(w);
+    if(special){
+      G.special=special.id;
+      var sq=special.fill(w,{ni:ni,nd:nd});
+      for(var qi=0;qi<sq.length;qi++)G.spawnQ.push(sq[qi]);
+    }else{
+      G.special='audit';
+      ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();
+      for(var bi=0;bi<ni;bi++)G.spawnQ.push('intern');
+      for(bi=0;bi<nd;bi++)G.spawnQ.push('deadline');
+    }
+  }
+  if(!special){
+    if(horde)ni=Math.round(ni*1.7);
+    for(var i=0;i<ni;i++)G.spawnQ.push('intern');
+    for(i=0;i<nd;i++)G.spawnQ.push('deadline');
+  }
   for(i=G.spawnQ.length-1;i>0;i--){var j=(R()*(i+1))|0;var tmp=G.spawnQ[i];G.spawnQ[i]=G.spawnQ[j];G.spawnQ[j]=tmp;}
   G.spawnT=0.14;
   G.hordeBatch=horde;
@@ -53,7 +123,7 @@ function startWave(){
   if(w===2)award('day1');
   if(w===5)award('spr5');
   if(horde)msg('СПРИНТ '+w+' · ХАКАТОН: все стажёры разом ('+ni+'). Держи двери!',4.5);
-  else if(bossWave)msg('СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ',4);
+  else if(special)msg(special.announce(w),4);
   else msg('Спринт '+w+' · «'+MAPTHEME.name+'» · '+sprintName+': '+ni+' стажёров'+(nd?', '+nd+' дедлайнов':'')+'. ДЕДЛАЙН УСКОРЯЕТСЯ!');
   G.rushT=4;
   }catch(e){window.__swerr=(window.__swerr||[]).concat(e.message+' :: '+(e.stack||'').split('\n')[1]);console.error('startWave:',e);}
@@ -119,11 +189,26 @@ function spawnMob(type){
       else{mm.hp*=1.3;mm.r=17;mm.tint=3;mm.dmgMul=1.7;}
     }
     G.mobs.push(mm);
-  }else{
+  }else if(type==='deadline'){
     G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*pScale*coopScale,hpMax:(9+1.5*w)*pScale*coopScale,spd:150+R()*30,
       stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,aggro:true,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0});
     if(R()<0.3&&flavorOK())floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12,'F');
+  }else{
+    var cl={id:++G.mobSeq,type:type,x:p0.x,y:p0.y,stun:0,kx:0,ky:0,cd:0,wt:0,wx:0,wy:0,face:0,aggro:true,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,elite:0,
+      cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0,wu:0};
+    if(type==='hr'){
+      cl.r=14;cl.spd=96+R()*22;cl.hp=cl.hpMax=(13+1.8*w)*pScale*coopScale;cl.cd=1.2+R()*1.2;
+      cl.phrase=HRWORDS[(R()*HRWORDS.length)|0];
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'HR выходит на связь','#b18ae8',11,'F');
+    }else if(type==='rival'){
+      cl.r=15;cl.spd=222+R()*34;cl.hp=cl.hpMax=(10+1.4*w)*pScale*coopScale;cl.cd=R()*0.6;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'коллега хочет твой грейд','#e5534b',11,'F');
+    }else{
+      cl.r=23;cl.spd=56+R()*12;cl.hp=cl.hpMax=(30+3*w)*pScale*coopScale;cl.cd=R()*0.8;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-24,'тимлид вышел из переговорки','#e8c56a',12,'F');
+    }
+    G.mobs.push(cl);
   }
   if(elite){
     floatText(p0.x,p0.y-38,'ЭЛИТНЫЙ стажёр-«скала»','#c88a4a',12);
@@ -183,6 +268,7 @@ function addBurnout(p,n,src){
   if(p.shield>0){floatText(p.x,p.y-30,'заблокировано созвоном','#7aa2c8',12,'I');return;}
   if(p.inv>0)return;
   n*=(p.drMult||1);
+  p.lastDamage=src||'mob';
   if(G.combo>=5)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10,'I');
   G.combo=0;G.comboT=0;
   p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();SFX.hexCrackle();
@@ -299,7 +385,7 @@ function furnInArc(pl,arc,rad,dmg){
 }
 
 function dramaOfDeath(x,y,tp,elite){
-  var pitch=tp==='deadline'?0.75:(elite?0.6:1.15+R()*0.25);
+  var pitch=tp==='deadline'?0.75:(elite?0.6:(tp==='lead'?0.85:1.05+R()*0.2));
   var agony=R()<0.5;
   SFX.deathCry(pitch);
   spawnDebris({kind:'soul',x:x,y:y-6,pitch:pitch,elite:elite,mood:agony?'agony':'relief',t:0,life:agony?1.6:1.35});
@@ -309,7 +395,8 @@ function dramaOfDeath(x,y,tp,elite){
   },120);
 }
 function killMob(m){
-  addXp((m.type==='deadline'?9:6)*(m.elite?2:1),m.x,m.y);
+  var xpT={deadline:9,lead:10,hr:7,rival:7};
+  addXp((xpT[m.type]||6)*(m.elite?2:1),m.x,m.y);
   for(var sci=0;sci<G.players.length;sci++){var pl=G.players[sci];
     pl.superC=Math.min(1,(pl.superC||0)+(m.elite?0.5:0.22)*(pl.superRate||1));
     if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
@@ -329,6 +416,7 @@ function killMob(m){
   }
   if(m.type==='intern'){G.killsI++;addOkr(1);}
   else if(m.type==='deadline'){G.killsD++;addOkr(2);}
+  else if(m.type==='hr'||m.type==='rival'||m.type==='lead'){G.killsC++;addOkr(m.type==='lead'?3:2);}
   else if(m.type==='boss'){
     SFX.deathCry(0.5);
     CAREER.totalBoss++;award('boss1');
@@ -347,6 +435,9 @@ function killMob(m){
     G.boss=null;return;
   }
   if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13);
+  else if(m.type==='hr')floatText(m.x,m.y-44,'КАДРОВЫЙ ВОПРОС ЗАКРЫТ','#b18ae8',12);
+  else if(m.type==='rival')floatText(m.x,m.y-44,'ГРЕЙД ДОСТАЛСЯ ТЕБЕ','#8bd17c',12);
+  else if(m.type==='lead')floatText(m.x,m.y-44,'РЕЛИЗ ВЫШЕЛ БЕЗ НЕГО','#e8c56a',12);
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;

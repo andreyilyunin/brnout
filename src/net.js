@@ -15,6 +15,8 @@ function startLocal(){
   initPlayersFromLobby();
   resetWorld();
   NET.mode='solo';NET.myId='me';
+  G.training=!CAREER.tutorialDone;
+  if(G.training)G.xpN=30;
   G.state='playing';showOv(null);G.fadeT=0.9;
   if(window.touchLearnStart)touchLearnStart();
   updateCamera(0.016,true);
@@ -35,9 +37,12 @@ function resetWorld(){
   G.mobs.length=0;G.projs.length=0;G.fx.length=0;G.texts.length=0;G.pickups.length=0;G.zones.length=0;
   G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;
   G.okr=0;G.grade=1;G.killsI=0;G.killsD=0;G.bossN=0;G.winShown=false;G.winT=0;
-  G.level=1;G.xp=0;G.xpN=40;G.perkQueue=0;
+  G.level=1;G.xp=0;G.xpN=G.training?30:40;G.perkQueue=0;
   G.shake=0;G.hitStop=0;G.msg='';G.msgT=0;G.capT=10;G.caption='';
   G.t=0;G.delays.length=0;G.combo=0;G.comboT=0;G.sweepT=0;G.hordeBatch=0;
+  G.training=false;G.runSettled=false;
+  G.careerOkr=0;G.careerKi=0;G.careerKd=0;G.newUnlocks=[];
+  G.special=null;G.killsC=0;
   DEBRIS.length=0;STONES.length=0;
   NET.events=[];
 }

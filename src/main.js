@@ -99,6 +99,7 @@ function $(id){return document.getElementById(id);}
 var menuMode='solo';
 var selCls='mgr';
 function refreshMenuUI(){
+  root.classList.toggle('first-run',!CAREER.tutorialDone);
   for(var i=0;i<_cards.length;i++){
     var el=document.getElementById(_cards[i][0]);
     if(el){
@@ -125,7 +126,7 @@ function updateDetail(){
   var C=CLS[selCls];
   if(!C)return;
   $('detName').textContent=(C.name||'').toUpperCase();
-  $('detRole').textContent=C.role||'';
+  $('detRole').textContent=(C.role||'')+(!CAREER.tutorialDone&&selCls==='mgr'?' · рекомендован для старта':'');
   $('detBio').textContent=C.bio||'';
   var ph=$('bgPhoto');
   if(ph&&PHOTOSRC[selCls]){
@@ -201,7 +202,11 @@ function careerRender(){
   $('crDeaths').textContent=CAREER.deaths;
   var got=0;
   for(var k in CAREER.ach)if(CAREER.ach[k])got++;
-  var html='<div class="crtitle">ДОСТИЖЕНИЯ · '+got+'/'+ACHS.length+'</div>';
+  var html='<div class="crtitle">КОСМЕТИЧЕСКИЕ НАГРАДЫ</div>';
+  for(var ci=0;ci<COSMETICS.length;ci++){var cosmetic=COSMETICS[ci],unlocked=CAREER.bestSprint>=cosmetic.at;
+    html+='<div class="crrow'+(unlocked?' on':'')+'"><b>'+(unlocked?cosmetic.n:'???')+'</b><span>'+cosmetic.d+' · спринт '+cosmetic.at+'</span></div>';
+  }
+  html+='<div class="crtitle">ДОСТИЖЕНИЯ · '+got+'/'+ACHS.length+'</div>';
   for(var i=0;i<ACHS.length;i++){var a=ACHS[i],on=CAREER.ach[a.id];
     html+='<div class="crrow'+(on?' on':'')+'"><b>'+(on?a.n:'???')+'</b><span>'+a.d+'</span></div>';
   }

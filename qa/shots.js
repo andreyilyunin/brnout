@@ -14,7 +14,7 @@ const VIEWPORTS = [
   { name: 'phone-landscape', width: 740, height: 420, mobile: true },
   { name: 'phone-landscape-max', width: 844, height: 390, mobile: true },
 ];
-const SCENES = ['menu', 'game', 'wave', 'interstitial', 'pause'];
+const SCENES = ['menu', 'game', 'wave', 'interstitial', 'pause', 'dead'];
 
 let failures = 0;
 const fail = msg => { console.log('  ✗ ' + msg); failures++; };
@@ -168,6 +168,23 @@ async function auditLayout(page, scene, need) {
     const paused = await page.evaluate(() => G.state);
     if (paused !== 'paused') fail('пауза не открылась: ' + paused);
     else ok('пауза работает');
+
+    await page.evaluate(() => {
+      togglePause();
+      const p = G.players[0];
+      p.revived = true; p.inv = 0; p.shield = 0; p.burnout = 99;
+      addBurnout(p, 5, 'deadline');
+    });
+    await new Promise(r => setTimeout(r, 300));
+    await page.screenshot({ path: OUT + '/' + vp.name + '-dead.png' });
+    await auditLayout(page, 'dead');
+    const death = await page.evaluate(() => ({
+      state: G.state,
+      goal: document.getElementById('dGoal').textContent,
+      cause: document.getElementById('dCause').textContent
+    }));
+    if (death.state !== 'dead' || !death.goal || !death.cause.includes('дедлайна')) fail('экран смерти не объясняет причину и следующую награду');
+    else ok('экран смерти: причина, цель и быстрый повтор');
 
     if (pageErrors.length) fail('JS-ошибки: ' + pageErrors.slice(0, 3).join(' | '));
     else ok('JS-ошибок нет');

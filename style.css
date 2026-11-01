@@ -231,3 +231,19 @@ html,body{overflow:hidden;margin:0;padding:0;}
 /* цифра кулдауна в центре тач-кнопки */
 #burnout .tbtn .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:800;font-size:15px;color:#ffe566;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none;}
 #burnout .tbtn:not(.oncd) .cdt{display:none;}
+#burnout .bgmenuGuide{display:none;margin:0 0 4px;padding:8px 12px;border-left:3px solid #c49a3d;background:rgba(196,162,78,.08);color:#e8dcc2;font-size:12px;line-height:1.45;text-align:left;}
+#burnout.first-run #bmenu .bgmenuGuide{display:block;}
+#burnout.first-run #bmenu .bgbio,#burnout.first-run #bmenu .bskill:not(:first-child),#burnout.first-run #bmenu .bgcommon{display:none;}
+#burnout.first-run #bmenu .bgskills{overflow:visible;}
+#burnout #coach{position:absolute;z-index:4;left:50%;top:86px;transform:translateX(-50%);max-width:calc(100% - 32px);box-sizing:border-box;padding:8px 14px;border:1px solid rgba(196,162,78,.7);border-radius:8px;background:rgba(8,12,18,.9);box-shadow:0 4px 20px rgba(0,0,0,.45);color:#fff3dc;font:700 12px 'IBM Plex Mono',monospace;line-height:1.35;text-align:center;pointer-events:none;}
+#burnout .bgcause{margin:0 auto 6px;color:#ffb0a6;font-size:12px;line-height:1.4;}
+#burnout .bggoal{margin:6px auto 8px;max-width:330px;padding:8px 10px;border:1px solid rgba(196,162,78,.45);border-radius:6px;color:#ffdf94;background:rgba(90,60,20,.18);font-size:12px;line-height:1.4;}
+#burnout .bgunlock{margin:6px auto;color:#8effc0;font:700 13px 'IBM Plex Mono',monospace;}
+#burnout .bgretry{border-color:#3fb950;background:rgba(31,100,55,.32);color:#eafff2;font-weight:800;}
+@media (orientation:portrait){#burnout #coach{top:154px;width:max-content;font-size:11px;}}
+@media (orientation:landscape) and (max-height:520px){
+  #burnout #coach{top:70px;font-size:11px;padding:6px 10px;}
+  #burnout #bdead .bgtag,#burnout #bdead .bghr,#burnout #bdead .bgcredit{display:none;}
+  #burnout #bdead .bgstats{margin-bottom:6px;gap:1px 20px;}
+  #burnout #bdead .bggoal{margin:4px auto;padding:5px 8px;}
+}

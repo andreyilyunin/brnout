@@ -402,6 +402,148 @@ test('addXp: уровень ставит выбор буста в очередь
   eq(G.level, 3);
   eq(G.perkQueue, 2);
 });
+test('обучение: приёмы открываются по спринтам, атака доступна сразу', () => {
+  G.training = true; G.wave = 1;
+  eq(abilityUnlocked('secondary'), false);
+  eq(abilityUnlocked('dodge'), false);
+  eq(abilityUnlocked('skill'), false);
+  G.wave = 2;
+  eq(abilityUnlocked('secondary'), true);
+  eq(abilityUnlocked('dodge'), true);
+  eq(abilityUnlocked('skill'), false);
+  G.wave = 3;
+  eq(abilityUnlocked('skill'), true);
+  G.training = false; G.wave = 1;
+  eq(abilityUnlocked('super'), true);
+});
+test('награды: разблокировка по рекорду и повторная смерть не дублирует забег', () => {
+  CAREER.bestSprint = 0; CAREER.totalInterns = 0; CAREER.totalDeadlines = 0;
+  G.runSettled = false; G.wave = 2; G.okr = 5; G.killsI = 5; G.killsD = 0;
+  G.careerKi = 0; G.careerKd = 0;
+  careerEndRun(false);
+  eq(CAREER.bestSprint, 1);
+  eq(G.newUnlocks[0].id, 'gold');
+  eq(cosmeticLevel(), 1);
+  const runs = CAREER.runs;
+  G.wave = 3; G.killsI = 8;
+  careerEndRun(false);
+  eq(CAREER.runs, runs);
+  eq(CAREER.totalInterns, 8);
+  eq(CAREER.bestSprint, 2);
+});
+
+console.log('special sprints:');
+global.cv = { width: 960, height: 540 };
+global.DPR = 1;
+global.SFX = new Proxy({}, { get: () => () => {} });
+global.spawnDebris = () => {};
+global.bossStinger = () => {};
+global.broadcast = () => {};
+load('src/sim.js');
+const seedForSpecial = (w, want) => {
+  for (let s = 1; s < 300; s++) { buildMap(s); if (pickSpecial(w).id === want) return s; }
+  return 0;
+};
+const seedAudit5 = seedForSpecial(5, 'audit');
+const seedReview5 = seedForSpecial(5, 'review');
+test('реестр: зарегистрированы ровно audit и review, оба достижимы на 5-й волне', () => {
+  ok(seedAudit5 > 0 && seedReview5 > 0, 'оба особых спринта достижимы на 5-й волне');
+  eq(SPECIAL_ORDER.length, 2);
+  ok(SPECIAL_ORDER.indexOf('audit') >= 0 && SPECIAL_ORDER.indexOf('review') >= 0);
+  ok(SPECIALS.audit.fill && SPECIALS.review.fill && SPECIALS.review.announce, 'контракт def: fill+announce');
+});
+test('выбор особого спринта: детерминирован по сиду карты (хост и гость сходятся)', () => {
+  for (const s of [7, 42, 1337]) {
+    buildMap(s);
+    const a5 = pickSpecial(5).id, a10 = pickSpecial(10).id, a15 = pickSpecial(15).id;
+    buildMap(s);
+    eq(pickSpecial(5).id, a5);
+    eq(pickSpecial(10).id, a10);
+    eq(pickSpecial(15).id, a15);
+  }
+});
+test('5-й спринт: аудит — настоящий босс плюс обычная очередь', () => {
+  buildMap(seedAudit5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'audit');
+  ok(G.boss && G.boss.hp > 0, 'босс заспавнен');
+  ok(G.spawnQ.length > 0 && G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
+  eq(G.msg.indexOf('АУДИТ') >= 0, true);
+});
+test('5-й спринт: аттестация — три роли коллег в очереди, босса нет', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'review');
+  eq(G.boss, null);
+  const counts = { hr: 0, rival: 0, lead: 0 };
+  for (const t of G.spawnQ) counts[t]++;
+  eq(G.spawnQ.length, 7);
+  eq(counts.hr, 3); eq(counts.rival, 3); eq(counts.lead, 1);
+  eq(G.msg.indexOf('АТТЕСТАЦИЯ') >= 0, true);
+});
+test('обычные волны не тронуты: состояние сброшено, только стажёры и дедлайны', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 2; G.spawnQ.length = 0; G.boss = null; G.special = 'review';
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 3);
+  eq(G.special, null, 'special сброшен на обычной волне');
+  eq(G.boss, null);
+  eq(G.spawnQ.length, 26); // w3: ni=20, nd=6 — прежняя формула
+  ok(G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
+});
+test('аттестация: спавн коллег — различимые роли, завершение волны и победа', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  const p = newPlayer('t', 'mgr'); p.x = REACH_LIST[0].x; p.y = REACH_LIST[0].y;
+  G.players = [p];
+  startWave();
+  eq(G.special, 'review');
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 7);
+  for (const m of G.mobs) {
+    ok(m.hp > 0 && m.hpMax === m.hp, m.type + ' hp');
+    eq(m.r, MOBRAD[m.type]);
+    ok(MOBNAMES[m.type].indexOf(mobName(m)) >= 0, 'имя роли читаемое: ' + mobName(m));
+  }
+  const roles = {};
+  for (const m of G.mobs) roles[m.type] = m;
+  ok(roles.rival.spd > roles.hr.spd && roles.hr.spd > roles.lead.spd, 'скорости: конкурент > HR > лид');
+  ok(roles.lead.hp > roles.hr.hp && roles.lead.hp > roles.rival.hp, 'лид — тяжёлая роль');
+  ok(roles.rival.spd > 200, 'конкурент — быстрый милишник');
+  const kc0 = G.killsC, okr0 = G.okr;
+  for (const m of G.mobs.slice()) { m.dead = true; killMob(m); }
+  G.mobs = G.mobs.filter(m => !m.dead);
+  eq(G.killsC, kc0 + 7);
+  ok(G.okr > okr0, 'коллеги дают OKR');
+  G.spawnQ.length = 0; G.waveState = 'active'; G.campaign = 5; G.winShown = false; G.winT = 0;
+  updateWaves(0.016);
+  eq(G.waveState, 'cleared');
+  ok(G.winT > 0, 'финальная волна без босса завершает забег');
+  eq(G.interStats.kc, kc0 + 7);
+});
+test('кооп: типы коллег и особое состояние едут в снапшотах', () => {
+  const gj = fs2.readFileSync('src/guest.js', 'utf8');
+  ok(gj.indexOf('MOBTYPES[sm[1]]') > 0, 'гость декодирует тип моба по индексу');
+  ok(gj.indexOf('MOBTYPE_IDX[mo.type]') > 0, 'хост кодирует тип моба');
+  ok(gj.indexOf('G.special=s.sp||null') > 0, 'гость применяет special из снапшота');
+  ok(gj.indexOf('sp:G.special||null') > 0, 'хост отправляет special');
+  ok(gj.indexOf('wu:sm[13]||0') > 0, 'гость получает замах (wu) для телеграфа');
+  buildMap(555);
+  guestApplySnapshot({ p: [], m: [[1, 2, 100, 100, 80, 0, 0, 0, 0, 0, 0, -1, 0, 0], [2, 4, 200, 200, 50, 0, 0, 0, 0, 0, 0, -1, 0, 3]], b: null, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 5, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'review', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.mobs.length, 2);
+  eq(VIEW.mobs[0].type, 'hr');
+  eq(VIEW.mobs[1].type, 'lead');
+  eq(VIEW.mobs[1].tgt.wu, 3);
+  eq(G.special, 'review');
+});
 
 console.log('open plan map:');
 test('коридоров нет: вне комнат только дверные тайлы (<4%)', () => {
