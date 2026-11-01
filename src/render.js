@@ -864,7 +864,7 @@ function drawHUD(){
   ];
   if(G.training)slots=slots.filter(function(s){return s.id==='primary'||abilityUnlocked(s.id==='skill2'?'skill':s.id);});
   var gap=7;
-  var KL={primary:'ЛКМ',secondary:'ПКМ',dodge:'ПРОБЕЛ',skill:'F',skill2:'Q',super:'R'};
+  var KL={primary:'ЛКМ',secondary:'ПКМ',dodge:'ПРОБЕЛ',skill:'Q',skill2:'E',super:'R'};
   var widths=slots.map(function(s){
     hctx.font=pixFont(11);
     var nw=hctx.measureText(s.cd===-1?'с '+G.ultAt+'-го':s.n).width+18;

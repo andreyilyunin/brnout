@@ -44,7 +44,7 @@ function updateCoach(){
     else if(G.wave===1&&G.killsI>0)text='3 · Не дай выгоранию достичь 100%';
     else if(G.wave===1)text=isTouch?'2 · УДАР · прицел выбирается автоматически':'2 · Атакуй мышью: ЛКМ';
     else if(G.wave===2)text=isTouch?'ПРИЁМ + РЫВОК открыты · рывок спасает от удара':'ПКМ + ПРОБЕЛ открыты · рывок спасает от удара';
-    else if(G.wave===3)text=isTouch?'СКИЛ + УЛЬТА открыты · они тратят кофе':'Q + F открыты · приёмы тратят кофе';
+    else if(G.wave===3)text=isTouch?'СКИЛ + УМЕНИЕ открыты · они тратят кофе':'Q + E открыты · приёмы тратят кофе';
   }
   if(el._text!==text){el._text=text;el.textContent=text;el.classList.toggle('hidden',!text);}
 }

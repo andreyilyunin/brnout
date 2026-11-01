@@ -47,14 +47,14 @@ function specialActive(){
   var sp=G.special?SPECIALS[G.special]:null;
   return (sp&&!G.boss)?sp:null;
 }
-function specialRoll(w){
-  var s=(MAPSEED^Math.imul(w,2654435761))>>>0;
+function specialRoll(w,seed){
+  var s=(((seed===undefined?MAPSEED:seed)>>>0)^Math.imul(w,2654435761))>>>0;
   s^=s>>>16;s=Math.imul(s,2246822519)>>>0;s^=s>>>13;s=Math.imul(s,3266489917)>>>0;s=(s^(s>>>16))>>>0;
   return s/4294967296;
 }
-function pickSpecial(w){
+function pickSpecial(w,seed){
   if(!SPECIAL_ORDER.length)return null;
-  return SPECIALS[SPECIAL_ORDER[(specialRoll(w)*SPECIAL_ORDER.length)|0]]||null;
+  return SPECIALS[SPECIAL_ORDER[(specialRoll(w,seed)*SPECIAL_ORDER.length)|0]]||null;
 }
 registerSpecial('audit',{
   n:'АУДИТ',

@@ -241,6 +241,21 @@ test('меню: отдельные настройки, углы, старт', ()
   ok(menuBlock.includes('sndMaster') === false, 'слайдеры НЕ в главном меню');
   ok((ih.slice(ih.indexOf('id="bset"'), ih.indexOf('id="bset"') + 900)).includes('sndMaster'), 'слайдеры в настройках');
 });
+test('клавиатура: стандартная схема Q/E/R вместо случайных F/Q', () => {
+  const ih = require('fs').readFileSync('index.html', 'utf8');
+  const input = require('fs').readFileSync('src/input.js', 'utf8');
+  const render = require('fs').readFileSync('src/render.js', 'utf8');
+  const ui = require('fs').readFileSync('src/ui.js', 'utf8');
+  const main = require('fs').readFileSync('src/main.js', 'utf8');
+  ok(input.includes("e.code==='KeyQ'&&G.state==='playing')INPUT.fk=true"), 'Q — скилл');
+  ok(input.includes("e.code==='KeyE'&&G.state==='playing')INPUT.sk2=true"), 'E — умение');
+  ok(input.includes("e.code==='KeyR'&&G.state==='playing')INPUT.ultTap=true"), 'R — супер');
+  ok(!input.includes("e.code==='KeyF'"), 'F не занят боевым действием');
+  ok(render.includes("skill:'Q',skill2:'E',super:'R'"), 'HUD показывает Q/E/R');
+  ok(ih.includes('Q — скилл · E — умение · R — супер'), 'общая подсказка классов');
+  ok(ui.includes('Q + E открыты'), 'тренер использует Q/E');
+  ok(main.includes("[C.ult,'Q']") && main.includes("[C.sk,'E']"), 'карточки классов показывают клавиши');
+});
 
 console.log('layout guards:');
 const fsL = require('fs');
@@ -573,18 +588,31 @@ test('паб: тема паба только принудительная — о
 });
 test('паб: regenLocation перед 5-й волной форсит тему паба, иначе — обычную', () => {
   global.updateCamera = () => {};
-  buildMap(seedPub5);
-  G.wave = 4;
-  regenLocation(13579);
+  buildMap(999);
+  G.wave = 4; G.special = null;
+  regenLocation(seedPub5);
   eq(MAPTHEME.name, PUBTHEME.name, 'перед паб-волной — паб-тема');
   const evMap = NET.events.filter(e => e.k === 'map');
   ok(evMap.length > 0 && evMap[evMap.length - 1].th === PUBTHEME.name, 'имя паб-темы уехало гостю в событии map');
-  buildMap(seedAudit5);
-  G.wave = 4;
-  regenLocation(13581);
+  buildMap(999);
+  G.wave = 4; G.special = null;
+  regenLocation(seedAudit5);
   ok(MAPTHEME.name !== PUBTHEME.name, 'перед аудитом — обычная тема');
   const evMap2 = NET.events.filter(e => e.k === 'map');
   eq(evMap2[evMap2.length - 1].th, null, 'обычная локация без форс-темы');
+});
+test('тема следующей особой волны выбирается по pending-сиду, а не по старой карте', () => {
+  global.updateCamera = () => {};
+  buildMap(seedAudit5);
+  G.wave = 4; G.special = null;
+  const candidate = 424242;
+  const expected = pickSpecial(5, candidate).id;
+  regenLocation(candidate);
+  eq(G.special, null, 'special ещё не начат');
+  if (expected === 'pub') eq(MAPTHEME.name, PUBTHEME.name, 'pending-сид с пабом даёт паб-тему');
+  else ok(MAPTHEME.name !== PUBTHEME.name, 'pending-сид без паба не даёт паб-тему');
+  buildMap(candidate);
+  eq(pickSpecial(5).id, expected, 'старт волны выбирает тот же special, что и тема локации');
 });
 test('паб: бой, награды и завершение кампании', () => {
   buildMap(seedPub5);

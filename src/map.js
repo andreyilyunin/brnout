@@ -1143,8 +1143,8 @@ function themeNameFor(seed){
 function themeForSpecial(sp){
   return (sp&&sp.theme)?THEMEBYNAME[sp.theme]:null;
 }
-function specialForWave(w){
-  return (w%5===0)?pickSpecial(w):null;
+function specialForWave(w,seed){
+  return (w%5===0)?pickSpecial(w,seed):null;
 }
 
 var FOG={explored:new Uint8Array(GW*GH),vis:new Uint8Array(GW*GH),t:0,dirty:true};

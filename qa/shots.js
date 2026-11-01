@@ -102,6 +102,39 @@ async function auditLayout(page, scene, need) {
     await auditLayout(page, 'game', 'mm');
 
     await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      G.training = false; G.wave = 4;
+      const p = G.players[0];
+      p.coffee = 100; p.cdQ = 0; p.qT = 0; p.shield = 0; p.cdS = 0; p.haste = 0; p.cdD = 0; p.cdU = 0; p.superC = 0; G.plan = 0;
+    });
+    await page.keyboard.down('KeyQ');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('KeyQ');
+    await new Promise(r => setTimeout(r, 60));
+    let keyState = await page.evaluate(() => ({ skill: G.players[0].shield }));
+    if (!(keyState.skill > 0)) fail('Q не активирует скилл');
+    await page.evaluate(() => { const p = G.players[0]; p.cdS = 0; p.haste = 0; });
+    await page.keyboard.down('KeyE');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('KeyE');
+    await new Promise(r => setTimeout(r, 60));
+    keyState = await page.evaluate(() => ({ haste: G.players[0].haste }));
+    if (!(keyState.haste > 0)) fail('E не активирует умение');
+    await page.evaluate(() => { G.players[0].cdD = 0; });
+    await page.keyboard.down('Space');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('Space');
+    await new Promise(r => setTimeout(r, 60));
+    keyState = await page.evaluate(() => ({ dodge: G.players[0].cdD }));
+    if (!(keyState.dodge > 0)) fail('Space не активирует рывок');
+    await page.evaluate(() => { const p = G.players[0]; p.cdU = 0; p.superC = 1; G.plan = 0; });
+    await page.keyboard.press('KeyR');
+    await new Promise(r => setTimeout(r, 120));
+    keyState = await page.evaluate(() => ({ plan: G.plan, superC: G.players[0].superC }));
+    if (!(keyState.plan > 0 && keyState.superC === 0)) fail('R не активирует супер');
+    else ok('клавиатура: Q скилл · E умение · Space рывок · R супер');
+
+    await page.evaluate(() => {
       G.waveState = 'active'; G.wave = 2; startWave();
       const p = G.players[0]; p.inv = 999; p.burnout = 5;
     });

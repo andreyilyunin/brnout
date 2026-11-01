@@ -136,12 +136,12 @@ function updateDetail(){
   var box=$('detSkills');
   if(!box)return;
   box.innerHTML='';
-  var list=[C.s1,C.s2,C.ult,C.sk];
+  var list=[[C.s1,'ЛКМ'],[C.s2,'ПКМ'],[C.ult,'Q'],[C.sk,'E']];
   for(var i=0;i<list.length;i++){
-    var s=list[i];
+    var s=list[i][0];
     if(!s)continue;
     var row=document.createElement('div');row.className='bskill';
-    var nm=document.createElement('b');nm.textContent=s.n;
+    var nm=document.createElement('b');nm.textContent=s.n+' · '+list[i][1];
     var ds=document.createElement('p');ds.textContent=s.d||'';
     row.appendChild(nm);row.appendChild(ds);
     box.appendChild(row);
@@ -288,7 +288,7 @@ $('bcontinue').addEventListener('click',function(){
   G.state='playing';showOv(null);G.fadeT=0.9;
 });
 window.addEventListener('blur',function(){
-  INPUT.f1=false;INPUT.f2=false;INPUT.sk=false;
+  INPUT.f1=false;INPUT.f2=false;INPUT.sk=false;INPUT.sk2=false;INPUT.fk=false;
   keys={};
 });
 

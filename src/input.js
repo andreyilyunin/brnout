@@ -41,7 +41,7 @@ window.addEventListener('mouseup',function(e){
 cv.addEventListener('contextmenu',function(e){e.preventDefault();});
 window.addEventListener('keydown',function(e){
   if(G.state!=='menu'){
-    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyE'].indexOf(e.code)>=0)e.preventDefault();
+    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE'].indexOf(e.code)>=0)e.preventDefault();
   }
   keys[e.code]=true;
   if(e.repeat)return;
@@ -51,17 +51,15 @@ window.addEventListener('keydown',function(e){
     togglePause();
   }
   if(e.code==='Space'&&G.state==='playing')INPUT.sk=true;
-  if(e.code==='KeyQ'&&G.state==='playing')INPUT.sk2=true;
-  if(e.code==='KeyF'&&G.state==='playing')INPUT.fk=true;
+  if(e.code==='KeyQ'&&G.state==='playing')INPUT.fk=true;
+  if(e.code==='KeyE'&&G.state==='playing')INPUT.sk2=true;
   if(e.code==='KeyR'&&G.state==='playing')INPUT.ultTap=true;
-  if(e.code==='KeyE'&&G.state==='playing')INPUT.cf=true;
 });
 window.addEventListener('keyup',function(e){
   keys[e.code]=false;
   if(e.code==='Space')INPUT.sk=false;
-  if(e.code==='KeyQ')INPUT.sk2=false;
-  if(e.code==='KeyF')INPUT.fk=false;
-  if(e.code==='KeyE')INPUT.cf=false;
+  if(e.code==='KeyQ')INPUT.fk=false;
+  if(e.code==='KeyE')INPUT.sk2=false;
 });
 function keysToInput(){
   if(isTouch&&joyId!==null)return;

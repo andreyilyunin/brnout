@@ -647,7 +647,7 @@ function updateWaves(dt){
       if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
       G.waveState='cleared';G.interT=20;
       G.pendSeed=(R()*1e9)|0;
-      var nth=themeForSpecial(specialForWave(G.wave+1));
+      var nth=themeForSpecial(specialForWave(G.wave+1,G.pendSeed));
       G.nextTheme=nth?nth.name:themeNameFor(G.pendSeed);
       G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,kc:G.killsC};
       broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats});
@@ -700,7 +700,8 @@ function gameOver(){
 
 function regenLocation(seed){
   seed=(seed>0)?(seed|0):((R()*1e9)|0);
-  var nth=themeForSpecial(specialForWave(G.wave+1));
+  G.pendSeed=seed;
+  var nth=themeForSpecial(specialForWave(G.wave+1,G.pendSeed));
   buildMap(seed,nth?nth.name:null);
   G.mobs.length=0;G.projs.length=0;G.pickups.length=0;G.zones.length=0;
   G.fx.length=0;G.texts.length=0;
