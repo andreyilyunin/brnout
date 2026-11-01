@@ -11,8 +11,7 @@ function drawHoverTag(){
     var d=Math.hypot(m.x-mwx,m.y-mwy);
     if(d<bd+m.r){bd=d;best=m;}
   }
-  var boss=(NET.mode==='guest')?VIEW.boss:G.boss;
-  if(boss){var db=Math.hypot(boss.x-mwx,boss.y-mwy);if(db<bd+boss.r){best=boss;bd=db;}}
+  if(G.boss){var db=Math.hypot(G.boss.x-mwx,G.boss.y-mwy);if(db<bd+G.boss.r){best=G.boss;bd=db;}}
   if(!best)return;
   if(!tileVis(best.x,best.y))return;
   var name=mobName(best);
@@ -59,7 +58,6 @@ function spawnStone(x,y,tx,ty,word,hostDmg,tgtId){
   spawnDebris({kind:'stone',word:word,x:x,y:y,sx:x,sy:y,tx:tx,ty:ty,
     dur:Math.max(0.22,d/620),life:Math.max(0.22,d/620)+0.02});
   if(hostDmg!==undefined)STONES.push({t:0,dur:Math.max(0.22,d/620),tgtId:tgtId,dmg:hostDmg,tx:tx,ty:ty});
-  NET.events.push({k:'stone',x:Math.round(x),y:Math.round(y),tx:Math.round(tx),ty:Math.round(ty),w:word});
 }
 function stoneImpact(x,y){
   G.shake+=6;hitStopFx(0.05);
@@ -68,12 +66,10 @@ function stoneImpact(x,y){
 }
 function spawnWater(x,y){
   WATER.push({x:x,y:y,r:12,rMax:92,t:0,life:9});
-  NET.events.push({k:'water',x:Math.round(x),y:Math.round(y)});
   SFX.slurp();
 }
 function spawnPrinterJet(x,y){
   PFX.push({x:x,y:y,t:0,life:5,acc:0});
-  NET.events.push({k:'pstart',x:Math.round(x),y:Math.round(y)});
 }
 function inWater(x,y){
   for(var i=0;i<WATER.length;i++){var w=WATER[i];

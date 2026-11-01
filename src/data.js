@@ -26,7 +26,7 @@ var CLS={
     ult:{n:'мудборд',cd:10,cost:35,d:'Раскрывает мудборд: палитра, шрифты, вдохновение. Враги получают урон и полторы секунды осознания, что их бренд никогда не взлетит.'},
     sk:{n:'логотип побольше',cd:8,cost:15,d:'Кричит то, что слышит каждый день. Волна на 360° отбрасывает всех вокруг и сбивает замахи: клиенты разлетаются, правки отменяются.'}}
 };
-var NET={mode:'solo',peer:null,conns:[],hostConn:null,code:'',myId:'me',snapT:0,events:[],cls:'mgr',lastSent:0,started:false,lastRecv:0,reconnecting:false,reconnectTries:0,hostPid:null};
+var NET={myId:'me',cls:'mgr'};
 var PCOLORS=['#e6edf3','#d29922','#7aa2c8','#3fb950'];
 var G={state:'menu',t:0,players:[],mobs:[],projs:[],fx:[],texts:[],pickups:[],zones:[],
   boss:null,wave:0,waveState:'calm',waveT:1.5,rushT:0,spawnQ:[],spawnT:0,okr:0,grade:1,
@@ -40,11 +40,9 @@ var COMBONAMES=['','синергия!','пролистал инбокс!','за�
 var KILLQUOTES=['отчислен','нашёл работу получше','ушёл на обед','передумал гореть','сбегал в Дубай','отпуск за свой счёт','это не его роль'];
 var SPRINTNAMES=['обычный спринт','спринт горящих дедлайнов','квартальный отчёт','пятничный деплой','аудит недели','хакатон ночами','планёрка без конца'];
 var HRPHRASES=['HR передаёт: «мы ценим каждого». Кроме вас.','Ваш грейд перенесён в архив. Вместе с вами.','Соболезнуем. Письмо о закрытии задач уже отправлено.','На вашем месте уже видят другого. Он моложе.'];
-var LOBBY=[];
 function localPlayer(){
-  var pool=(NET.mode==='guest')?VIEW.players:G.players;
-  for(var i=0;i<pool.length;i++)if(pool[i].id===NET.myId)return pool[i];
-  return pool[0];
+  for(var i=0;i<G.players.length;i++)if(G.players[i].id===NET.myId)return G.players[i];
+  return G.players[0];
 }
 
 var LOOKS=[
@@ -85,7 +83,7 @@ function newPlayer(id,cls){
   return{id:id,cls:cls,x:lb.x+lb.w/2+(R()*120-60),y:lb.y+lb.h/2+(R()*120-60),r:18,spd:210,spdMult:1,dmgMult:1,
     burnout:0,coffee:60,coffeeMax:100,face:0,
     dmgBonus:0,critBonus:0,cdMult:1,costMult:1,dodgeCdMult:1,vamp:0,coffeeRegen:0,superRate:1,drMult:1,perks:[],
-    cd1:0,cd2:0,cdQ:0,cdS:0,cdU:0,cdD:0,root:0,ult:false,fk:false,superC:0,shield:0,qT:0,qPulse:0,haste:0,castT:0,inv:0,flash:0,heart:0,kx:0,ky:0,step:0,atkT:0,hintT:14,
+    cd1:0,cd2:0,cdQ:0,cdS:0,cdU:0,cdD:0,root:0,ult:false,fk:false,superC:0,shield:0,qT:0,qPulse:0,haste:0,castT:0,inv:0,flash:0,heart:0,kx:0,ky:0,vx:0,vy:0,moveAng:0,step:0,atkT:0,hintT:14,
     dead:false,respT:0,
     ix:0,iy:0,aim:0,f1:false,f2:false,sk:false,sk2:false,cf:false,
     look:LOOKS[0],moving:false};
@@ -109,6 +107,17 @@ var PERKS=[
 ];
 var PERKBY={};
 for(var _pk=0;_pk<PERKS.length;_pk++)PERKBY[PERKS[_pk].id]=PERKS[_pk];
+
+if(!window.__mobKillListenerRegistered){
+  window.__mobKillListenerRegistered=true;
+  onGameEvent('mobKill',function(ev){
+    var m=ev.mob;
+    for(var i=0;i<G.players.length;i++){var pl=G.players[i];
+      pl.superC=Math.min(1,(pl.superC||0)+(m.elite?0.5:0.22)*(pl.superRate||1));
+      if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
+    }
+  });
+}
 
 var CAREER={runs:0,deaths:0,bestSprint:0,bestOkr:0,bestCoins:0,bestLevel:0,totalInterns:0,totalDeadlines:0,totalBoss:0,totalFurn:0,wins:0,tutorialDone:0,ach:{}};
 try{var _cr=JSON.parse(localStorage.getItem('brnt_career')||'null');if(_cr)for(var _ck in CAREER)if(_ck!=='ach')CAREER[_ck]=_cr[_ck]||0;if(_cr&&_cr.ach)CAREER.ach=_cr.ach;}catch(e){}
@@ -139,8 +148,7 @@ var ACHS=[
   {id:'lvl10',n:'мидл на минималках',d:'уровень 10'},
   {id:'k100',n:'сотня отчисленных',d:'100 стажёров за карьеру'},
   {id:'furn50',n:'ремонт за свой счёт',d:'50 мебели за карьеру'},
-  {id:'dead10',n:'синдром самозванца',d:'сгореть 10 раз'},
-  {id:'coop',n:'тимбилдинг',d:'спринт в коопе'}
+  {id:'dead10',n:'синдром самозванца',d:'сгореть 10 раз'}
 ];
 function award(id){
   if(CAREER.ach[id])return false;
@@ -151,7 +159,7 @@ function award(id){
   msg('ДОСТИЖЕНИЕ: '+a.n,4);
   return true;
 }
-function careerEndRun(coopMode){
+function careerEndRun(){
   var oldBest=CAREER.bestSprint;
   if(!G.runSettled){CAREER.runs++;G.runSettled=true;}
   CAREER.bestSprint=Math.max(CAREER.bestSprint,Math.max(0,G.wave-1));
@@ -163,7 +171,6 @@ function careerEndRun(coopMode){
   G.newUnlocks=[];
   for(var i=0;i<COSMETICS.length;i++)if(oldBest<COSMETICS[i].at&&CAREER.bestSprint>=COSMETICS[i].at)G.newUnlocks.push(COSMETICS[i]);
   if(CAREER.totalInterns>=100)award('k100');
-  if(coopMode)award('coop');
   saveCareer();
 }
 

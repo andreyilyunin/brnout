@@ -1,7 +1,7 @@
 'use strict';
 
-var OVERLAYS=['bmenu','bset','bcareer','bcoop','bjoin','bhost','bwait','bpause','bdead','bwin','bperk'];
-var OV_BACK={bset:'bmenu',bcareer:'bmenu',bcoop:'bmenu',bjoin:'bcoop',bhost:'bcoop',bwait:'bmenu',bpause:'bmenu'};
+var OVERLAYS=['bmenu','bset','bcareer','bpause','bdead','bwin','bperk'];
+var OV_BACK={bset:'bmenu',bcareer:'bmenu',bpause:'bmenu'};
 var OV_OPEN=null;
 function showOv(id){
   for(var i=0;i<OVERLAYS.length;i++){var el=document.getElementById(OVERLAYS[i]);if(el)el.classList.add('bghidden');}
@@ -82,7 +82,6 @@ function showDeadStats(st){
   if(G.newUnlocks&&G.newUnlocks.length){unlocked.textContent='ОТКРЫТО: '+G.newUnlocks[G.newUnlocks.length-1].n;unlocked.classList.remove('hidden');}
   else unlocked.classList.add('hidden');
   var again=document.getElementById('bagain');
-  again.classList.toggle('hidden',NET.mode==='guest');
   document.getElementById('dHr').textContent=HRPHRASES[(Math.random()*HRPHRASES.length)|0];
   showOv('bdead');
 }
@@ -95,18 +94,7 @@ function showVictory(){
 function togglePause(){
   if(G.state==='playing'){
     G.state='paused';showOv('bpause');
-    if(NET.mode==='host')broadcast({t:'stt',s:'paused'});
   }else if(G.state==='paused'){
     G.state='playing';showOv(null);
-    if(NET.mode==='host')broadcast({t:'stt',s:'playing'});
-  }else if(NET.mode==='guest'){
-    if(!document.getElementById('bpause').classList.contains('bghidden'))showOv(null);
-    else showOv('bpause');
   }
-
-  var pn=document.getElementById('pauseNet'),pc=document.getElementById('pauseCode'),ps=document.getElementById('pauseShare');
-  var isHost=NET.mode==='host'&&!!NET.code;
-  if(pn)pn.classList.toggle('hidden',!isHost);
-  if(ps)ps.classList.toggle('hidden',!isHost);
-  if(isHost&&pc)pc.textContent=NET.code;
 }

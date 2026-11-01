@@ -19,13 +19,11 @@ function loop(ts){
   lastT=ts;
   if(G.state==='playing'&&!MUS.on)startMusic();
   if(G.state!=='playing'&&G.state!=='win'&&MUS.on)stopMusic();
-  if(G.state==='playing'||G.state==='win'||NET.mode==='guest'){
+  if(G.state==='playing'||G.state==='win'){
     keysToInput();
     refreshAim();
-    if(NET.mode!=='guest'){
-      var me=localPlayer();
-      if(me){me.ix=INPUT.ix;me.iy=INPUT.iy;me.aim=INPUT.aim;me.f1=INPUT.f1||INPUT.f1Tap;INPUT.f1Tap=false;me.ult=INPUT.ultTap;INPUT.ultTap=false;me.fk=INPUT.fk;me.f2=INPUT.f2;me.sk=INPUT.sk;me.sk2=INPUT.sk2;me.cf=INPUT.cf;INPUT.cf=false;}
-    }else guestLocalAttackCosmetics();
+    var me=localPlayer();
+    if(me){me.ix=INPUT.ix;me.iy=INPUT.iy;me.aim=INPUT.aim;me.f1=INPUT.f1||INPUT.f1Tap;INPUT.f1Tap=false;me.ult=INPUT.ultTap;INPUT.ultTap=false;me.fk=INPUT.fk;me.f2=INPUT.f2;me.sk=INPUT.sk;me.sk2=INPUT.sk2;me.cf=INPUT.cf;INPUT.cf=false;}
     try{update(dt);updateCamera(dt,false);}
     catch(e){console.error('update:',e);}
   }
@@ -39,6 +37,31 @@ function loop(ts){
 }
 
 var PERKSEL=[];
+function resetWorld(){
+  G.mobs.length=0;G.projs.length=0;G.fx.length=0;G.texts.length=0;G.pickups.length=0;G.zones.length=0;
+  G.boss=null;G.wave=0;G.waveState='calm';G.waveT=2;G.spawnQ.length=0;G.nextSpecial=null;
+  G.okr=0;G.grade=1;G.killsI=0;G.killsD=0;G.bossN=0;G.winShown=false;G.winT=0;
+  G.level=1;G.xp=0;G.xpN=G.training?30:40;G.perkQueue=0;
+  G.shake=0;G.hitStop=0;G.msg='';G.msgT=0;G.capT=10;G.caption='';
+  G.t=0;G.delays.length=0;G.combo=0;G.comboT=0;G.sweepT=0;G.hordeBatch=0;
+  G.training=false;G.runSettled=false;
+  G.careerOkr=0;G.careerKi=0;G.careerKd=0;G.newUnlocks=[];
+  G.special=null;G.killsC=0;
+  DEBRIS.length=0;STONES.length=0;
+}
+function startLocal(){
+  var seed=(R()*1e9)|0;
+  buildMap(seed);
+  var p=newPlayer('me',NET.cls);
+  p.look=classLook(NET.cls,0);
+  G.players=[p];
+  resetWorld();
+  G.training=!CAREER.tutorialDone;
+  if(G.training)G.xpN=30;
+  G.state='playing';showOv(null);G.fadeT=0.9;
+  if(window.touchLearnStart)touchLearnStart();
+  updateCamera(0.016,true);
+}
 function rollPerks(){
   PERKSEL=[];
   var meL=localPlayer();
@@ -81,7 +104,6 @@ function pickPerk(i){
   var pk=PERKSEL[i];if(!pk||OV_OPEN!=='bperk')return;
   var me=localPlayer();
   if(me){pk.f(me);me.perks.push(pk.id);}
-  if(NET.mode==='guest'&&NET.hostConn){try{NET.hostConn.send({t:'perk',p:pk.id});}catch(e){}}
   G.perkQueue=Math.max(0,G.perkQueue-1);
   SFX.grade();
   if(me)floatText(me.x,me.y-40,pk.n,'#ffcf5c',14);
@@ -96,7 +118,6 @@ window.addEventListener('keydown',function(e){
 });
 
 function $(id){return document.getElementById(id);}
-var menuMode='solo';
 var selCls='mgr';
 function refreshMenuUI(){
   root.classList.toggle('first-run',!CAREER.tutorialDone);
@@ -108,12 +129,7 @@ function refreshMenuUI(){
       el.setAttribute('aria-pressed',on?'true':'false');
     }
   }
-  var joining=!!PENDING_JOIN;
-  $('mSolo').classList.toggle('on',!joining&&menuMode==='solo');
-  $('mCoop').classList.toggle('on',!joining&&menuMode==='coop');
-  $('mSolo').classList.toggle('hidden',joining);
-  $('mCoop').classList.toggle('hidden',joining);
-  $('mStart').textContent=joining?('ВОЙТИ В КОМНАТУ '+PENDING_JOIN.toUpperCase()+' →'):(menuMode==='solo'?'НАЧАТЬ СМЕНУ':'В КОМНАТУ →');
+  $('mStart').textContent='НАЧАТЬ СМЕНУ';
 }
 function selectClass(cls){
   selCls=cls;
@@ -163,30 +179,9 @@ document.getElementById('classCards').addEventListener('keydown',function(e){
     if(nel)nel.focus();
   }else if(e.code==='Enter'&&OV_OPEN==='bmenu'){document.getElementById('mStart').click();}
 });
-$('mSolo').addEventListener('click',function(){menuMode='solo';refreshMenuUI();});
-$('mCoop').addEventListener('click',function(){menuMode='coop';refreshMenuUI();});
-function connectGuest(code){
-  audioInit();
-  showOv('bwait');
-  $('netStatus').textContent='Подключение…';
-  guestJoin(code,function(err){
-    if(err){
-      $('netStatus').textContent='';
-      showOv('bjoin');
-      document.getElementById('joinCode').value=code;
-      $('joinErr').textContent=err==='nobody'?'Комната не найдена. Проверьте код — хост должен быть онлайн':(err==='nosignal'?'P2P недоступен — проверьте интернет':'Комната не отвечает. Хост ещё в игре?');
-      destroyNet();
-    }else{
-      audioInit();startAmbient();
-      $('netStatus').textContent='Подключено. Ждём хоста…';
-    }
-  });
-}
 $('mStart').addEventListener('click',function(){
   audioInit();
-  if(PENDING_JOIN){connectGuest(PENDING_JOIN);return;}
-  if(menuMode==='solo')startLocal();
-  else showOv('bcoop');
+  startLocal();
 });
 $('mSettings').addEventListener('click',function(){showOv('bset');});
 $('bsetBack').addEventListener('click',function(){showOv('bmenu');});
@@ -215,43 +210,10 @@ function careerRender(){
 refreshMenuUI();
 renderClassPortraits();
 updateDetail();
-$('cHost').addEventListener('click',function(){
-  showOv('bhost');
-  $('roomCode').textContent='…';
-  $('shareHint').textContent='открываю P2P-комнату…';
-  destroyNet();LOBBY=[];
-  hostCreate(function(err){
-    if(err){$('roomCode').textContent='-----';
-      $('shareHint').textContent=(err==='nosignal'?'P2P недоступен — проверьте интернет':'не удалось открыть комнату, попробуйте ещё раз');
-      return;}
-    audioInit();startAmbient();
-    $('shareHint').textContent='ссылка сама введёт код другу · или продиктуйте код';
-  });
-});
-$('bshare').addEventListener('click',function(){shareInvite($('bshare'));});
-$('pauseShare').addEventListener('click',function(){shareInvite($('pauseShare'));});
-$('bBack2').addEventListener('click',function(){showOv('bmenu');});
-$('bBack3').addEventListener('click',function(){showOv('bcoop');});
-$('bBack4').addEventListener('click',function(){
-  try{broadcast({t:'stt',s:'paused'});}catch(e){}
-  destroyNet();LOBBY=[];showOv('bmenu');
-});
-$('joinCode').addEventListener('keydown',function(e){if(e.code==='Enter')$('bjoinGo').click();});
-$('cJoin').addEventListener('click',function(){showOv('bjoin');$('joinErr').textContent='';});
-$('bjoinGo').addEventListener('click',function(){
-  var code=$('joinCode').value.trim().toLowerCase();
-  if(code.length!==4||!/^[a-z0-9]{4}$/.test(code)){$('joinErr').textContent='Код из 4 символов (латиница)';return;}
-  connectGuest(code);
-});
-$('bLeaveWait').addEventListener('click',function(){
-  try{if(NET.hostConn)NET.hostConn.send({t:'leave'});}catch(e){}
-  destroyNet();LOBBY=[];showOv('bmenu');
-});
-$('bstart').addEventListener('click',function(){if(NET.mode==='host')hostStartGame();});
+$('mSettings').addEventListener('click',function(){showOv('bset');});
 $('bresume').addEventListener('click',function(){togglePause();});
 $('brestart').addEventListener('click',function(){
-  if(NET.mode==='host')hostStartGame();
-  else startLocal();
+  startLocal();
 });
 $('bmute').addEventListener('click',function(){
   muted=!muted;
@@ -270,21 +232,15 @@ function sndUI(id,key){
 }
 sndUI('sndMaster','master');sndUI('sndMusic','music');sndUI('sndSfx','sfx');
 $('bleave').addEventListener('click',function(){
-  try{if(NET.hostConn)NET.hostConn.send({t:'leave'});}catch(e){}
-  try{broadcast({t:'stt',s:'dead'});}catch(e){}
-  destroyNet();LOBBY=[];G.state='menu';VIEW.players=[];VIEW.mobs=[];VIEW.boss=null;
-  showOv('bmenu');
+  G.state='menu';showOv('bmenu');
 });
 $('bagain').addEventListener('click',function(){
-  if(NET.mode==='host')hostStartGame();
-  else if(NET.mode==='solo')startLocal();
+  startLocal();
 });
 $('bmenu2').addEventListener('click',function(){
-  destroyNet();LOBBY=[];G.state='menu';VIEW.players=[];VIEW.mobs=[];VIEW.boss=null;
-  showOv('bmenu');
+  G.state='menu';showOv('bmenu');
 });
 $('bcontinue').addEventListener('click',function(){
-  if(NET.mode==='guest')return;
   G.state='playing';showOv(null);G.fadeT=0.9;
 });
 window.addEventListener('blur',function(){
@@ -308,7 +264,7 @@ if(window.ResizeObserver){new ResizeObserver(resize).observe(root);}
 buildMap(20261020);
 for(var mi=0;mi<GW*GH;mi++)FOG.explored[mi]=1;
 resize();
-window.__bo={G:G,NET:NET,VIEW:VIEW,INPUT:INPUT,startLocal:startLocal,hostStartGame:hostStartGame,buildMap:buildMap,
+window.__bo={G:G,NET:NET,INPUT:INPUT,startLocal:startLocal,buildMap:buildMap,
   spawns:function(){return SPAWNS;},rooms:function(){return ROOMS;},blockedAt:blockedAt,
   furn:function(){return FURN;},obst:function(){return OBST;},coffees:function(){return COFFEES;},damageFurn:damageFurn,damageMob:damageMob,
   debris:function(){return DEBRIS;},water:function(){return WATER;},pfx:function(){return PFX;},spawnStone:spawnStone,spawnWater:spawnWater,
@@ -336,25 +292,12 @@ window.__bo={G:G,NET:NET,VIEW:VIEW,INPUT:INPUT,startLocal:startLocal,hostStartGa
   debris:function(){return DEBRIS;},water:function(){return WATER;},pfx:function(){return PFX;},spawnStone:spawnStone,spawnWater:spawnWater,
   step:function(n){
     for(var i=0;i<(n||1);i++){
-      if(NET.mode!=='guest'){
-        var me=localPlayer();
-        if(me){me.ix=INPUT.ix;me.iy=INPUT.iy;me.aim=INPUT.aim;me.f1=INPUT.f1||INPUT.f1Tap;INPUT.f1Tap=false;me.ult=INPUT.ultTap;INPUT.ultTap=false;me.fk=INPUT.fk;me.f2=INPUT.f2;me.sk=INPUT.sk;me.sk2=INPUT.sk2;me.cf=INPUT.cf;INPUT.cf=false;}
-      }
+      var me=localPlayer();
+      if(me){me.ix=INPUT.ix;me.iy=INPUT.iy;me.aim=INPUT.aim;me.f1=INPUT.f1||INPUT.f1Tap;INPUT.f1Tap=false;me.ult=INPUT.ultTap;INPUT.ultTap=false;me.fk=INPUT.fk;me.f2=INPUT.f2;me.sk=INPUT.sk;me.sk2=INPUT.sk2;me.cf=INPUT.cf;INPUT.cf=false;}
       update(1/60);
     }
   }};
 requestAnimationFrame(loop);
-
-var PENDING_JOIN=null;
-try{
-  var _jc=new URL(location.href).searchParams.get('join');
-  if(_jc&&/^[a-z0-9]{4}$/i.test(_jc)){
-    PENDING_JOIN=_jc.toLowerCase();
-    var _tag=document.querySelector('#bmenu .bgtag');
-    if(_tag)_tag.textContent='вас позвали в комнату '+PENDING_JOIN.toUpperCase()+' — выберите класс';
-    refreshMenuUI();
-  }
-}catch(e){}
 
 try{showOv('bmenu');}catch(e){}
 

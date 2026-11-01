@@ -19,7 +19,7 @@ function buildMap(seed,forcedTheme){
   MAPSEED=seed>>>0;if(!MAPSEED)MAPSEED=1;
   _seed=MAPSEED;
   MAPTHEME=(forcedTheme&&THEMEBYNAME[forcedTheme])||THEMES[(rnd()*THEMES.length)|0];
-  grid=[];ROOMS=[];WALLS=[];FURN=[];OBST=[];LIGHTS=[];COFFEES=[];SPAWNS=[];RUGS=[];DOORS=[];DOORT=[];
+  grid=[];ROOMS=[];WALLS=[];FURN=[];OBST=[];LIGHTS=[];COFFEES=[];SPAWNS=[];RUGS=[];DOORS=[];DOORT=[];MONITS=[];
   var i,j,x,y;
   for(j=0;j<GH;j++){grid[j]=[];for(i=0;i<GW;i++)grid[j][i]=0;}
 
@@ -601,8 +601,8 @@ function furnishRoom(rm,fid){
         var pang=(pa/8)*TAU+((rnd()-0.5)*0.35);
         fid=placeFurn(rm,fid,'pillar',ccx+Math.cos(pang)*arx-17,ccy+Math.sin(pang)*ary-17,34,34,10);
       }
-      fid=placeFurn(rm,fid,'plant',rm.x+30,rm.y+30,22,22);
-      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-52,rm.y+rm.h-52,22,22);
+      fid=placeFurn(rm,fid,'plant',rm.x+28,rm.y+28,26,26);
+      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-56,rm.y+rm.h-56,26,26);
     }else if(character===2){
       for(j=rm.y+90;j<rm.y+rm.h-80;j+=140){
         var stacks=2+((rnd()*2)|0);
@@ -640,7 +640,7 @@ function furnishRoom(rm,fid){
       var np2=1+((rnd()*2)|0);
       for(i=0;i<np2;i++)fid=placeFurn(rm,fid,'printer',rm.x+20+rnd()*(rm.w-80),rm.y+14+rnd()*(rm.h-62),44,38,8,noEdge);
       fid=placeFurn(rm,fid,'box',rm.x+18,rm.y+rm.h-44,26,22,8,noEdge);
-      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-44,rm.y+18,22,22,8,noEdge);
+      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-48,rm.y+16,26,26,8,noEdge);
     }
   }else if(furnRoom(rm,'office')){
     var n=1+((rnd()*2)|0);
@@ -650,7 +650,7 @@ function furnishRoom(rm,fid){
     }
     if(rnd()<0.6)fid=placeFurn(rm,fid,'printer',rm.x+16+rnd()*(rm.w-80),rm.y+16+rnd()*(rm.h-62),44,38);
     if(rnd()<0.5)fid=placeFurn(rm,fid,'cabinet',rm.x+20,rm.y+rm.h-56,64,28);
-    if(rnd()<0.6)fid=placeFurn(rm,fid,'plant',rm.x+rm.w-42,rm.y+18,22,22);
+    if(rnd()<0.6)fid=placeFurn(rm,fid,'plant',rm.x+rm.w-46,rm.y+16,26,26);
     if(rnd()<0.4)fid=placeFurn(rm,fid,'box',rm.x+18,rm.y+18,26,22);
   }else if(furnRoom(rm,'meeting')){
     if(!ROOMS.some(function(r){return r.lounge;})&&rnd()<0.75){
@@ -666,8 +666,8 @@ function furnishRoom(rm,fid){
     }else{
       RUGS.push({x:rm.x+rm.w/2-70,y:rm.y+rm.h/2-40,w:140,h:80,c:'#44384a',c2:'#52445a'});
       fid=placeFurn(rm,fid,'rtable',rm.x+rm.w/2-45,rm.y+rm.h/2-28,90,56,14);
-      fid=placeFurn(rm,fid,'plant',rm.x+16,rm.y+16,22,22);
-      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-38,rm.y+rm.h-38,22,22);
+      fid=placeFurn(rm,fid,'plant',rm.x+14,rm.y+14,26,26);
+      fid=placeFurn(rm,fid,'plant',rm.x+rm.w-42,rm.y+rm.h-42,26,26);
     }
   }else if(furnRoom(rm,'pantry')){
 
@@ -676,7 +676,7 @@ function furnishRoom(rm,fid){
     else if(rm.glass&&rm.openSide===1)cx0=rm.x+8;
     else if(rm.glass&&rm.openSide===2)cy0=rm.y+rm.h-46;
     fid=placeFurn(rm,fid,'cstand',cx0,cy0,50,38);
-    fid=placeFurn(rm,fid,'cooler',rm.x+rm.w-46,rm.y+rm.h-50,26,26);
+    fid=placeFurn(rm,fid,'cooler',rm.x+rm.w-50,rm.y+rm.h-52,30,28);
     if(MAPTHEME.pub)RUGS.push({x:rm.x+18,y:rm.y+rm.h-52,w:rm.w-36,h:40,c:'#3a2c1a',c2:'#4a3822'});
   }else if(furnRoom(rm,'lobby')){
     RUGS.push({x:rm.x+rm.w/2-90,y:rm.y+70,w:180,h:110,c:'#463a50',c2:'#554762'});
@@ -693,7 +693,7 @@ function furnishRoom(rm,fid){
     fid=placeFurn(rm,fid,'sink',rm.x+10,rm.y+rm.h-26,48,20,6);
     fid=placeFurn(rm,fid,'sink',rm.x+rm.w-58,rm.y+rm.h-26,48,20,6);
   }
-  if(rm.type!=='wc'&&rnd()<0.6)fid=placeFurn(rm,fid,'plant',rm.x+24+rnd()*(rm.w-54),rm.y+24+rnd()*(rm.h-54),22,22,6);
+  if(rm.type!=='wc'&&rnd()<0.6)fid=placeFurn(rm,fid,'plant',rm.x+24+rnd()*(rm.w-54),rm.y+24+rnd()*(rm.h-58),26,26,6);
   return fid;
 }
 
@@ -726,19 +726,35 @@ function prerenderFloor(){
         else if(rm.type==='office'){base=shade(MAPTHEME.floor,-8);alt=shade(MAPTHEME.alt,-8);}
         else if(rm.type==='openspace'){var hsh=((rm.hall||0)%3)*5-5;base=shade(MAPTHEME.floor,hsh);alt=shade(MAPTHEME.alt,hsh);}
       }else{base=MAPTHEME.corr;alt=MAPTHEME.corrAlt;}
-      c.fillStyle=((i+j)%2===0)?base:alt;
-      c.fillRect(x,y,TILE,TILE);
-      if(!rm){
-        c.strokeStyle='rgba(0,0,0,0.18)';c.lineWidth=1;
+      // материалы пола по ART-RULES §4: комнаты — ламинат/ковролин, мокрые зоны и
+      // коридоры — плитка. Шахматка остаётся только у плитки.
+      var mat=rm?((rm.type==='wc'||rm.type==='pantry')?'tile':(rm.type==='meeting'?'carpet':'lam')):'tile';
+      if(mat==='carpet'){
+        c.fillStyle=base;c.fillRect(x,y,TILE,TILE);
+      }else if(mat==='lam'){
+        c.fillStyle=base;c.fillRect(x,y,TILE,TILE);
+        c.strokeStyle='rgba(0,0,0,0.13)';c.lineWidth=1;      // доски
+        for(var pr2=1;pr2<4;pr2++){c.beginPath();c.moveTo(x,y+pr2*14+0.5);c.lineTo(x+TILE,y+pr2*14+0.5);c.stroke();}
+        for(pr2=0;pr2<4;pr2++){
+          var jx=((i*7+pr2*5+(rm?rm.tx:0))%3)*19+((pr2%2)?9:0);
+          c.beginPath();c.moveTo(x+jx+0.5,y+pr2*14);c.lineTo(x+jx+0.5,y+pr2*14+14);c.stroke();
+          if(((i+pr2*3+j)%4)===0){c.fillStyle='rgba(255,244,224,0.02)';c.fillRect(x,y+pr2*14,TILE,14);}
+        }
+      }else{
+        c.fillStyle=((i+j)%2===0)?base:alt;
+        c.fillRect(x,y,TILE,TILE);
+        c.strokeStyle='rgba(0,0,0,0.16)';c.lineWidth=1;      // швы плитки
         c.strokeRect(x+0.5,y+0.5,TILE-1,TILE-1);
+        c.beginPath();c.moveTo(x+TILE/2+0.5,y);c.lineTo(x+TILE/2+0.5,y+TILE);
+        c.moveTo(x,y+TILE/2+0.5);c.lineTo(x+TILE,y+TILE/2+0.5);c.stroke();
       }
     }
   }
   for(i=0;i<DOORT.length;i++){var DT2=DOORT[i];
     for(j=0;j<DT2.h;j++)for(var dii=0;dii<DT2.w;dii++){
       var ddx=(DT2.x+dii)*TILE,ddy=(DT2.y+j)*TILE;
-      c.fillStyle='rgba(66,224,255,0.10)';c.fillRect(ddx,ddy,TILE,TILE);
-      c.strokeStyle='rgba(66,224,255,0.30)';c.lineWidth=2;c.strokeRect(ddx+2,ddy+2,TILE-4,TILE-4);
+      c.fillStyle='rgba(232,213,176,0.07)';c.fillRect(ddx,ddy,TILE,TILE);
+      c.strokeStyle='rgba(232,213,176,0.22)';c.lineWidth=2;c.strokeRect(ddx+2,ddy+2,TILE-4,TILE-4);
     }
   }
 
@@ -749,7 +765,7 @@ function prerenderFloor(){
     c.fillStyle=shade(MAPTHEME.wallIn,-8);
     c.fillRect(w3.x+1,w3.y+w3.h,w3.w-2,EH-2);
 
-    c.fillStyle='rgba(232,58,156,0.10)';
+    c.fillStyle='rgba(232,213,176,0.07)';
     c.fillRect(w3.x+1,w3.y+w3.h+EH-3,w3.w-2,2);
   }
 
@@ -764,7 +780,12 @@ function prerenderFloor(){
     c.fillStyle=MAPTHEME.wallIn;c.fillRect(w3.x+1,w3.y+1,w3.w-2,w3.h-2);
     var neon=rnd();
     var gl=wallGlass(w3);
-    c.fillStyle=gl?'rgba(126,190,224,0.34)':(neon<0.10?MAPTHEME.neonA:(neon<0.20?MAPTHEME.neonB:MAPTHEME.steel));
+    // вместо неоновой кромки: редкая стена ловит тёплый свет лампы, остальные — сталь
+    if(gl){c.fillStyle='rgba(126,190,224,0.34)';}
+    else if(neon<0.12){var lv=parseInt(MAPTHEME.lamp.slice(1),16);
+      c.fillStyle='rgba('+((lv>>16)&255)+','+((lv>>8)&255)+','+(lv&255)+',0.42)';}
+    else if(neon<0.22){c.fillStyle=MAPTHEME.steel;}
+    else{c.fillStyle=shade(MAPTHEME.steel,-7);}
     if(w3.dir===0)c.fillRect(w3.x+w3.w-3,w3.y,3,w3.h);
     else if(w3.dir===1)c.fillRect(w3.x,w3.y,3,w3.h);
     else if(w3.dir===2)c.fillRect(w3.x,w3.y+w3.h-3,w3.w,3);
@@ -866,7 +887,7 @@ function prerenderFloor(){
       var px2=rm.x+24+rnd()*(rm.w-90),py2=rm.y+3;
       if(!wallBehind(clamp(((px2+30)/TILE)|0,0,GW-1),rm.ty))continue;
       var pg=c.createLinearGradient(px2,py2,px2+54,py2+40);
-      pg.addColorStop(0,rnd()<0.5?'#c4703a':'#8a5aa0');pg.addColorStop(1,'#3a2a4a');
+      pg.addColorStop(0,rnd()<0.5?'#8a6a48':'#6e5a52');pg.addColorStop(1,'#4a3a30');
       c.fillStyle='#d8c9b8';c.fillRect(px2-3,py2-2,60,46);
       c.fillStyle=pg;c.fillRect(px2,py2+1,54,40);
       c.fillStyle='rgba(255,235,200,0.8)';c.beginPath();c.arc(px2+42,py2+10,5,0,TAU);c.fill();
@@ -904,102 +925,170 @@ function floorOpenAt(x,y){
   }
   return true;
 }
+// Живая мебель по ART-RULES §4: объём тонами (тень → передняя грань → верхняя
+// грань → швы), без контура; у каждого предмета hero-деталь + лёгкий хлам.
+// Экраны/индикаторы регистрируются в MONITS — render.js даёт им живой свет.
+var MONITS=[];
+function volF(c,f,h,topC,faceC,loC){
+  var fh=Math.max(4,h*0.42);
+  c.fillStyle='rgba(0,0,0,0.32)';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h+1,f.w*0.55,6,0,0,TAU);c.fill();
+  c.fillStyle=faceC;c.fillRect(f.x,f.y+f.h-fh,f.w,fh);
+  c.fillStyle=loC;c.fillRect(f.x,f.y+f.h-3,f.w,3);
+  c.fillStyle=topC;c.fillRect(f.x,f.y,f.w,f.h-fh);
+  c.fillStyle='rgba(255,244,224,0.06)';c.fillRect(f.x,f.y,f.w,2);
+  c.strokeStyle='rgba(0,0,0,0.18)';c.lineWidth=1;c.strokeRect(f.x+0.5,f.y+0.5,f.w-1,f.h-1);
+}
+function oChair(c,cx2,cy2){ // офисное кресло сверху: база-звезда + седушка + спинка
+  c.fillStyle='rgba(0,0,0,0.25)';c.beginPath();c.ellipse(cx2,cy2+8,13,6,0,0,TAU);c.fill();
+  c.strokeStyle='#1a1d23';c.lineWidth=2.5;c.lineCap='round';c.beginPath();
+  for(var si=0;si<4;si++){var sa=si*Math.PI/2+0.5;c.moveTo(cx2,cy2);c.lineTo(cx2+Math.cos(sa)*11,cy2+Math.sin(sa)*5);}
+  c.stroke();
+  c.fillStyle='#3b4453';c.beginPath();c.ellipse(cx2,cy2,12,8,0,0,TAU);c.fill();
+  c.fillStyle='rgba(255,244,224,0.05)';c.beginPath();c.ellipse(cx2-2,cy2-2,7,4,0,0,TAU);c.fill();
+  c.fillStyle='#465063';rr(c,cx2-11,cy2-15,22,8,4);c.fill();
+}
 function drawFurnDecal(c,f){
   if(f.t==='desk'){
-    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+4,f.y+6,f.w,f.h);
-    c.fillStyle='#3a404c';c.fillRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#454c59';c.fillRect(f.x,f.y,f.w,6);
-    c.strokeStyle='#22262e';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#14171c';c.fillRect(f.x+12,f.y+12,36,26);
-    c.fillStyle='rgba(150,190,220,0.25)';c.fillRect(f.x+14,f.y+14,32,22);
-    c.fillStyle='#14171c';c.fillRect(f.x+27,f.y+38,6,8);
-    c.fillStyle='rgba(220,224,230,0.7)';c.save();c.translate(f.x+95,f.y+30);c.rotate(0.2);c.fillRect(-9,-6,18,12);c.restore();
-    c.fillStyle='rgba(210,214,222,0.5)';c.save();c.translate(f.x+110,f.y+40);c.rotate(-0.3);c.fillRect(-8,-5,16,10);c.restore();
-    c.fillStyle='#6f4a23';c.beginPath();c.arc(f.x+72,f.y+20,5,0,TAU);c.fill();
-    chair(c,f.x+75,f.y+92);chair(c,f.x+40,f.y-24);
+    volF(c,f,14,'#6a5a42','#4e4231','#392f22');
+    c.strokeStyle='rgba(0,0,0,0.10)';c.lineWidth=1;
+    for(var g=0;g<3;g++){var gy=f.y+6+g*8;
+      c.beginPath();c.moveTo(f.x+8,gy);c.bezierCurveTo(f.x+f.w*0.35,gy-2,f.x+f.w*0.65,gy+2,f.x+f.w-8,gy);c.stroke();}
+    c.fillStyle='#4e4231';c.fillRect(f.x+7,f.y+f.h-9,42,7);   // тумба
+    c.strokeStyle='rgba(0,0,0,0.25)';c.strokeRect(f.x+7.5,f.y+f.h-8.5,41,6);
+    c.fillStyle='#8a7a5a';c.fillRect(f.x+24,f.y+f.h-6,9,2);
+    var m1x=f.x+16,m2x=f.x+f.w-52;                            // hero: два монитора
+    function mon(mx){
+      c.fillStyle='#343a42';rr(c,mx-4,f.y+2,48,6,2);c.fill();
+      c.fillStyle='#20242a';rr(c,mx,f.y+7,40,10,3);c.fill();
+      c.fillStyle='#15181d';c.fillRect(mx+2,f.y+15,36,4);
+      c.fillStyle='rgba(168,196,216,0.30)';rr(c,mx+2,f.y+9,36,5,2);c.fill();
+      MONITS.push({x:mx+18,y:f.y+11});
+    }
+    mon(m1x);mon(m2x);
+    c.fillStyle='#1b2027';rr(c,f.x+f.w/2-17,f.y+22,34,11,2);c.fill();
+    c.fillStyle='rgba(200,215,235,0.14)';for(var kb=0;kb<5;kb++)c.fillRect(f.x+f.w/2-14+kb*6,f.y+25,4.5,5);
+    c.fillStyle='#9a5a40';c.beginPath();c.arc(f.x+f.w-14,f.y+32,4.5,0,TAU);c.fill();
+    c.strokeStyle='#6a3a26';c.lineWidth=2;c.beginPath();c.arc(f.x+f.w-14,f.y+32,6.5,-1.1,1.1);c.stroke();
+    c.save();c.translate(f.x+f.w/2-14,f.y+35);c.rotate(0.12);
+    c.fillStyle='rgba(233,236,242,0.8)';c.fillRect(-10,-6,20,12);
+    c.strokeStyle='rgba(40,50,70,0.3)';c.lineWidth=1;
+    c.beginPath();c.moveTo(-6,-2);c.lineTo(6,-2);c.moveTo(-6,2);c.lineTo(3,2);c.stroke();c.restore();
+    oChair(c,f.x+f.w/2,f.y+f.h+18);oChair(c,f.x+34,f.y-16);
   }else if(f.t==='rtable'){
     c.fillStyle='rgba(0,0,0,0.3)';c.beginPath();c.ellipse(f.x+f.w/2+4,f.y+f.h/2+5,f.w/2,f.h/2,0,0,TAU);c.fill();
-    c.fillStyle='#4a4238';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h/2,f.w/2,f.h/2,0,0,TAU);c.fill();
-    c.strokeStyle='#2c261f';c.lineWidth=2;c.stroke();
-    c.fillStyle='rgba(220,224,230,0.55)';c.fillRect(f.x+f.w/2-16,f.y+f.h/2-9,26,18);
-    c.fillStyle='#6f4a23';c.beginPath();c.arc(f.x+f.w/2+26,f.y+f.h/2+4,6,0,TAU);c.fill();
-    chair(c,f.x-26,f.y+f.h/2);chair(c,f.x+f.w+26,f.y+f.h/2);chair(c,f.x+f.w/2,f.y-26);chair(c,f.x+f.w/2,f.y+f.h+26);
+    c.fillStyle='#463d33';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h/2,f.w/2,f.h/2,0,0,TAU);c.fill();
+    c.fillStyle='#544a3e';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h/2-2,f.w/2-5,f.h/2-5,0,0,TAU);c.fill();
+    c.strokeStyle='rgba(0,0,0,0.2)';c.lineWidth=1.5;c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h/2,f.w/2-1,f.h/2-1,0,0,TAU);c.stroke();
+    c.fillStyle='rgba(220,224,230,0.55)';c.save();c.translate(f.x+f.w/2-6,f.y+f.h/2);c.rotate(0.08);c.fillRect(-12,-8,24,15);c.restore();
+    c.strokeStyle='rgba(40,50,70,0.25)';c.lineWidth=1;
+    c.beginPath();c.moveTo(f.x+f.w/2-12,f.y+f.h/2-3);c.lineTo(f.x+f.w/2+4,f.y+f.h/2-3);c.stroke();
+    c.fillStyle='#9a5a40';c.beginPath();c.arc(f.x+f.w/2+24,f.y+f.h/2+8,5,0,TAU);c.fill();
+    c.strokeStyle='#6a3a26';c.lineWidth=2;c.beginPath();c.arc(f.x+f.w/2+24,f.y+f.h/2+8,7,-1.1,1.1);c.stroke();
+    oChair(c,f.x-24,f.y+f.h/2);oChair(c,f.x+f.w+24,f.y+f.h/2);
+    oChair(c,f.x+f.w/2,f.y-24);oChair(c,f.x+f.w/2,f.y+f.h+24);
   }else if(f.t==='printer'){
-    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+3,f.y+4,f.w,f.h);
-    c.fillStyle='#565e6a';rr(c,f.x,f.y,f.w,f.h,3);c.fill();
-    c.fillStyle='#3a4049';c.fillRect(f.x+6,f.y+6,f.w-12,14);
-    c.fillStyle='#22262e';c.fillRect(f.x+6,f.y+26,f.w-12,8);
-    c.fillStyle='rgba(220,224,230,0.7)';c.fillRect(f.x+16,f.y+28,f.w-32,2);
-    c.fillStyle='#8bd17c';c.fillRect(f.x+f.w-12,f.y+8,3,3);
+    volF(c,f,16,'#565e6a','#454c56','#333941');
+    c.fillStyle='#3a4049';rr(c,f.x+6,f.y+5,f.w-12,13,2);c.fill();   // крышка сканера
+    c.fillStyle='rgba(255,244,224,0.05)';c.fillRect(f.x+7,f.y+6,f.w-14,3);
+    c.fillStyle='#22262e';c.fillRect(f.x+6,f.y+f.h-14,f.w-12,8);    // лоток
+    c.fillStyle='rgba(220,224,230,0.75)';c.fillRect(f.x+16,f.y+f.h-13,f.w-32,3); // бумага торчит
+    c.fillStyle='#8bd17c';c.fillRect(f.x+f.w-12,f.y+8,3,3);         // LED
+    MONITS.push({x:f.x+f.w/2,y:f.y+9,warm:1});
   }else if(f.t==='cstand'){
-    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+4,f.y+6,f.w,f.h);
-    c.fillStyle='#3d434e';c.fillRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#4d5462';c.fillRect(f.x,f.y,f.w,7);
-    c.strokeStyle='#22262e';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-
-    c.fillStyle='#22262e';c.fillRect(f.x+f.w/2-24,f.y-34,48,34);
-    c.fillStyle='#3a4049';c.fillRect(f.x+f.w/2-18,f.y-28,36,16);
-    c.fillStyle='#3fb950';c.fillRect(f.x+f.w/2-14,f.y-26,5,3);
+    volF(c,f,18,'#3d434e','#31363f','#262a31');
+    c.fillStyle='#22262e';rr(c,f.x+f.w/2-26,f.y-36,52,34,3);c.fill(); // кофемашина
+    c.fillStyle='#3a4049';c.fillRect(f.x+f.w/2-20,f.y-30,40,14);
+    c.fillStyle='rgba(168,196,216,0.35)';c.fillRect(f.x+f.w/2-14,f.y-27,12,7); // дисплей
+    MONITS.push({x:f.x+f.w/2-8,y:f.y-24,warm:1});
+    c.fillStyle='#c9a45a';c.fillRect(f.x+f.w/2+8,f.y-26,5,3);       // индикатор
+    c.fillStyle='#8a7a5a';c.fillRect(f.x+f.w/2-8,f.y-12,16,5);      // носик+поддон
+    c.fillStyle='#c9bfae';c.beginPath();c.arc(f.x+f.w-14,f.y+f.h-16,4,0,TAU);c.fill(); // чашка
+    c.fillStyle='#8a6a4a';c.beginPath();c.arc(f.x+12,f.y+f.h-14,4,0,TAU);c.fill();    // вторая
   }else if(f.t==='cabinet'){
-    c.fillStyle='#39404b';c.fillRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='#20242b';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='#282e38';c.beginPath();
-    for(var k=1;k<3;k++){c.moveTo(f.x+k*f.w/3,f.y+4);c.lineTo(f.x+k*f.w/3,f.y+f.h-4);}
-    c.stroke();
+    volF(c,f,14,'#39404b','#2e343e','#242931');
+    c.strokeStyle='rgba(0,0,0,0.28)';c.lineWidth=1;
+    for(var k=1;k<3;k++){c.beginPath();c.moveTo(f.x+k*f.w/3,f.y+3);c.lineTo(f.x+k*f.w/3,f.y+f.h-5);c.stroke();}
+    c.fillStyle='#6f7681';
+    c.fillRect(f.x+f.w/6-5,f.y+f.h/2,10,2);c.fillRect(f.x+f.w*2/3-5,f.y+f.h/2,10,2);
+    c.fillStyle='rgba(220,224,230,0.5)';c.save();c.translate(f.x+f.w-10,f.y+6);c.rotate(0.2);c.fillRect(-8,-5,16,10);c.restore();
   }else if(f.t==='plant'){
-    c.fillStyle='#4a3a26';c.fillRect(f.x-4,f.y-4,f.w+8,f.h+4);
-    c.fillStyle='#2f4a33';c.beginPath();c.arc(f.x+2,f.y,10,0,TAU);c.arc(f.x+f.w-2,f.y,10,0,TAU);c.arc(f.x+f.w/2,f.y-10,11,0,TAU);c.fill();
-    c.fillStyle='#3a5a40';c.beginPath();c.arc(f.x+f.w/2,f.y,7,0,TAU);c.fill();
+    c.fillStyle='rgba(0,0,0,0.28)';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h+1,f.w*0.55,5,0,0,TAU);c.fill();
+    c.fillStyle='#3c3325';c.beginPath();c.arc(f.x+f.w/2,f.y+f.h-8,f.w*0.42,0,TAU);c.fill();
+    c.fillStyle='#4a3f2e';c.beginPath();c.arc(f.x+f.w/2,f.y+f.h-9,f.w*0.42-3,0,TAU);c.fill();
+    c.fillStyle='#31281a';c.beginPath();c.arc(f.x+f.w/2,f.y+f.h-9,5,0,TAU);c.fill();  // земля
+    c.fillStyle='#37412f';
+    for(var lf=0;lf<5;lf++){var la=-0.8+lf*0.4;                    // поникшие листья
+      c.save();c.translate(f.x+f.w/2,f.y+f.h-12);c.rotate(la);
+      c.beginPath();c.ellipse(0,-8,3.4,9,0,0,TAU);c.fill();c.restore();}
+    c.fillStyle='#42503a';c.beginPath();c.arc(f.x+f.w/2,f.y+4,6,0,TAU);c.fill();
+    c.fillStyle='rgba(255,244,224,0.05)';c.beginPath();c.arc(f.x+f.w/2-2,f.y+3,3,0,TAU);c.fill();
   }else if(f.t==='cooler'){
-    c.fillStyle='#4d5462';c.fillRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#7aa2c8';c.fillRect(f.x+5,f.y+4,f.w-10,12);
-    c.fillStyle='#22262e';c.fillRect(f.x+4,f.y+18,f.w-8,8);
+    volF(c,f,16,'#4d5462','#3a4049','#2c3038');
+    c.fillStyle='#6f95ad';rr(c,f.x+5,f.y+4,f.w-10,f.h*0.45,5);c.fill(); // бутыль
+    c.fillStyle='rgba(255,255,255,0.25)';rr(c,f.x+8,f.y+7,5,f.h*0.3,3);c.fill();
+    MONITS.push({x:f.x+f.w/2,y:f.y+f.h*0.3});
+    c.fillStyle='#22262e';c.fillRect(f.x+4,f.y+f.h-13,f.w-8,7);      // краник-блок
+    c.fillStyle='#7a94a8';c.fillRect(f.x+f.w/2-5,f.y+f.h-11,4,3);c.fillRect(f.x+f.w/2+1,f.y+f.h-11,4,3);
   }else if(f.t==='rstand'){
-    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+3,f.y+4,f.w,f.h);
-    c.fillStyle='#423a30';c.fillRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#544a3d';c.fillRect(f.x,f.y,f.w,6);
-    c.strokeStyle='#2c261f';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#8bd17c';c.font='bold 9px Arial';c.textAlign='center';
-    c.fillText('RECEPTION',f.x+f.w/2,f.y+f.h/2+3);c.textAlign='left';
+    volF(c,f,18,'#544a3d','#423a30','#332d24');
+    c.fillStyle='rgba(226,224,218,0.6)';rr(c,f.x+f.w/2-26,f.y+6,52,14,2);c.fill(); // табличка
+    c.strokeStyle='rgba(40,50,70,0.35)';c.lineWidth=1;c.strokeRect(f.x+f.w/2-26.5,f.y+6.5,53,13);
+    c.fillStyle='#5a4a3a';c.font='bold 8px Arial';c.textAlign='center';
+    c.fillText('RECEPTION',f.x+f.w/2,f.y+15);c.textAlign='left';
+    c.save();c.translate(f.x+f.w-16,f.y+f.h-10);c.rotate(-0.15);
+    c.fillStyle='rgba(226,224,218,0.7)';c.fillRect(-8,-5,16,10);c.restore();
   }else if(f.t==='stall'){
-    c.fillStyle='#3d4650';c.fillRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='#22262e';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#2a3038';c.fillRect(f.x+f.w-9,f.y+6,4,f.h-12);
-    c.fillStyle='#c9d1d9';c.fillRect(f.x+f.w/2-2,f.y+f.h/2-2,4,4);
+    volF(c,f,26,'#3d4650','#2f3742','#242b33');
+    c.fillStyle='rgba(0,0,0,0.14)';c.fillRect(f.x+f.w-8,f.y+4,3,f.h-6); // торец
+    c.fillStyle='#c9d1d9';c.fillRect(f.x+f.w/2-2,f.y+f.h/2-2,4,4);      // фурнитура
+    c.fillStyle='rgba(255,244,224,0.04)';c.fillRect(f.x+2,f.y+2,f.w-4,3);
   }else if(f.t==='couch'){
-    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+4,f.y+6,f.w,f.h);
-    c.fillStyle='#5a4a56';rr(c,f.x,f.y,f.w,f.h,9);c.fill();
-    c.fillStyle='#6b5a66';rr(c,f.x+4,f.y+4,f.w-8,12,6);c.fill();
-    c.strokeStyle='#3a2f3c';c.lineWidth=2;rr(c,f.x,f.y,f.w,f.h,9);c.stroke();
-    c.fillStyle='#7a6876';c.beginPath();c.arc(f.x+16,f.y-6,7,0,TAU);c.arc(f.x+f.w-16,f.y-6,7,0,TAU);c.fill();
+    c.fillStyle='rgba(0,0,0,0.3)';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h+2,f.w*0.55,7,0,0,TAU);c.fill();
+    c.fillStyle='#4a3c48';rr(c,f.x,f.y,f.w,f.h,8);c.fill();           // база
+    c.fillStyle='#5a4a56';rr(c,f.x+3,f.y+3,f.w-6,f.h-10,6);c.fill();  // спинка (север)
+    c.fillStyle='#6b5a66';rr(c,f.x+8,f.y+13,f.w-16,f.h-18,5);c.fill();// сиденье
+    c.strokeStyle='rgba(0,0,0,0.2)';c.lineWidth=1.5;
+    c.beginPath();c.moveTo(f.x+f.w/2,f.y+14);c.lineTo(f.x+f.w/2,f.y+f.h-6);c.stroke();
+    c.fillStyle='#52435f';rr(c,f.x+2,f.y+f.h-16,13,f.h-6,6);c.fill(); // подлокотники
+    rr(c,f.x+f.w-15,f.y+f.h-16,13,f.h-6,6);c.fill();
+    c.fillStyle='rgba(255,255,255,0.04)';c.fillRect(f.x+10,f.y+5,f.w-20,4);
+    c.fillStyle='rgba(226,224,218,0.4)';c.save();c.translate(f.x+f.w-20,f.y+10);c.rotate(0.1);c.fillRect(-7,-5,14,9);c.restore();
   }else if(f.t==='lamp'){
-    c.fillStyle='rgba(255,190,110,0.13)';c.beginPath();c.arc(f.x+9,f.y+2,26,0,TAU);c.fill();
-    c.fillStyle='#3a3340';c.fillRect(f.x+7,f.y+8,4,12);
-    c.fillStyle='#ffcf7a';c.beginPath();c.moveTo(f.x+1,f.y+8);c.lineTo(f.x+17,f.y+8);c.lineTo(f.x+13,f.y-4);c.lineTo(f.x+5,f.y-4);c.closePath();c.fill();
+    c.fillStyle='rgba(0,0,0,0.25)';c.beginPath();c.ellipse(f.x+9,f.y+f.h,f.w*0.7,4,0,0,TAU);c.fill();
+    c.fillStyle='#3a3340';c.fillRect(f.x+7,f.y+6,4,f.h-6);            // стойка
+    c.fillStyle='#ffcf7a';c.beginPath();                             // плафон
+    c.moveTo(f.x+1,f.y+8);c.lineTo(f.x+17,f.y+8);c.lineTo(f.x+13,f.y-4);c.lineTo(f.x+5,f.y-4);c.closePath();c.fill();
+    c.fillStyle='rgba(255,244,224,0.4)';c.fillRect(f.x+5,f.y-4,8,2);
+    MONITS.push({x:f.x+9,y:f.y+2,warm:1});
   }else if(f.t==='pillar'){
-    c.fillStyle='rgba(0,0,0,0.35)';c.fillRect(f.x+3,f.y+4,f.w,f.h);
-    c.fillStyle='#343b46';c.fillRect(f.x,f.y,f.w,f.h);
-    c.fillStyle='#454e5c';c.fillRect(f.x+3,f.y+3,f.w-6,f.h-6);
-    c.fillStyle='rgba(150,190,220,0.12)';c.fillRect(f.x+3,f.y+3,5,f.h-6);
-    c.fillStyle='rgba(0,0,0,0.25)';c.fillRect(f.x+3,f.y+f.h-7,f.w-6,4);
+    c.fillStyle='rgba(0,0,0,0.35)';c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h+2,f.w*0.6,7,0,0,TAU);c.fill();
+    c.fillStyle='#343b46';c.fillRect(f.x,f.y,f.w,f.h);                // основание
+    c.fillStyle='#454e5c';c.fillRect(f.x+4,f.y+4,f.w-8,f.h-8);        // тело
+    c.fillStyle='rgba(255,244,224,0.06)';c.fillRect(f.x+4,f.y+4,f.w-8,3);
+    c.strokeStyle='rgba(0,0,0,0.25)';c.lineWidth=1;                   // швы бетона
+    c.beginPath();c.moveTo(f.x+6,f.y+f.h*0.4);c.lineTo(f.x+f.w-8,f.y+f.h*0.4);
+    c.moveTo(f.x+f.w*0.55,f.y+f.h*0.62);c.lineTo(f.x+f.w-6,f.y+f.h*0.62);c.stroke();
+    c.fillStyle='rgba(0,0,0,0.22)';c.fillRect(f.x+4,f.y+f.h-9,f.w-8,5);
   }else if(f.t==='box'){
-    c.fillStyle='rgba(0,0,0,0.28)';c.fillRect(f.x+3,f.y+4,f.w,f.h);
-    c.fillStyle='#8a6f4d';c.fillRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='#5d4a32';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='rgba(255,255,255,0.25)';c.lineWidth=1.5;
-    c.beginPath();c.moveTo(f.x,f.y);c.lineTo(f.x+f.w,f.y+f.h);c.moveTo(f.x+f.w,f.y);c.lineTo(f.x,f.y+f.h);c.stroke();
+    volF(c,f,12,'#8a7350','#7d6647','#63533a');
+    c.strokeStyle='rgba(255,255,255,0.18)';c.lineWidth=1.5;           // клапаны
+    c.beginPath();c.moveTo(f.x,f.y+3);c.lineTo(f.x+f.w,f.y+3);c.stroke();
+    c.fillStyle='#b5a578';c.fillRect(f.x+2,f.y+1,f.w-4,3);            // скотч
+    c.fillStyle='rgba(226,224,218,0.6)';c.fillRect(f.x+5,f.y+f.h-11,11,7); // накладная
+    c.strokeStyle='rgba(60,50,35,0.4)';c.lineWidth=1;
+    c.beginPath();c.moveTo(f.x+7,f.y+f.h-9);c.lineTo(f.x+14,f.y+f.h-9);c.stroke();
   }else if(f.t==='sink'){
-    c.fillStyle='#454c56';c.fillRect(f.x,f.y,f.w,f.h);
-    c.strokeStyle='#22262e';c.lineWidth=2;c.strokeRect(f.x,f.y,f.w,f.h);
+    c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(f.x+3,f.y+4,f.w,f.h);
+    c.fillStyle='#565e66';rr(c,f.x,f.y,f.w,f.h,4);c.fill();          // столешница
+    c.fillStyle='#667076';rr(c,f.x+2,f.y+2,f.w-4,f.h-4,3);c.fill();
     var ns=Math.max(2,(f.w/56)|0);
     for(var sk=0;sk<ns;sk++){
       var sx2=f.x+10+sk*(f.w-20)/ns;
-      c.fillStyle='#5c6570';c.beginPath();c.ellipse(sx2+14,f.y+f.h/2,12,8,0,0,TAU);c.fill();
-      c.fillStyle='#7aa2c8';c.beginPath();c.ellipse(sx2+14,f.y+f.h/2,8,5,0,0,TAU);c.fill();
-      c.fillStyle='#8b949e';c.fillRect(sx2+12,f.y-6,4,8);
+      c.fillStyle='#3a4046';c.beginPath();c.ellipse(sx2+14,f.y+f.h/2,12,8,0,0,TAU);c.fill();
+      c.fillStyle='#7a94a8';c.beginPath();c.ellipse(sx2+14,f.y+f.h/2,8,5,0,0,TAU);c.fill();
+      c.fillStyle='#8b949e';c.fillRect(sx2+12,f.y-4,4,8);            // смеситель
     }
   }
-  function chair(cx2,cy2){c.fillStyle='#2c313b';c.beginPath();c.arc(cx2,cy2,13,0,TAU);c.fill();c.strokeStyle='#1c2027';c.lineWidth=3;c.beginPath();c.arc(cx2,cy2,13,0,TAU);c.stroke();}
 }
 function roomLabel(rm){
   if(!rm)return '';
@@ -1119,19 +1208,23 @@ function flowDir(x,y){
   return Math.atan2((by+0.5)*TILE-y,(bx+0.5)*TILE-x);
 }
 
+// Темы по ART-RULES §2: земляные десатурированные палитры, глубокие чёрные.
+// Свет — только живой (ART-RULES «Прозрачный потолок»): lamp/lampCold — оттенок
+// люминесцентных ламп (тёплый/холодный вперемешку, как в реальном опенспейсе),
+// screen — свечение мониторов/голо-панелей. Синтвейв-неона (neonA/neonB) нет.
 var THEMES=[
- {name:'Угольный опенспейс',floor:'#171210',alt:'#1a1512',corr:'#120e0c',corrAlt:'#15100d',wall:'#0b0806',wallIn:'#221a13',neonA:'#ff9a3d',neonB:'#c4622a',steel:'#3a2f24'},
- {name:'Котельная',floor:'#1a0f0c',alt:'#1e120e',corr:'#140b08',corrAlt:'#170d0a',wall:'#0c0605',wallIn:'#2a1410',neonA:'#ff5a2a',neonB:'#ffb25e',steel:'#4a2a1c'},
- {name:'Бумажный архив',floor:'#1a160f',alt:'#1e1a12',corr:'#14110b',corrAlt:'#17130d',wall:'#0d0b07',wallIn:'#262014',neonA:'#d8a94e',neonB:'#9a8a5a',steel:'#403a28'},
- {name:'Мраморный ресепшн',floor:'#12151a',alt:'#15181e',corr:'#0e1014',corrAlt:'#111318',wall:'#080a0d',wallIn:'#1c222a',neonA:'#8ab4c4',neonB:'#d8cfc0',steel:'#2e3a44'},
- {name:'Красный этаж',floor:'#180d0d',alt:'#1c1010',corr:'#120909',corrAlt:'#150b0b',wall:'#0a0505',wallIn:'#2c1414',neonA:'#c4342e',neonB:'#d8a94e',steel:'#42201e'}
+ {name:'Угольный опенспейс',floor:'#292017',alt:'#2e251b',corr:'#1d1710',corrAlt:'#211a12',wall:'#140f0a',wallIn:'#2f2519',lamp:'#e8d5b0',lampCold:'#c6ccc4',screen:'#a4bcc8',steel:'#40372b'},
+ {name:'Бумажный архив',floor:'#2b2418',alt:'#30281b',corr:'#1f1a11',corrAlt:'#231d13',wall:'#181307',wallIn:'#352b1b',lamp:'#e6d2a4',lampCold:'#c9c6b2',screen:'#adb8a2',steel:'#453d2b'},
+ {name:'Мраморный ресепшн',floor:'#23262b',alt:'#282b31',corr:'#191c20',corrAlt:'#1d2025',wall:'#101216',wallIn:'#282e35',lamp:'#ded6c2',lampCold:'#c9d6dd',screen:'#a9c6d4',steel:'#39424a'},
+ {name:'Красный этаж',floor:'#271715',alt:'#2c1a18',corr:'#1c110f',corrAlt:'#201412',wall:'#130a09',wallIn:'#341d1a',lamp:'#e3cdb4',lampCold:'#c8c2c0',screen:'#a8b0bc',steel:'#443230'},
+ {name:'Серверная',floor:'#202326',alt:'#252829',corr:'#161a1c',corrAlt:'#1a1e20',wall:'#0e1113',wallIn:'#242a2e',lamp:'#d8d8cc',lampCold:'#c4d4da',screen:'#9fc4d4',steel:'#3a4348'}
 ];
 var MAPTHEME=THEMES[0];
 
 // Тема паба — только принудительная (пятничный корпоратив). В THEMES не добавлять:
-// обычные волны не должны на неё натыкаться. Синхронизация хост→гость — именем темы
-// в событии map (guest.js), поэтому имя живёт и в THEMEBYNAME.
-var PUBTHEME={name:'Паб «Последний коммит»',floor:'#101c10',alt:'#142114',corr:'#0c150c',corrAlt:'#0f190f',wall:'#070d07',wallIn:'#1c2e16',neonA:'#7ddb4e',neonB:'#e8c56a',steel:'#2e4426',pub:true};
+// обычные волны не должны на неё натыкаться. Имя живёт в THEMEBYNAME, чтобы
+// regenLocation мог построить карту по имени темы особого спринта.
+var PUBTHEME={name:'Паб «Последний коммит»',floor:'#101c10',alt:'#142114',corr:'#0c150c',corrAlt:'#0f190f',wall:'#070d07',wallIn:'#1c2e16',lamp:'#e6d4ac',lampCold:'#c9cfc0',screen:'#a6c9a0',steel:'#33402e',pub:true};
 var THEMEBYNAME={};
 for(var _ti=0;_ti<THEMES.length;_ti++)THEMEBYNAME[THEMES[_ti].name]=THEMES[_ti];
 THEMEBYNAME[PUBTHEME.name]=PUBTHEME;

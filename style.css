@@ -11,7 +11,7 @@
 #burnout .bgpanel{background:rgba(13,17,23,.97);border:1px solid #2a3038;border-radius:10px;padding:22px 30px;max-width:620px;width:88%;color:#c9d1d9;box-shadow:0 0 60px rgba(0,0,0,.8);max-height:92%;overflow-y:auto;overscroll-behavior:contain;}
 #burnout .bgcenter{text-align:center;}
 #burnout .bgtitle{font-size:clamp(20px,4cqw,36px);font-weight:700;color:#e6edf3;letter-spacing:1px;animation:boflick 4s infinite;}
-#burnout .bgtitle span{color:#e5534b;}
+#burnout .bgtitle span{color:#c9a45a;}
 #burnout .bgtitle.bgsmall{font-size:clamp(18px,3.4cqw,28px);}
 @keyframes boflick{0%,91%,94%,98%,100%{opacity:1}92%{opacity:.35}96%{opacity:.7}}
 #burnout .bgtag{color:#8b949e;margin:6px 0 16px;font-style:italic;font-size:14px;}
@@ -22,15 +22,15 @@
 #burnout .brail{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;background:linear-gradient(180deg,rgba(16,22,32,0.9),rgba(10,14,20,0.9));border:1px solid #263444;border-radius:8px;padding:5px 4px;cursor:pointer;color:#9aa4af;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.4;transition:border-color .15s,box-shadow .15s,transform .15s;min-height:0;overflow:hidden;}
 #burnout .brail .rpimg{flex:1;min-height:0;width:auto;max-width:100%;object-fit:contain;-webkit-user-drag:none;}
 #burnout .brail span{flex:none;padding-top:3px;letter-spacing:.5px;}
-#burnout .brail:hover{border-color:#42e0ff;transform:translateY(-2px);}
-#burnout .brail.sel{border-color:#42e0ff;box-shadow:0 0 18px rgba(66,224,255,0.35),inset 0 0 12px rgba(21,112,127,0.12);color:#42e0ff;}
+#burnout .brail:hover{border-color:#c9a45a;transform:translateY(-2px);}
+#burnout .brail.sel{border-color:#c9a45a;box-shadow:0 0 16px rgba(201,164,90,0.28),inset 0 0 10px rgba(90,60,20,0.14);color:#e8d5b0;}
 #burnout .bgdetail{flex:1;min-width:0;display:flex;gap:14px;align-items:stretch;}
 #burnout .bgphotoframe{flex:none;align-self:stretch;display:flex;background:#070b11;border:1px solid #263444;border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
 #burnout .bgphotoframe img{height:100%;min-height:0;width:auto;box-shadow:0 0 0 1px rgba(0,0,0,0.4);-webkit-user-drag:none;}
 #burnout .bgphotoframe img.photo-pix{image-rendering:pixelated;}
 #burnout .bginfo{flex:1;min-width:0;display:flex;flex-direction:column;text-align:left;}
 #burnout .bginfo h2{font-family:'Pixelify Sans',Arial,sans-serif;font-size:26px;color:#eaf6ff;margin:0;letter-spacing:1px;line-height:1.1;}
-#burnout .bgrole{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#42e0ff;letter-spacing:2px;text-transform:uppercase;margin:4px 0 8px;}
+#burnout .bgrole{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c9b896;letter-spacing:2px;text-transform:uppercase;margin:4px 0 8px;}
 #burnout .bgbio{font-size:12.5px;line-height:1.55;color:#9aa4af;margin:0 0 10px;font-style:italic;}
 #burnout .bgskills{display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#263444 transparent;}
 #burnout .bgskills::-webkit-scrollbar{width:6px;}
@@ -48,12 +48,8 @@
 #burnout .bgstats span{color:#8b949e;}
 #burnout .bgstats b{color:#e6edf3;text-align:right;}
 #burnout .bgbtn{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:10px 18px;font-size:14px;cursor:pointer;margin:3px 0 0 0;font-family:inherit;min-height:44px;}
-#burnout .bgbtn:hover{background:#e5534b;border-color:#e5534b;color:#fff;}
+#burnout .bgbtn:hover{background:rgba(90,60,20,0.35);border-color:#c49a3d;color:#fff3dc;}
 #burnout .bgwide{display:block;width:100%;max-width:300px;margin:6px auto 0;}
-#burnout .bginput{background:#161b22;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:20px;letter-spacing:6px;text-align:center;text-transform:lowercase;width:200px;font-family:monospace;}
-#burnout #roomCode{font-size:34px;letter-spacing:10px;color:#3fb950;font-family:monospace;margin:6px 0 12px;}
-#burnout .bglobby{margin:8px 0;font-size:14px;color:#c9d1d9;}
-#burnout .bglobby div{padding:4px 0;border-bottom:1px solid #21262d;}
 #burnout .bgboard{margin:10px auto 4px;max-width:300px;font-size:12px;color:#c9d1d9;text-align:left;}
 #burnout .bgboard .row{display:flex;justify-content:space-between;padding:3px 6px;border-bottom:1px solid #21262d;}
 #burnout .bgboard .row.me{background:rgba(63,185,80,0.12);}
@@ -102,7 +98,7 @@
 #burnout .bgtitle{font-family:'Pixelify Sans',Arial,sans-serif;font-weight:700;font-size:clamp(24px,5.4cqw,46px);letter-spacing:2px;color:#fff3dc;
   text-shadow:0 0 6px rgba(196,162,78,0.85),0 0 20px rgba(90,60,20,0.75),0 0 46px rgba(120,60,24,0.5);
   animation:boflick 4s infinite;}
-#burnout .bgtitle span{color:#ff5fa8;text-shadow:0 0 6px rgba(255,95,168,0.9),0 0 22px rgba(138,42,90,0.8);}
+#burnout .bgtitle span{color:#c9a45a;text-shadow:0 1px 2px rgba(30,20,10,0.8);}
 #burnout .bgov{background:rgba(2,4,8,0.45);}
 #burnout .bgpanel{background:rgba(18,13,10,0.85);backdrop-filter:blur(3px);border:1px solid rgba(74,58,40,0.6);}
 #burnout .bgbtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#e8dcc2;letter-spacing:1px;transition:all .15s;}
@@ -122,9 +118,6 @@
 #burnout .bgcorner:hover{border-color:#c49a3d;color:#e8dcc2;}
 #burnout .bgstart{flex:1;background:rgba(90,60,20,0.25);border:1px solid #c49a3d;color:#fff3dc;border-radius:8px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:2px;cursor:pointer;min-height:44px;transition:all .15s;box-shadow:0 0 14px rgba(196,162,78,0.25),inset 0 0 8px rgba(90,60,20,0.2);}
 #burnout .bgstart:hover{background:rgba(196,162,78,0.2);border-color:#c49a3d;box-shadow:0 0 16px rgba(196,162,78,0.35);}
-#burnout .bgmode{display:flex;gap:6px;}
-#burnout .bgmodebtn{background:rgba(10,16,24,0.6);border:1px solid #2c4258;color:#7d8590;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;min-height:40px;}
-#burnout .bgmodebtn.on{border-color:#c49a3d;color:#c49a3d;background:rgba(90,60,20,0.2);}
 #burnout .bgset{max-width:420px;}
 
 #burnout #bresume{background:linear-gradient(180deg,#ffd633,#d9a800)!important;border-color:#ffd633!important;color:#1c1600!important;font-weight:800;}
@@ -169,12 +162,11 @@ html,body{overflow:hidden;margin:0;padding:0;}
   #burnout .bskill p{font-size:10px;line-height:1.3;}
   #burnout .bgbottom{margin-top:6px;}
   #burnout #bmenu .bgmain{gap:5px;}
-  #burnout #bmenu .bgcorner,#burnout #bmenu .bgmodebtn{min-height:36px;padding:6px 10px;}
+  #burnout #bmenu .bgcorner{min-height:36px;padding:6px 10px;}
   #burnout #bmenu .bgstart{min-height:40px;padding:8px 14px;}
 }
-#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):focus-visible{outline:2px solid #42e0ff;outline-offset:2px;}
-#burnout :is(.bgbtn,.bgcorner,.bgmodebtn,.bgstart,.perkcard,.brail):active{transform:scale(.97);}
-#burnout #joinErr{color:#e5534b;font-style:normal;}
+#burnout :is(.bgbtn,.bgcorner,.bgstart,.perkcard,.brail):focus-visible{outline:2px solid #c9a45a;outline-offset:2px;}
+#burnout :is(.bgbtn,.bgcorner,.bgstart,.perkcard,.brail):active{transform:scale(.97);}
 #burnout input[type=range]{height:28px;}
 #burnout .sndrow{padding:6px 0;}
 @media (prefers-reduced-motion:reduce){
@@ -225,7 +217,6 @@ html,body{overflow:hidden;margin:0;padding:0;}
 @media (max-width:520px){
   #bmenu .bgbottom{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
   #bmenu .bgstart{order:-1;grid-column:1/-1;}
-  #bmenu .bgmode{display:contents;}
 }
 
 /* цифра кулдауна в центре тач-кнопки */

@@ -1,6 +1,6 @@
 'use strict';
 
-function msg(t,d){G.msg=t;G.msgT=d||4.5;NET.events.push({k:'msg',t:t,d:d||4.5});}
+function msg(t,d){G.msg=t;G.msgT=d||4.5;}
 var TXPRIO={F:0,D:1,C:2,I:3,S:4};
 var TXLIFE={F:0.9,D:1.4,C:1.1,I:1.6,S:2.4};
 function floatText(x,y,text,color,size,ch){
@@ -16,13 +16,11 @@ function floatText(x,y,text,color,size,ch){
     G.texts.splice(lowI,1);
   }
   G.texts.push(o);
-  if(ch!=='F')NET.events.push({k:'txt',x:Math.round(x),y:Math.round(y),t:text,c:color||'#dfe6ee',s:size||13,ch:ch});
 }
 function hitStopFx(v){
   if((G.hsCd||0)>0)return;
   G.hsCd=0.25;
   G.hitStop=Math.max(G.hitStop,v);
-  NET.events.push({k:'hs',v:v});
 }
 function flavorOK(){
   if((G.flavorT||0)>0)return false;
@@ -35,8 +33,9 @@ function waveScale(w){return WSCALE[Math.max(1,Math.min(10,w))];}
 var SPECIALS={},SPECIAL_ORDER=[];
 // Регистрация особого спринта (5,10,15…): def={n,hud,hudCol,announce(w),fill(w,ctx)}.
 // fill возвращает очередь спавна (строки типов мобов); босс, если нужен, ставится сам.
-// Не добавляй сюда мобов: новый тип — в spawnMob/combat.js, MOBNAMES+MOBTYPES/MOBRAD/data.js,
-// поведение в updateMobs/sim.js, отрисовка в drawColleague/sprites.js.
+// Не добавляй сюда мобов: новый тип — registerMob в src/mobs.js (статы+поведение в одном def),
+// имя в MOBNAMES/data.js, отрисовка в drawColleague/sprites.js. spawnMob/updateMobs берут
+// определение из реестра и не знают про типы поимённо.
 function registerSpecial(id,def){
   def.id=id;
   SPECIALS[id]=def;
@@ -96,7 +95,7 @@ function pubRoster(w){
   return q;
 }
 // Пятничный паб. theme — принудительная тема локации: regenLocation строит по ней карту
-// до старта волны, гость получает имя темы в событии map и строит ту же.
+// до старта волны.
 registerSpecial('pub',{
   n:'ПЯТНИЦА',
   hud:'ПЯТНИЦА: КОРПОРАТИВ В ПАБЕ',
@@ -156,7 +155,9 @@ function startWave(){
   }catch(e){window.__swerr=(window.__swerr||[]).concat(e.message+' :: '+(e.stack||'').split('\n')[1]);console.error('startWave:',e);}
 }
 function spawnMob(type){
-  var elite=type==='intern'&&R()<(G.wave>=6?0.18:0.12);
+  var def=MOB_DEFS[type];
+  if(!def||typeof def.create!=='function')throw new Error('spawnMob: неизвестный тип моба "'+type+'" — добавь registerMob в src/mobs.js');
+  var elite=def.canElite&&R()<(G.wave>=6?0.18:0.12);
   var p0=null;
   var spPool=[];
   for(var spi=0;spi<SPAWNS.length;spi++)if(SPAWNS[spi].sp)spPool.push(SPAWNS[spi]);
@@ -195,58 +196,13 @@ function spawnMob(type){
     p0={x:pick.x+(R()*70-35),y:pick.y+(R()*70-35)};
     if(blockedAt(p0.x,p0.y,18))p0=freeSpotNear(pick.x,pick.y,0,200,16);
     if(!reachOK(p0.x,p0.y))p0=snapReachable(p0);
-    NET.events.push({k:'spawn',x:Math.round(p0.x),y:Math.round(p0.y),tag:pick.tag});
     G.fx.push({type:'ring',x:p0.x,y:p0.y,rad:26,radMax:8,t:0,life:0.5,purple:1});
   }else{
     var anyP=G.players.length?G.players[0]:{x:MAP_W/2,y:MAP_H/2};
     var near2=nearestPlayerTo({x:MAP_W/2,y:MAP_H/2});
     p0=freeSpotNear((near2||anyP).x,(near2||anyP).y,430,900,16);
   }
-  var w=G.wave;
-  var pScale=waveScale(w);
-  var coopScale=1+0.35*Math.max(0,G.players.length-1);
-  if(type==='intern'){
-    var mm={id:++G.mobSeq,type:'intern',x:p0.x,y:p0.y,r:elite?19:15,hp:(16+2*w)*(elite?2.5:1)*pScale*coopScale,hpMax:(16+2*w)*(elite?2.5:1)*pScale*coopScale,spd:(55+R()*22+w*2)*(elite?0.92:1),elite:elite?1:0,
-      stun:0,kx:0,ky:0,cd:R(),wt:0,wx:0,wy:0,face:0,aggro:false,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,
-      cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0};
-    if(mm.elite){
-      mm.ev=(R()*3)|0;
-      if(mm.ev===0){mm.hp*=1.9;mm.hpMax*=1.9;mm.spd*=0.8;mm.r=23;mm.tint=2;}
-      else if(mm.ev===1){mm.hp*=0.65;mm.spd*=1.7;mm.tint=1;}
-      else{mm.hp*=1.3;mm.r=17;mm.tint=3;mm.dmgMul=1.7;}
-    }
-    G.mobs.push(mm);
-  }else if(type==='deadline'){
-    G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*pScale*coopScale,hpMax:(9+1.5*w)*pScale*coopScale,spd:150+R()*30,
-      stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,aggro:true,
-      cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0});
-    if(R()<0.3&&flavorOK())floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12,'F');
-  }else{
-    var cl={id:++G.mobSeq,type:type,x:p0.x,y:p0.y,stun:0,kx:0,ky:0,cd:0,wt:0,wx:0,wy:0,face:0,aggro:true,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,elite:0,
-      cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0,wu:0};
-    if(type==='hr'){
-      cl.r=14;cl.spd=96+R()*22;cl.hp=cl.hpMax=(13+1.8*w)*pScale*coopScale;cl.cd=1.2+R()*1.2;
-      cl.phrase=HRWORDS[(R()*HRWORDS.length)|0];
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'HR выходит на связь','#b18ae8',11,'F');
-    }else if(type==='rival'){
-      cl.r=15;cl.spd=222+R()*34;cl.hp=cl.hpMax=(10+1.4*w)*pScale*coopScale;cl.cd=R()*0.6;
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'коллега хочет твой грейд','#e5534b',11,'F');
-    }else if(type==='bartender'){
-      cl.r=15;cl.spd=88+R()*20;cl.hp=cl.hpMax=(14+1.9*w)*pScale*coopScale;cl.cd=1.4+R()*1.2;
-      cl.phrase=PUBWORDS[(R()*PUBWORDS.length)|0];
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'бармен вытирает стойку','#8bd17c',11,'F');
-    }else if(type==='waiter'){
-      cl.r=14;cl.spd=232+R()*34;cl.hp=cl.hpMax=(9+1.3*w)*pScale*coopScale;cl.cd=R()*0.5;
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'официант уже у тебя','#d8a24e',11,'F');
-    }else if(type==='patron'){
-      cl.r=22;cl.spd=60+R()*14;cl.hp=cl.hpMax=(34+3.4*w)*pScale*coopScale;cl.cd=R()*0.8;
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-24,'посетитель вспомнил всё','#7ddb4e',12,'F');
-    }else{
-      cl.r=23;cl.spd=56+R()*12;cl.hp=cl.hpMax=(30+3*w)*pScale*coopScale;cl.cd=R()*0.8;
-      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-24,'тимлид вышел из переговорки','#e8c56a',12,'F');
-    }
-    G.mobs.push(cl);
-  }
+  G.mobs.push(def.create(p0,{elite:elite,wave:G.wave,scale:waveScale(G.wave)}));
   if(elite){
     floatText(p0.x,p0.y-38,'ЭЛИТНЫЙ стажёр-«скала»','#c88a4a',12);
     SFX.grade();
@@ -280,7 +236,7 @@ function spawnBoss(kind){
   }
   G.bossN++;
   bossStinger();
-  var bh=680*(1+0.4*(G.bossN-1))*waveScale(G.wave)*(1+0.35*Math.max(0,G.players.length-1));
+  var bh=680*(1+0.4*(G.bossN-1))*waveScale(G.wave);
   G.boss={type:'boss',kind:kind||'audit',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
     atkCd:2.5,summonCd:8,tapeCd:12,windup:0,wuT:0,tx:0,ty:0,face:0,cd:0,step:0,chgCd:5};
 }
@@ -309,6 +265,8 @@ function addBurnout(p,n,src){
   if(G.combo>=5)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10,'I');
   G.combo=0;G.comboT=0;
   p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();SFX.hexCrackle();
+  var hurtSrc=src?(src==='boss'||src==='stone'?{kind:src,id:src}:{kind:'mob',id:src}):null;
+  emitGameEvent('playerHurt',{player:p,amount:n,src:hurtSrc});
   if(window.__tm&&p===localPlayer())__tm.hurt=(__tm.hurt||0)+n,(__tm.src=__tm.src||{})[src||'mob']=((__tm.src[src||'mob']||0)+n);
   floatText(p.x,p.y-34,'+'+Math.round(n)+' выгорания','#e5534b',14,'I');
   if(p.burnout>=100){
@@ -331,7 +289,8 @@ function addBurnout(p,n,src){
     if(!anyAlive)gameOver();
   }
 }
-function damageMob(m,dmg,kx,ky,stun){
+function damageMob(m,dmg,kx,ky,stun,src){
+  if(m.dead)return;
   if(m.mk>0)dmg*=1.5;
   var cb=0;
   for(var ci=0;ci<G.players.length;ci++)cb=Math.max(cb,G.players[ci].critBonus||0);
@@ -339,11 +298,11 @@ function damageMob(m,dmg,kx,ky,stun){
   if(crit)dmg*=2.2;
   m.hp-=dmg;
   if(m.type!=='boss'){m.kx+=(kx||0);m.ky+=(ky||0);if(stun)m.stun=Math.max(m.stun,stun);}
+  emitGameEvent('mobHit',{mob:m,amount:dmg,crit:crit,killed:m.hp<=0&&!m.dead,src:src||null});
   if(crit){
     if(m.type==='boss'){
       var pn=4+((R()*3)|0);
       critBurst(m.x,m.y-20,pn);
-      NET.events.push({k:'plates',x:Math.round(m.x),y:Math.round(m.y-20),n:pn});
     }else{
       floatText(m.x+(R()*14-7),m.y-m.r-8,'КРИТ '+Math.round(dmg),'#ff8a5c',15,'C');
 
@@ -356,22 +315,110 @@ function damageMob(m,dmg,kx,ky,stun){
   }else{
     m.dmgAcc=(m.dmgAcc||0)+dmg;m.dmgHits=(m.dmgHits||0)+1;m.dmgT=0.25;
   }
-  if(m.hp<=0&&!m.dead){m.dead=true;killMob(m);}
+  if(m.hp<=0&&!m.dead){m.dead=true;killMob(m,src);}
 }
 
+// —— вреки (ART-RULES: «обломок = узнаваемая часть предмета, не безликая плашка»)
+// деталь на полу: тень + передняя грань + верхняя грань, объём тонами, без контура
+function wreckPiece(c,x,y,w,h,rot,topC,faceC){
+  c.save();c.translate(x,y);c.rotate(rot);
+  c.fillStyle='rgba(0,0,0,0.26)';c.beginPath();c.ellipse(2,3,w*0.62,h*0.6+2,0,0,TAU);c.fill();
+  c.fillStyle=faceC;c.fillRect(-w/2,-h/2+1,w,h);
+  c.fillStyle=topC;c.fillRect(-w/2,-h/2-2,w,3);
+  c.fillStyle='rgba(255,244,224,0.05)';c.fillRect(-w/2,-h/2-2,w,1);
+  c.restore();
+}
+function wreckPapers(c,x,y,n){
+  for(var j=0;j<n;j++){var a=R()*TAU,d=6+R()*24;
+    c.save();c.translate(x+Math.cos(a)*d,y+Math.sin(a)*d*0.6);c.rotate(R()*3);
+    c.fillStyle='rgba(226,224,218,'+(0.5+R()*0.35).toFixed(2)+')';c.fillRect(-6,-4,12,8);
+    c.strokeStyle='rgba(40,50,70,0.25)';c.lineWidth=1;
+    c.beginPath();c.moveTo(-4,-2);c.lineTo(4,-2);c.stroke();c.restore();}
+}
 function paintDestroy(f){
   var c=floorCv.getContext('2d');
-  c.fillStyle='#20242c';c.fillRect(f.x-3,f.y-3,f.w+6,f.h+6);
-  c.fillStyle='rgba(10,8,6,0.5)';
-  c.beginPath();c.ellipse(f.x+f.w/2,f.y+f.h/2,f.w*0.62,f.h*0.62+8,0,0,TAU);c.fill();
-  for(var j=0;j<8;j++){
-    c.fillStyle='rgba(70,60,45,0.85)';
-    c.save();c.translate(f.x+R()*f.w,f.y+R()*f.h);c.rotate(R()*3);
-    c.fillRect(-8-R()*6,-2,14+R()*8,3+R()*2);
+  var x=f.x+f.w/2,y=f.y+f.h/2,i;
+  // пылевой след на полу
+  c.fillStyle='rgba(10,8,6,0.30)';c.beginPath();c.ellipse(x,y,f.w*0.62,f.h*0.62+8,0,0,TAU);c.fill();
+  c.fillStyle='rgba(0,0,0,0.16)';c.beginPath();c.ellipse(x,y,f.w*0.45,f.h*0.45,0,0,TAU);c.fill();
+  if(f.t==='desk'){
+    wreckPiece(c,x-26,y+2,54,11,-0.08,'#6a5a42','#4e4231');      // половина столешницы
+    wreckPiece(c,x+22,y+6,46,10,0.14,'#6a5a42','#4e4231');       // вторая, съехала
+    wreckPiece(c,x-46,y-8,30,12,0.4,'#4e4231','#392f22');        // ящик навыкате
+    c.fillStyle='#8a8f9a';c.fillRect(x-53,y-12,9,2);             // ручка ящика
+    wreckPiece(c,x+46,y-7,34,8,-0.22,'#23272d','#171b20');       // монитор мордой вниз
+    c.save();c.translate(x+46,y-7);c.rotate(-0.22);              // живая задняя панель
+    c.strokeStyle='rgba(0,0,0,0.38)';c.lineWidth=1;
+    for(i=0;i<3;i++){c.beginPath();c.moveTo(-12+i*4,-3);c.lineTo(-8+i*4,3);c.stroke();}
     c.restore();
+    wreckPiece(c,x+44,y+3,11,6,0.5,'#343a42','#23272d');         // подставка отлетела
+    wreckPiece(c,x+4,y+14,32,7,0.28,'#1e242b','#161a20');        // клавиатура
+    c.fillStyle='rgba(200,215,235,0.14)';
+    for(i=0;i<5;i++)c.fillRect(x-11+i*5,y+13,4,3);
+    c.fillStyle='#9a5a40';c.beginPath();c.arc(x-22,y+12,4,0,TAU);c.fill(); // кружка на боку
+    c.strokeStyle='#6a3a26';c.lineWidth=2;c.beginPath();c.arc(x-18,y+12,3,0,TAU);c.stroke();
+    wreckPapers(c,x+8,y+8,4);
+  }else if(f.t==='rtable'){
+    wreckPiece(c,x-20,y-4,52,16,-0.1,'#544a3e','#463d33');       // половина столешницы
+    wreckPiece(c,x+18,y+8,44,14,0.18,'#544a3e','#463d33');
+    wreckPiece(c,x-34,y+12,16,5,0.7,'#2c261f','#201b16');       // ножка
+    wreckPiece(c,x+34,y-10,16,5,-0.6,'#2c261f','#201b16');
+    c.fillStyle='rgba(220,224,230,0.55)';c.save();c.translate(x-4,y+2);c.rotate(0.3);
+    c.fillRect(-10,-6,20,12);c.restore();                        // бумаги со стола
+    wreckPapers(c,x,y+6,3);
+  }else if(f.t==='cabinet'){
+    wreckPiece(c,x,y,54,26,0.06,'#39404b','#2e343e');            // шифоньер плашмя
+    c.save();c.translate(x,y);c.rotate(0.06);
+    c.strokeStyle='rgba(0,0,0,0.28)';c.lineWidth=1;
+    c.strokeRect(-21,-11,42,9);c.strokeRect(-21,2,42,9);         // фасады ящиков
+    c.fillStyle='#6f7681';c.fillRect(-5,-7,10,2);c.fillRect(-5,6,10,2);
+    c.restore();
+    wreckPapers(c,x+8,y-12,5);
+  }else if(f.t==='stall'){
+    wreckPiece(c,x-10,y-8,26,9,-0.35,'#3d4650','#2f3742');       // перегородка навзничь
+    wreckPiece(c,x+12,y+6,20,8,0.5,'#353e48','#282f38');
+    c.fillStyle='#c9d1d9';c.fillRect(x-12,y+2,4,4);              // фурнитура
+  }else if(f.t==='printer'){
+    wreckPiece(c,x,y-6,34,14,0.1,'#565e6a','#454c56');           // корпус вскрыт
+    c.save();c.translate(x,y-6);c.rotate(0.1);
+    c.fillStyle='#22262e';c.fillRect(-12,-5,24,10);              // потроха
+    c.fillStyle='#2c313a';c.fillRect(-9,-2,18,5);
+    c.fillStyle='#3a2a20';c.beginPath();c.arc(8,-3,4,0,TAU);c.fill(); // тонер
+    c.restore();
+    wreckPiece(c,x-22,y+10,18,7,-0.4,'#22262e','#1a1e24');       // лоток
+    wreckPapers(c,x+6,y+8,7);                                    // бумажный взрыв
+  }else if(f.t==='cooler'){
+    c.fillStyle='rgba(93,127,150,0.42)';                          // лужа растеклась
+    c.beginPath();c.ellipse(x+6,y+4,26,11,0,0,TAU);c.fill();
+    c.beginPath();c.ellipse(x-14,y+8,13,6,0,0,TAU);c.fill();
+    c.fillStyle='rgba(180,205,220,0.22)';c.beginPath();c.ellipse(x+5,y+3,15,6,0,0,TAU);c.fill();
+    c.strokeStyle='rgba(40,55,65,0.25)';c.lineWidth=1.5;
+    c.beginPath();c.ellipse(x+6,y+4,26,11,0,0,TAU);c.stroke();   // мокрая кромка
+    wreckPiece(c,x-14,y-6,18,11,0.15,'#4d5462','#3a4049');       // корпус без бутыли
+    wreckPiece(c,x+16,y-7,20,8,-0.12,'#6f95ad','#54748c');       // бутыль на боку
+    c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(x+10,y-10,6,2);
+  }else if(f.t==='couch'){
+    wreckPiece(c,x,y-6,86,16,0.05,'#5a4a56','#4a3c48');          // база отвалилась
+    wreckPiece(c,x-24,y+10,30,12,-0.3,'#6b5a66','#564a52');      // подушка
+    wreckPiece(c,x+22,y+12,28,11,0.35,'#6b5a66','#564a52');
+    wreckPiece(c,x+40,y-10,20,9,0.6,'#4a3c48','#3a2f3c');        // подлокотник
+    c.fillStyle='rgba(255,255,255,0.05)';c.fillRect(x-30,y-12,60,4);
+  }else if(f.t==='lamp'){
+    c.strokeStyle='#3a3340';c.lineWidth=3;c.lineCap='round';     // стойка погнулась
+    c.beginPath();c.moveTo(x-8,y+6);c.quadraticCurveTo(x+2,y-2,x+10,y+2);c.stroke();
+    c.fillStyle='#ffcf7a';c.beginPath();                          // плафон на боку
+    c.moveTo(x+6,y);c.lineTo(x+18,y-6);c.lineTo(x+16,y+2);c.closePath();c.fill();
+    c.fillStyle='rgba(255,207,122,0.10)';c.beginPath();c.arc(x+13,y,16,0,TAU);c.fill();
+  }else if(f.t==='box'){
+    wreckPiece(c,x-6,y-3,34,14,-0.1,'#8a6f4d','#7d6647');        // картон плашмя
+    wreckPiece(c,x+8,y+4,26,11,0.22,'#7d6647','#6e5a3f');
+    c.fillStyle='#b5a578';c.fillRect(x-14,y-4,20,3);             // скотч
+    wreckPapers(c,x+12,y-6,3);
+  }else{
+    wreckPiece(c,x-12,y,30,10,-0.15,'#454c59','#3a404c');        // общий случай
+    wreckPiece(c,x+12,y+5,24,9,0.3,'#3a4049','#2c313a');
+    wreckPapers(c,x,y,3);
   }
-  c.fillStyle='rgba(223,230,238,0.4)';
-  for(j=0;j<4;j++)c.fillRect(f.x+R()*f.w,f.y+R()*f.h,6,4);
 }
 function destroyFurn(f){
   if(f.dead)return;
@@ -379,7 +426,6 @@ function destroyFurn(f){
   CAREER.totalFurn++;
   if(CAREER.totalFurn>=50)award('furn50');
   G.shake+=5;hitStopFx(0.05);
-  NET.events.push({k:'furn',x:Math.round(f.x+f.w/2),y:Math.round(f.y+f.h/2),tp:f.t});
   SFX.explode();
   paintDestroy(f);
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:f.x+f.w/2,y:f.y+f.h/2,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.8+R()*0.5});
@@ -395,7 +441,7 @@ function destroyFurn(f){
       G.fx.push({type:'paper',x:f.x+f.w/2,y:f.y+f.h/2,vx:Math.cos(pa)*ps2,vy:Math.sin(pa)*ps2-60,rot:R()*3,vr:R()*10-5,t:0,life:1.4+R()*1.2});}
   }
   if(R()<0.28)dropPickup(f.x+f.w/2,f.y+f.h/2,'coffee');
-  floatText(f.x+f.w/2,f.y-4,'разрушено','#b09a72',11);
+  floatText(f.x+f.w/2,f.y-4,'разобрано','#b09a72',11);
 }
 function damageFurn(f,dmg){
   if(f.dead||FPROPS[f.t].hp<=0)return;
@@ -431,14 +477,12 @@ function dramaOfDeath(x,y,tp,elite){
     else SFX.soulSigh(pitch*(elite?0.7:1));
   },120);
 }
-function killMob(m){
+function killMob(m,src){
+  if(m._killed)return;
+  m._killed=true;
+  emitGameEvent('mobKill',{mob:m,src:src||null});
   var xpT={deadline:9,lead:10,hr:7,rival:7,bartender:9,waiter:8,patron:11};
   addXp((xpT[m.type]||6)*(m.elite?2:1),m.x,m.y);
-  for(var sci=0;sci<G.players.length;sci++){var pl=G.players[sci];
-    pl.superC=Math.min(1,(pl.superC||0)+(m.elite?0.5:0.22)*(pl.superRate||1));
-    if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
-  }
-  NET.events.push({k:'die',x:Math.round(m.x),y:Math.round(m.y),tp:m.type,elite:m.elite?1:0});
 
   G.combo=Math.min(9,(G.combo||0)+1);G.comboT=3;
   if(G.combo>=9)award('combo9');
@@ -481,7 +525,6 @@ function killMob(m){
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;
-  NET.events.push({k:'hs',v:0.02});
   if(R()<0.12)dropPickup(m.x,m.y,'coffee');
   if(R()<0.035)dropPickup(m.x,m.y,'espresso');
   SFX.splat();
@@ -502,17 +545,17 @@ function addOkr(n){
     SFX.grade();
   }
 }
-function meleeArc(pl,arc,rad,dmg,knock,stun){
+function meleeArc(pl,arc,rad,dmg,knock,stun,src){
   var hit=false,i;
   for(i=0;i<G.mobs.length;i++){var m=G.mobs[i];
     var d=dist(pl,m);
     if(d<rad+m.r&&Math.abs(angDiff(pl.aim,angTo(pl,m)))<arc/2){
-      var a=angTo(pl,m);damageMob(m,dmg*pl.dmgMult,Math.cos(a)*knock,Math.sin(a)*knock,stun);hit=true;
+      var a=angTo(pl,m);damageMob(m,dmg*pl.dmgMult,Math.cos(a)*knock,Math.sin(a)*knock,stun,src);hit=true;
     }
   }
   if(G.boss){var m2=G.boss,d2=dist(pl,m2);
     if(d2<rad+m2.r&&Math.abs(angDiff(pl.aim,angTo(pl,m2)))<arc/2){
-      damageMob(m2,dmg*pl.dmgMult,0,0,0);hit=true;
+      damageMob(m2,dmg*pl.dmgMult,0,0,0,src);hit=true;
     }
   }
   furnInArc(pl,arc,rad,dmg*pl.dmgMult);

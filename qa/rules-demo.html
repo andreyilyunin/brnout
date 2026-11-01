@@ -1,0 +1,473 @@
+<!doctype html><html><head><meta charset="utf-8"><title>brnout · комната по ART-RULES</title>
+<style>body{margin:0;background:#060507;font:12px Menlo,monospace;color:#8b8478}canvas{display:block;margin:8px auto;cursor:crosshair}</style></head>
+<body>
+<script>
+'use strict';
+// Демо «1 комната по docs/ART-RULES.md»: строгий top-down, живой свет, без неона,
+// объём тонами без контура, hero-деталь + хлам, инерция движения, juicy-фидбек.
+var P={floor:'#332a20',floorAlt:'#382e23',rug:'#3a3128',rugB:'#463b30',
+  woodTop:'#6a5a42',woodFace:'#4e4231',woodLo:'#392f22',
+  metalTop:'#4a4e56',metalFace:'#3a3e45',metalLo:'#2c2f34',
+  ink:'#0d0b09',
+  hoodie:'#524b3e',pants:'#332e27',skin:'#c9a789',
+  lampWarm:'#e8d5b0',monCool:'#a8c4d8',street:'#5d6d7a'};
+var T=64,Fx=180,Fy=250,COLS=7,ROWS=4,Fw=COLS*T,Fh=ROWS*T;
+var TAU2=Math.PI*2;
+var cv=document.createElement('canvas');cv.width=920;cv.height=660;
+var c=cv.getContext('2d');document.body.appendChild(cv);
+// оверлей темноты — свет «вырезаем» из него
+var dk=document.createElement('canvas');dk.width=cv.width;dk.height=cv.height;
+var dc=dk.getContext('2d');
+function rr(x,y,w,h,r,cc){cc.beginPath();cc.moveTo(x+r,y);cc.arcTo(x+w,y,x+w,y+h,r);cc.arcTo(x+w,y+h,x,y+h,r);cc.arcTo(x,y+h,x,y,r);cc.arcTo(x,y,x+w,y,r);cc.closePath();}
+// паттерн объёма из правил: тень → передняя грань → верхняя грань → швы. Без контура.
+function vol(x,yF,w,d,h,topC,faceC,loC){
+  var fh=Math.max(5,h*0.42);
+  c.fillStyle='rgba(0,0,0,0.35)';c.beginPath();c.ellipse(x+w/2,yF+3,w*0.55,7,0,0,7);c.fill();
+  c.fillStyle=faceC;c.fillRect(x,yF-fh,w,fh);
+  c.fillStyle=loC;c.fillRect(x,yF-3,w,3);
+  c.fillStyle=topC;c.fillRect(x,yF-fh-d,w,d);
+  c.fillStyle='rgba(255,244,224,0.06)';c.fillRect(x,yF-fh-d,w,2);
+  c.strokeStyle='rgba(0,0,0,0.22)';c.lineWidth=1;c.strokeRect(x+0.5,yF-fh-d+0.5,w-1,fh+d-1);
+}
+var FURN=[
+ {t:'desk', x:300,yF:382,w:120,d:52,h:24,hp:4},
+ {t:'chair',x:352,yF:434,w:32,d:30,h:20,hp:2},
+ {t:'rack', x:552,yF:344,w:52,d:36,h:38,hp:5},
+ {t:'cab',  x:500,yF:288,w:40,d:30,h:30,hp:4},
+ {t:'cooler',x:198,yF:282,w:30,d:24,h:30,hp:2},
+ {t:'plant',x:198,yF:478,w:28,d:26,h:30,hp:1},
+ {t:'boxes',x:548,yF:482,w:36,d:32,h:26,hp:2}
+];
+FURN.forEach(function(f){f.hp0=f.hp;});
+var RUBBLE=[];
+function sr(s){var v=Math.sin(s*127.1)*43758.5;return v-Math.floor(v);}
+var PL={x:400,y:430,vx:0,vy:0,aim:0,ph:0,mv:0,atk:0,atkT:0};
+var keys={},mouse={x:470,y:430},shake=0,freezeT=0;
+var lamp={on:1,int:1,stut:0,next:2+Math.random()*3};
+var FX=[],FT=[];
+onkeydown=function(e){keys[e.code]=1;if(e.code==='KeyF'){lamp.on=!lamp.on;FT.push({x:Fx+Fw/2,y:Fy-40,s:'клик',t:0,c:'#9a9488'});}};
+onkeyup=function(e){keys[e.code]=0;};
+cv.onmousemove=function(e){var r=cv.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;};
+cv.onmousedown=function(){PL.atk=1;};
+function fxP(x,y,n,cool){for(var i=0;i<n;i++){var a=Math.random()*7,s=40+Math.random()*160;
+  FX.push({k:'paper',x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,r:Math.random()*3,vr:(Math.random()-0.5)*12,t:0,life:0.7+Math.random()*0.6});}}
+function fxE(x,y,n){for(var i=0;i<n;i++){var a=Math.random()*7;
+  FX.push({k:'spark',x:x,y:y,vx:Math.cos(a)*(60+Math.random()*140),vy:Math.sin(a)*(60+Math.random()*140),t:0,life:0.35+Math.random()*0.25});}}
+function drawRoom(){
+  for(var ty=0;ty<ROWS;ty++)for(var tx=0;tx<COLS;tx++){
+    c.fillStyle=((tx+ty)%2===0)?P.floor:P.floorAlt;
+    c.fillRect(Fx+tx*T,Fy+ty*T,T,T);
+  }
+  // ламинат: длинные доски со швами (материал этажа)
+  c.strokeStyle='rgba(0,0,0,0.22)';c.lineWidth=1;
+  for(var py=0;py<Fh;py+=16){c.beginPath();c.moveTo(Fx,Fy+py+0.5);c.lineTo(Fx+Fw,Fy+py+0.5);c.stroke();}
+  for(var px2=0;px2<COLS;px2++)for(var off=0;off<Fh;off+=32){
+    var jx=Fx+px2*T+((px2*37+off)%40);
+    if(jx>Fx&&jx<Fx+Fw){c.beginPath();c.moveTo(jx+0.5,Fy+off);c.lineTo(jx+0.5,Fy+Math.min(off+16,Fh));c.stroke();}}
+  c.fillStyle='rgba(255,240,214,0.018)';c.fillRect(Fx,Fy,Fw,3);
+  // ковёр усталости
+  c.fillStyle=P.rug;rr(410,400,134,88,10,c);c.fill();
+  c.strokeStyle=P.rugB;c.lineWidth=3;rr(416,406,122,76,8,c);c.stroke();
+  // стены-лента: тонкие, человеческий масштаб
+  c.fillStyle='#191309';c.fillRect(Fx-14,Fy-15,Fw+28,15);
+  c.fillStyle='rgba(255,240,214,0.045)';c.fillRect(Fx-14,Fy-15,Fw+28,3);
+  c.fillStyle=P.ink;c.fillRect(Fx-14,Fy-4,Fw+28,4);
+  c.fillStyle='#191309';c.fillRect(Fx-14,Fy-15,14,Fh+25);c.fillRect(Fx+Fw,Fy-15,14,Fh+25);
+  c.fillRect(Fx-14,Fy+Fh,Fw+28,10);c.fillStyle=P.ink;c.fillRect(Fx-14,Fy+Fh+10,Fw+28,3);
+  // окно: узкая прорезь стекла в ленте стены
+  var wx=Fx+70,wy=Fy-13,ww=200,wh=9;
+  c.fillStyle='#0b0e12';c.fillRect(wx-4,wy-3,ww+8,wh+6);
+  c.fillStyle=P.street;c.fillRect(wx,wy,ww,wh);
+  c.fillStyle='rgba(232,213,176,0.5)';c.fillRect(wx+22,wy+1.5,9,wh-3); // фонарь за окном
+  c.fillStyle='rgba(255,255,255,0.14)';c.fillRect(wx+120,wy+2.5,24,2);
+  c.strokeStyle='rgba(150,160,170,0.3)';c.lineWidth=1.5;c.strokeRect(wx,wy,ww,wh);
+  // люстра не рисуется на плоскости пола: строгий top-down, источник света
+  // живёт только свечением (пул + яркая точка в слое света ниже)
+}
+function heroMon(f,top){ // hero-деталь стола: два монитора со живым светом, умирают по hp
+  function mon(mx,my,dead){
+    c.fillStyle='#20242a';rr(mx,my,36,10,3,c);c.fill();
+    c.fillStyle='#15181d';c.fillRect(mx+2,my+8,32,4);
+    c.fillStyle='#343a42';rr(mx-3,my-3.5,42,5,2,c);c.fill();
+    if(!dead){
+      c.fillStyle='rgba(168,196,216,0.10)';
+      c.beginPath();c.moveTo(mx+2,my+10);c.lineTo(mx+34,my+10);c.lineTo(mx+42,my+26);c.lineTo(mx-5,my+26);c.closePath();c.fill();
+    }
+  }
+  mon(f.x+14,top+11,f.hp<=f.hp0/2);
+  mon(f.x+66,top+11,f.hp<=f.hp0/4);
+}
+function drawFurn(f){
+  var top=f.yF-Math.max(5,f.h*0.42)-f.d;
+  if(f.t==='desk'){
+    vol(f.x,f.yF,f.w,f.d,f.h,P.woodTop,P.woodFace,P.woodLo);
+    for(var g=0;g<5;g++){var gy=top+7+g*7;
+      c.strokeStyle='rgba(0,0,0,0.10)';c.lineWidth=1;c.beginPath();
+      c.moveTo(f.x+7,gy);c.bezierCurveTo(f.x+48,gy-2,f.x+80,gy+2,f.x+f.w-7,gy);c.stroke();}
+    heroMon(f,top);
+    // тумба передней гранью
+    var fh=Math.max(5,f.h*0.42);
+    c.fillStyle=P.woodFace;c.fillRect(f.x+7,f.yF-fh+1,40,fh-4);
+    c.strokeStyle='rgba(0,0,0,0.25)';c.lineWidth=1;c.strokeRect(f.x+7.5,f.yF-fh+1.5,39,fh-5);
+    c.fillStyle='#8a7a5a';c.fillRect(f.x+22,f.yF-8,10,2);c.fillRect(f.x+22,f.yF-13,10,2);
+    // хлам: клавиатура, кружка, бумаги
+    c.fillStyle='#1b2027';rr(f.x+46,top+28,34,11,2,c);c.fill();
+    c.fillStyle='rgba(200,215,235,0.14)';for(var kb=0;kb<5;kb++)c.fillRect(f.x+49+kb*6,top+31,4.5,5.5);
+    c.fillStyle='#9a5a40';c.beginPath();c.arc(f.x+104,top+34,4.5,0,7);c.fill();
+    c.strokeStyle='#6a3a26';c.lineWidth=2;c.beginPath();c.arc(f.x+104,top+34,6.5,-1.1,1.1);c.stroke();
+    c.save();c.translate(f.x+56,top+38);c.rotate(0.12);
+    c.fillStyle='rgba(226,224,218,0.8)';c.fillRect(-11,-7,22,14);
+    c.strokeStyle='rgba(40,50,70,0.3)';c.lineWidth=1;c.beginPath();c.moveTo(-7,-3);c.lineTo(7,-3);c.moveTo(-7,1);c.lineTo(4,1);c.stroke();c.restore();
+  }else if(f.t==='chair'){
+    var x=f.x,yF=f.yF;
+    c.fillStyle='rgba(0,0,0,0.3)';c.beginPath();c.ellipse(x+f.w/2,yF-2,f.w*0.5,6,0,0,7);c.fill();
+    c.strokeStyle='#1a1d22';c.lineWidth=3;c.beginPath();
+    for(var s2=0;s2<4;s2++){var sa=s2*1.57+0.5;c.moveTo(x+f.w/2,yF-8);c.lineTo(x+f.w/2+Math.cos(sa)*12,yF-8+Math.sin(sa)*5);}c.stroke();
+    c.fillStyle='#3a3e46';rr(x+3,yF-24,f.w-6,15,6,c);c.fill();
+    c.fillStyle='rgba(255,244,224,0.05)';rr(x+6,yF-22,f.w-12,4,2,c);c.fill();
+    c.fillStyle='#454a53';rr(x+5,yF-f.h-7,f.w-10,13,5,c);c.fill();
+  }else if(f.t==='rack'){
+    vol(f.x,f.yF,f.w,f.d,f.h,P.metalTop,P.metalFace,P.metalLo);
+    c.fillStyle='#16181c';c.fillRect(f.x+5,top+5,f.w-10,f.d-10);
+    for(var ry=0;ry<2;ry++)for(var rx2=0;rx2<5;rx2++){
+      var on=((rx2*7+ry*13+f.x)%5)<2;
+      c.fillStyle=on?(rx2%2?'#7d9a58':'#c9a45a'):'#1c1f24';
+      c.fillRect(f.x+8+rx2*8,top+9+ry*13,4,3);
+    }
+    c.strokeStyle='rgba(0,0,0,0.3)';c.lineWidth=1;c.strokeRect(f.x+5.5,top+5.5,f.w-11,f.d-11);
+  }else if(f.t==='cab'){
+    vol(f.x,f.yF,f.w,f.d,f.h,'#4a4436','#3a3529','#2a261d');
+    c.strokeStyle='rgba(0,0,0,0.25)';c.lineWidth=1;
+    c.strokeRect(f.x+6.5,top+6.5,f.w-13,f.d/2-4);c.strokeRect(f.x+6.5,top+f.d/2+3.5,f.w-13,f.d/2-4);
+    c.fillStyle='#7d7156';c.fillRect(f.x+f.w/2-6,top+10,12,2);c.fillRect(f.x+f.w/2-6,top+f.d/2+7,12,2);
+  }else if(f.t==='cooler'){
+    vol(f.x,f.yF,28,f.d,f.h,'#4b5058','#3a3e45','#2b2e33');
+    c.fillStyle='#6f95ad';rr(f.x+5,top+4,18,14,6,c);c.fill();
+    c.fillStyle='rgba(255,255,255,0.25)';rr(f.x+8,top+6,6,8,3,c);c.fill();
+  }else if(f.t==='plant'){ // усталое растение: листья вниз
+    var x2=f.x,yF2=f.yF;
+    c.fillStyle='#3c3325';c.fillRect(x2+5,yF2-16,f.w-10,16);
+    c.fillStyle='#4a3f2e';c.fillRect(x2+3,yF2-20,f.w-6,7);
+    c.strokeStyle='rgba(0,0,0,0.3)';c.lineWidth=1;c.strokeRect(x2+3.5,yF2-20.5,f.w-7,21);
+    c.fillStyle='#37412f';
+    for(var lf=0;lf<5;lf++){var la=-0.9+lf*0.45;
+      c.save();c.translate(x2+f.w/2,yF2-24);c.rotate(la);
+      c.beginPath();c.ellipse(0,-7,3.4,9,0,0,7);c.fill();c.restore();}
+    c.fillStyle='#42503a';c.beginPath();c.ellipse(x2+f.w/2,yF2-26,6,5,0,0,7);c.fill();
+  }else if(f.t==='boxes'){
+    var x3=f.x,yF3=f.yF;
+    vol(x3+2,yF3,f.w-10,f.d-2,24,'#8a7350','#7d6647','#63533a'); // нижняя коробка, объём
+    var bt=yF3-Math.max(5,24*0.42)-(f.d-2);
+    c.save();c.translate(x3+f.w/2-1,bt-1);c.rotate(-0.06);      // верхняя, развёрнута
+    c.fillStyle='rgba(0,0,0,0.26)';c.beginPath();c.ellipse(1,18,18,5,0,0,7);c.fill();
+    c.fillStyle='#7d6647';c.fillRect(-13,-4,26,21);             // корпус
+    c.fillStyle='#63533a';c.fillRect(-13,16,26,2.5);
+    c.fillStyle='#453722';c.fillRect(-5,-6,10,4);               // нутрь сквозь клапаны
+    c.fillStyle='#5a4a30';                                      // открытые клапаны
+    c.beginPath();c.moveTo(-5,-4);c.lineTo(-10,-11);c.lineTo(-17,-8);c.lineTo(-13,-1);c.closePath();c.fill();
+    c.beginPath();c.moveTo(5,-4);c.lineTo(10,-11);c.lineTo(17,-8);c.lineTo(13,-1);c.closePath();c.fill();
+    c.fillStyle='#b5a578';c.fillRect(-2,-8,4,25);               // скотч
+    c.fillStyle='rgba(226,224,218,0.72)';c.fillRect(2,3,10,7);  // накладная
+    c.strokeStyle='rgba(60,50,35,0.5)';c.lineWidth=1;
+    c.beginPath();c.moveTo(3.5,5);c.lineTo(10.5,5);c.moveTo(3.5,7.5);c.lineTo(8,7.5);c.stroke();
+    c.strokeStyle='rgba(0,0,0,0.3)';c.strokeRect(-13.5,-4.5,27,22);
+    c.restore();
+  }
+}
+// ——— обломки: предмет разбирается в узнаваемые части себя, объём тонами ———
+function piece(x,y,w,h,rot,topC,faceC){ // деталь на полу: тень + передняя грань + верхняя
+  c.save();c.translate(x,y);c.rotate(rot);
+  c.fillStyle='rgba(0,0,0,0.26)';c.beginPath();c.ellipse(2,3,w*0.62,h*0.6+2,0,0,7);c.fill();
+  c.fillStyle=faceC;c.fillRect(-w/2,-h/2+1,w,h);
+  c.fillStyle=topC;c.fillRect(-w/2,-h/2-2,w,3);
+  c.fillStyle='rgba(255,244,224,0.05)';c.fillRect(-w/2,-h/2-2,w,1);
+  c.restore();
+}
+function paperFan(x,y,n,s){
+  for(var i=0;i<n;i++){var a=sr(s+i)*6.28,d=8+sr(s+i*3)*26;
+    c.save();c.translate(x+Math.cos(a)*d,y+Math.sin(a)*d*0.6);c.rotate(sr(s+i*7)*3);
+    c.fillStyle='rgba(226,224,218,'+(0.55+sr(s+i*5)*0.3)+')';c.fillRect(-6,-4,12,8);
+    c.strokeStyle='rgba(40,50,70,0.25)';c.lineWidth=1;
+    c.beginPath();c.moveTo(-4,-2);c.lineTo(4,-2);c.stroke();c.restore();}
+}
+function leaf(x,y,rot,col){
+  c.save();c.translate(x,y);c.rotate(rot);
+  c.fillStyle=col;c.beginPath();c.ellipse(0,-6,3.2,8,0,0,7);c.fill();
+  c.fillStyle='rgba(255,244,224,0.06)';c.beginPath();c.ellipse(-1,-7,1.4,5,0,0,7);c.fill();
+  c.restore();
+}
+function screws(x,y,n,s){
+  for(var i=0;i<n;i++){
+    c.fillStyle='#6d6a5c';c.beginPath();c.arc(x+sr(s+i)*30-15,y+sr(s+i*3)*16-8,1.6,0,7);c.fill();
+    c.fillStyle='rgba(255,244,224,0.35)';c.fillRect(x+sr(s+i)*30-16,y+sr(s+i*3)*16-9,1.6,0.8);}
+}
+function drawWreck(r){
+  var x=r.x,y=r.y,s=r.s,i;
+  // пылевой след на полу
+  c.fillStyle='rgba(10,8,6,0.28)';c.beginPath();c.ellipse(x,y,r.w*0.62,16,0,0,7);c.fill();
+  c.fillStyle='rgba(0,0,0,0.18)';c.beginPath();c.ellipse(x,y,r.w*0.45,10,0,0,7);c.fill();
+  if(r.t==='desk'){
+    piece(x-34,y+2,62,12,-0.08,P.woodTop,P.woodFace);          // половина столешницы
+    piece(x+26,y+7,52,11,0.14,P.woodTop,P.woodFace);           // вторая, съехала
+    piece(x-54,y-10,34,14,0.4,P.woodFace,P.woodLo);            // ящик навыкате
+    c.fillStyle='#8a7a5a';c.fillRect(x-62,y-14,10,2);          // ручка ящика
+    piece(x+56,y-9,40,9,-0.22,'#23272d','#171b20');            // монитор мордой вниз
+    c.save();c.translate(x+56,y-9);c.rotate(-0.22);            // задняя панель живая
+    c.strokeStyle='rgba(0,0,0,0.38)';c.lineWidth=1;
+    for(var mv=0;mv<3;mv++){c.beginPath();c.moveTo(-15+mv*4,-3);c.lineTo(-11+mv*4,3);c.stroke();}
+    c.fillStyle='#3a4149';c.beginPath();c.arc(9,0,3,0,7);c.fill();
+    c.restore();
+    piece(x+52,y+3,12,7,0.5,'#343a42','#23272d');              // подставка отлетела
+    c.strokeStyle='#17191d';c.lineWidth=2;                     // кабель в сторону
+    c.beginPath();c.moveTo(x+72,y-4);c.bezierCurveTo(x+82,y+3,x+68,y+7,x+58,y+13);c.stroke();
+    piece(x+8,y+19,36,8,0.28,'#1e242b','#161a20');             // клавиатура в сторону
+    c.save();c.translate(x+8,y+19);c.rotate(0.28);
+    c.fillStyle='rgba(200,215,235,0.15)';
+    for(var kr=0;kr<2;kr++)for(var kc=0;kc<5;kc++)c.fillRect(-14+kc*6,-2.2+kr*3.6,4.5,2.6);
+    c.restore();
+    c.fillStyle='#9a5a40';c.beginPath();c.arc(x-24,y+16,4.5,0,7);c.fill(); // кружка на боку
+    c.strokeStyle='#6a3a26';c.lineWidth=2;c.beginPath();c.arc(x-19,y+16,3,0,7);c.stroke();
+    paperFan(x+10,y+12,4,s);screws(x,y,3,s+2);
+  }else if(r.t==='chair'){
+    piece(x-13,y-5,30,9,-0.5,'#454a53','#33373d');             // спинка отвалилась
+    piece(x+11,y+5,27,17,0.3,'#3a3e46','#2b2e33');             // сиденье
+    c.fillStyle='#23262c';
+    for(i=0;i<3;i++){var a=i*2.1+s;
+      c.beginPath();c.moveTo(x,y+2);c.lineTo(x+Math.cos(a)*13,y+2+Math.sin(a)*6);c.lineWidth=3;c.strokeStyle='#1c1f24';c.stroke();
+      c.beginPath();c.arc(x+Math.cos(a)*13,y+2+Math.sin(a)*6,2.2,0,7);c.fill();} // база-звезда
+    screws(x,y+6,2,s);
+  }else if(r.t==='rack'){
+    piece(x,y,46,26,0.34,P.metalTop,P.metalFace);              // стойка завалилась
+    c.save();c.translate(x,y);c.rotate(0.34);
+    for(i=0;i<4;i++){c.fillStyle=i%2?'#3d4450':'#23262b';c.fillRect(-16+i*9,-8,6,3);} // мёртвые LED
+    c.restore();
+    piece(x-34,y+10,22,10,-0.2,'#4a4e56','#3a3e45');           // вырванный диск
+    piece(x+30,y+13,20,9,0.18,'#4a4e56','#3a3e45');            // ещё один
+    c.strokeStyle='#17191d';c.lineWidth=2.5;                   // кабель
+    c.beginPath();c.moveTo(x+16,y-8);c.bezierCurveTo(x+30,y+2,x+8,y+14,x-26,y+6);c.stroke();
+    c.fillStyle='#2c2f34';c.fillRect(x-30,y+4,6,5);            // коннектор
+    screws(x,y-12,3,s);
+  }else if(r.t==='cab'){
+    piece(x,y,54,30,0.06,'#4a4436','#3a3529');                 // шифоньер плашмя
+    c.save();c.translate(x,y);c.rotate(0.06);
+    c.strokeStyle='rgba(0,0,0,0.28)';c.lineWidth=1;
+    c.strokeRect(-22,-12,44,10);c.strokeRect(-22,2,44,10);     // фасады ящиков
+    c.fillStyle='#7d7156';c.fillRect(-5,-8,10,2);c.fillRect(-5,6,10,2);
+    c.restore();
+    paperFan(x+6,y-14,5,s+4);screws(x+16,y+8,2,s);
+  }else if(r.t==='cooler'){
+    // большая растекшаяся лужа: два наложенных пятна + мокрый блик
+    c.fillStyle='rgba(93,127,150,0.42)';
+    c.beginPath();c.ellipse(x+10,y+6,54,21,0,0,7);c.fill();
+    c.beginPath();c.ellipse(x-26,y+14,26,11,0,0,7);c.fill();
+    c.fillStyle='rgba(180,205,220,0.22)';c.beginPath();c.ellipse(x+8,y+4,32,12,0,0,7);c.fill();
+    c.fillStyle='rgba(220,235,245,0.16)';c.beginPath();c.ellipse(x+2,y+2,12,4,0,0,7);c.fill();
+    c.strokeStyle='rgba(40,55,65,0.25)';c.lineWidth=1.5;
+    c.beginPath();c.ellipse(x+10,y+6,54,21,0,0,7);c.stroke();   // мокрая кромка
+    piece(x-24,y-4,24,16,0.15,P.metalTop,P.metalFace);         // корпус без бутыли
+    piece(x+22,y-8,28,11,-0.12,'#6f95ad','#54748c');           // бутыль на боку
+    c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(x+14,y-12,7,2.5);
+  }else if(r.t==='plant'){
+    c.fillStyle='#241c12';c.beginPath();c.ellipse(x,y+4,24,10,0,0,7);c.fill(); // земля
+    c.fillStyle='#31281a';
+    for(i=0;i<7;i++){c.beginPath();c.arc(x-16+sr(s+i)*32,y+1+sr(s+i*3)*7,1.4,0,7);c.fill();}
+    piece(x-14,y-4,24,14,1.25,'#4a3f2e','#3c3325');            // опрокинутый горшок
+    leaf(x+14,y-2,0.7,'#37412f');leaf(x+24,y+4,1.5,'#37412f');
+    leaf(x+2,y+10,2.6,'#42503a');leaf(x-24,y+8,-0.5,'#42503a');
+  }else if(r.t==='boxes'){
+    piece(x-8,y-4,44,20,-0.1,'#8a7350','#7d6647');             // картон плашмя
+    piece(x+12,y+6,36,16,0.22,'#7d6647','#6e5a3f');            // второй, съехал
+    piece(x-28,y+8,20,14,0.5,'#8a7350','#7d6647');             // третий
+    c.fillStyle='#b5a578';c.fillRect(x-20,y-2,26,4);           // скотч
+    paperFan(x+20,y-10,3,s+9);
+  }
+}
+window.__smash=function(t){for(var i=0;i<FURN.length;i++)if(FURN[i].t===t){FURN[i].hp=0;destroyF(FURN[i]);return 1;}return 0;};
+// персонаж: гримдарк-редизайн, вид сверху 360°, менее мультяшный
+// —— персонаж в стиле GTA 2: вид строго сверху (лица нет — макушка, наушники),
+// ноги шагают вдоль ВЕКТОРА ДВИЖЕНИЯ, корпус и руки целятся, голова без скрутки
+function drawPl(p){
+  var x=p.x,y=p.y;
+  c.fillStyle='rgba(0,0,0,0.4)';c.beginPath();c.ellipse(x+2,y+6,14,9,0,0,7);c.fill();
+
+  var sp=Math.hypot(PL.vx,PL.vy);
+  var mAng=sp>12?Math.atan2(PL.vy,PL.vx):p.aim; // стоя — стойка по корпусу
+  var fdx=Math.cos(mAng),fdy=Math.sin(mAng),qx=-fdy,qy=fdx;
+  var st=p.mv?Math.sin(p.ph)*Math.min(6.5,sp*0.03):0;
+  var bob=p.mv?Math.abs(Math.sin(p.ph))*0.9:0;
+
+  function foot(off,lat){ // ступня шагает по mAng, ботинок повёрнут по ходу
+    var fx=x+fdx*off+qx*lat,fy=y+fdy*off+qy*lat;
+    c.strokeStyle=P.pants;c.lineWidth=5.5;c.lineCap='round';
+    c.beginPath();c.moveTo(x+qx*lat*0.65,y+2);c.lineTo(fx,fy);c.stroke();
+    c.save();c.translate(fx,fy);c.rotate(mAng);
+    c.fillStyle='#1f1c18';rr(-4.5,-2.6,9,5.2,2.2,c);c.fill();
+    c.fillStyle='rgba(255,244,224,0.08)';rr(-4.5,-2.6,9,1.6,1.4,c);c.fill();
+    c.restore();
+  }
+  foot(st,-4.6);foot(-st,4.6);
+
+  var sw=0;
+  if(p.atkT>0){var prb=1-p.atkT/0.16;sw=-0.9+prb*1.6;} // замах сквозь прицел
+  c.save();c.translate(x,y-bob);c.rotate(p.aim+Math.PI/2); // локально: -Y = вперёд
+  c.fillStyle='#332e27';rr(-6.5,-2,13,9,4,c);c.fill();     // бёдра
+  c.rotate(sw);                                            // скрутка плеч
+  c.fillStyle=P.hoodie;rr(-10.5,-9,21,16,7,c);c.fill();    // плечи толстовки
+  c.fillStyle='rgba(255,244,224,0.05)';rr(-10.5,-9,21,4,4,c);c.fill();
+  c.fillStyle='#3f3a30';rr(-10.5,-8,5.5,9,3,c);c.fill();rr(5,-8,5.5,9,3,c);c.fill(); // накладки
+  c.fillStyle='#443f33';c.beginPath();c.arc(0,3,7.5,0,Math.PI);c.fill(); // капюшон за спиной
+  c.strokeStyle='#3b372e';c.lineWidth=4.5;c.lineCap='round';
+  if(p.atkT>0){ // обе руки на дубинке
+    c.beginPath();c.moveTo(-8,-5);c.lineTo(-1,-13);c.moveTo(8,-5);c.lineTo(3,-13);c.stroke();
+    c.save();c.translate(1,-14);c.rotate(-0.15+sw*0.35);
+    c.fillStyle='#544a38';rr(-2.2,-16,4.4,18,2,c);c.fill();
+    c.fillStyle='rgba(255,244,224,0.2)';c.fillRect(-2.2,-16,4.4,2);
+    c.restore();
+    c.fillStyle=P.skin;c.beginPath();c.arc(-1,-13,2.4,0,7);c.arc(3,-13,2.4,0,7);c.fill();
+  }else{ // шаг: руки по бокам качаются противофазно ногам
+    var armSw=p.mv?Math.sin(p.ph)*3:0;
+    c.beginPath();c.moveTo(-9,-4);c.lineTo(-11.5,2+armSw);c.moveTo(9,-4);c.lineTo(11.5,2-armSw);c.stroke();
+    c.fillStyle=P.skin;c.beginPath();c.arc(-11.5,2+armSw,2.3,0,7);c.arc(11.5,2-armSw,2.3,0,7);c.fill();
+    c.save();c.translate(11.5,3-armSw);c.rotate(1.35); // дубинка опущена
+    c.fillStyle='#544a38';rr(-2,-14,4,15,2,c);c.fill();
+    c.restore();
+  }
+  c.rotate(-sw); // голова не скрутится за замахом — всегда по прицелу
+  c.fillStyle='#26221d';c.beginPath();c.arc(0,-1.5,6.3,0,7);c.fill(); // макушка
+  c.fillStyle='rgba(255,244,224,0.06)';c.beginPath();c.arc(-1.5,-3,3.6,0,7);c.fill();
+  c.strokeStyle='#14171d';c.lineWidth=2; // дуга наушников
+  c.beginPath();c.moveTo(-5.8,-1.5);c.quadraticCurveTo(0,-6.5,5.8,-1.5);c.stroke();
+  c.fillStyle='#14171d';c.beginPath();c.arc(-5.6,-1.2,1.9,0,7);c.arc(5.6,-1.2,1.9,0,7);c.fill();
+  c.restore();
+
+  if(p.atkT>0){ // след удара повторяет траекторию замаха
+    var pr=1-p.atkT/0.16,a0=p.aim-0.9,a1=a0+pr*1.6;
+    c.strokeStyle='rgba(232,222,204,0.10)';c.lineWidth=9;
+    c.beginPath();c.arc(x,y,30,a0,a1);c.stroke();
+    c.strokeStyle='rgba(232,222,204,'+(0.45*(1-pr)).toFixed(3)+')';c.lineWidth=3;
+    c.beginPath();c.arc(x,y,30,a1-0.35,a1);c.stroke();
+  }
+}
+function destroyF(f){
+  var cx=f.x+f.w/2,cy=f.yF-f.d/2;
+  RUBBLE.push({t:f.t,x:cx,y:cy,w:f.w,s:Math.random()*97});
+  fxP(cx,cy,14);fxE(cx,cy,8);
+  FT.push({x:cx,y:cy-16,s:'разобрано',t:0,c:'#c9a45a'});
+  var idx=FURN.indexOf(f);if(idx>=0)FURN.splice(idx,1);
+}
+function hitFurn(){
+  var hitAny=false;
+  for(var i=0;i<FURN.length;i++){var f=FURN[i];
+    var cx=Math.max(f.x,Math.min(PL.x,f.x+f.w)),cy=Math.max(f.yF-f.d,Math.min(PL.y,f.yF));
+    var dx=cx-PL.x,dy=cy-PL.y,d2=dx*dx+dy*dy;
+    var da=Math.atan2(dy,dx)-PL.aim;while(da>Math.PI)da-=TAU2;while(da<-Math.PI)da+=TAU2;
+    if(d2<46*46&&Math.abs(da)<0.9){
+      hitAny=true;f.hp--;
+      fxP(PL.x+Math.cos(PL.aim)*34,PL.y+Math.sin(PL.aim)*34,6);
+      if(f.hp<=0)destroyF(f);
+      else FT.push({x:f.x+f.w/2,y:f.yF-f.d-10,s:'хрусть',t:0,c:'#9a9488'});
+      break;
+    }
+  }
+  if(hitAny){freezeT=0.07;shake=Math.max(shake,4);}
+}
+function step(t){
+  var dt=Math.min(0.033,(t-(step.pt||t))/1000);step.pt=t;
+  var frozen=freezeT>0;if(frozen){freezeT-=dt;}
+  else{
+    // инерция: ускорение + трение (правило «движение с весом»)
+    var ax=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+    var ay=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
+    PL.vx+=ax*1400*dt;PL.vy+=ay*1400*dt;
+    PL.vx*=Math.pow(0.0018,dt);PL.vy*=Math.pow(0.0018,dt);
+    var sp=Math.hypot(PL.vx,PL.vy);if(sp>215){PL.vx*=215/sp;PL.vy*=215/sp;}
+    var nx=PL.x+PL.vx*dt,ny=PL.y+PL.vy*dt;
+    nx=Math.max(Fx+13,Math.min(Fx+Fw-13,nx));ny=Math.max(Fy+15,Math.min(Fy+Fh-7,ny));
+    for(var i=0;i<FURN.length;i++){var s=FURN[i],sx=s.x,sy=s.yF-s.d;
+      if(nx+12>sx&&nx-12<sx+s.w&&ny+10>sy&&ny-5<sy+s.d){
+        var penL=nx+12-sx,penR=sx+s.w-(nx-12),penT=ny+10-sy,penB=sy+s.d-(ny-5);
+        var m=Math.min(penL,penR,penT,penB);
+        if(m===penL)nx=sx-12;else if(m===penR)nx=sx+s.w+12;
+        else if(m===penT)ny=sy-10;else ny=sy+s.d+5;
+      }}
+    PL.x=nx;PL.y=ny;PL.mv=sp>18;if(PL.mv)PL.ph+=dt*11*(sp/215);
+    PL.aim=Math.atan2(mouse.y-PL.y,mouse.x-PL.x);
+    if(PL.atkT>0)PL.atkT-=dt;
+    if(PL.atk&&PL.atkT<=0){PL.atkT=0.16;hitFurn();}
+    PL.atk=0;
+    // мерцание лампы: гудит, заикается — живой свет
+    lamp.int+=(lamp.on?1-lamp.int:0-lamp.int)*Math.min(1,dt*4);
+    lamp.next-=dt;
+    if(lamp.next<=0){lamp.stut=0.06+Math.random()*0.1;lamp.next=1.6+Math.random()*3.4;}
+    if(lamp.stut>0){lamp.stut-=dt;}
+    for(i=FX.length-1;i>=0;i--){var p=FX[i];p.t+=dt;
+      if(p.t>p.life){FX.splice(i,1);continue;}
+      p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt;p.vx*=Math.pow(0.2,dt);p.r+=p.vr*dt;}
+    for(i=FT.length-1;i>=0;i--){FT[i].t+=dt;if(FT[i].t>0.9)FT.splice(i,1);}
+    shake*=Math.pow(0.001,dt);
+  }
+  // —— рендер
+  c.setTransform(1,0,0,1,0,0);
+  c.fillStyle='#060507';c.fillRect(0,0,cv.width,cv.height);
+  var shx=(Math.random()-0.5)*shake,shy=(Math.random()-0.5)*shake;
+  c.translate(shx,shy);
+  drawRoom();
+  for(var r2=0;r2<RUBBLE.length;r2++)drawWreck(RUBBLE[r2]);
+  var items=FURN.map(function(f){return{y:f.yF,f:function(){drawFurn(f);}};});
+  items.push({y:PL.y+8,f:function(){drawPl(PL);}});
+  items.sort(function(a,b){return a.y-b.y;});
+  for(var k=0;k<items.length;k++)items[k].f();
+  for(k=0;k<FX.length;k++){var p2=FX[k],al=1-p2.t/p2.life;
+    if(p2.k==='paper'){c.save();c.translate(p2.x,p2.y);c.rotate(p2.r);
+      c.fillStyle='rgba(226,224,218,'+(0.85*al)+')';c.fillRect(-4,-3,8,6);c.restore();}
+    else{c.fillStyle='rgba(232,213,176,'+al+')';c.fillRect(p2.x-1.5,p2.y-1.5,3,3);}
+  }
+  // темнота + живой свет (вырезаем из тьмы)
+  dc.globalCompositeOperation='source-over';
+  dc.fillStyle='rgba(6,5,8,0.78)';dc.fillRect(0,0,dk.width,dk.height);
+  dc.globalCompositeOperation='destination-out';
+  function cut(x,y,r,a){var g=dc.createRadialGradient(x,y,r*0.06,x,y,r);
+    g.addColorStop(0,'rgba(0,0,0,'+a+')');g.addColorStop(1,'rgba(0,0,0,0)');
+    dc.fillStyle=g;dc.beginPath();dc.arc(x,y,r,0,7);dc.fill();}
+  var li=lamp.int*(lamp.stut>0?0.25:1)*(0.82+0.06*Math.sin(t*0.013));
+  if(lamp.on||lamp.int>0.02)cut(Fx+Fw/2,Fy+Fh/2,290,0.98*li);
+  cut(Fx+170,Fy-11,160,0.55); // окно-улица
+  for(var m=0;m<FURN.length;m++){var f2=FURN[m];
+    if(f2.t==='desk'&&f2.hp>0){
+      var tg=top2(f2);
+      if(f2.hp>f2.hp0/2)cut(f2.x+32,tg+16,66,0.55);
+      if(f2.hp>f2.hp0/4)cut(f2.x+84,tg+16,66,0.55);
+    }
+    if(f2.t==='rack')cut(f2.x+f2.w/2,top2(f2)+f2.d/2,40,0.3);
+    if(f2.t==='cooler')cut(f2.x+14,top2(f2)+10,28,0.24);
+  }
+  cut(PL.x,PL.y,92,0.58);
+  function top2(f){return f.yF-Math.max(5,f.h*0.42)-f.d;}
+  c.setTransform(1,0,0,1,0,0);
+  c.drawImage(dk,0,0);
+  // тёплый аддитив внутри света лампы + холодный у мониторов
+  function warm(x,y,r,col,a){var g=c.createRadialGradient(x,y,r*0.1,x,y,r);
+    g.addColorStop(0,col.replace('%A',(a).toFixed(3)));g.addColorStop(1,col.replace('%A','0'));
+    c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill();}
+  if(li>0.03){
+    // только эффект на полу: ровное освещённое пятно, без «ядра лампы»
+    warm(Fx+Fw/2,Fy+Fh/2,340,'rgba(232,213,176,%A)',0.085*li);
+  }
+  for(var wm=0;wm<FURN.length;wm++){var f3=FURN[wm];
+    if(f3.t==='desk'&&f3.hp>f3.hp0/4)warm(f3.x+58,top2(f3)+16,100,'rgba(168,196,216,%A)',0.07);}
+  warm(PL.x,PL.y,80,'rgba(232,213,176,%A)',0.05);
+  // винъетка
+  var vg=c.createRadialGradient(cv.width/2,cv.height/2,250,cv.width/2,cv.height/2,580);
+  vg.addColorStop(0,'rgba(4,3,5,0)');vg.addColorStop(1,'rgba(4,3,5,0.6)');
+  c.fillStyle=vg;c.fillRect(0,0,cv.width,cv.height);
+  for(var ft=0;ft<FT.length;ft++){var T2=FT[ft];
+    c.fillStyle=T2.c;c.font='bold 12px Menlo,monospace';c.textAlign='center';
+    c.globalAlpha=1-T2.t/0.9;c.fillText(T2.s,T2.x,T2.y-T2.t*26);c.globalAlpha=1;c.textAlign='left';}
+  c.fillStyle='#6d675c';c.font='12px Menlo,monospace';
+  c.fillText('WASD — идти (инерция) · мышь — прицел · ЛКМ — удар · F — выключить лампу (полутьма)',20,24);
+  c.fillStyle='#c9c2b4';c.font='bold 13px Menlo,monospace';
+  c.fillText('1 КОМНАТА ПО ART-RULES · топ-даун · живой свет · без неона · без контура',20,44);
+  requestAnimationFrame(step);
+}
+requestAnimationFrame(step);
+</script></body></html>
