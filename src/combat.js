@@ -31,19 +31,116 @@ function flavorOK(){
 }
 var WSCALE=[1,1,1.15,1.32,1.5,1.7,1.95,2.3,2.7,3.1,3.5];
 function waveScale(w){return WSCALE[Math.max(1,Math.min(10,w))];}
+
+var SPECIALS={},SPECIAL_ORDER=[];
+// Регистрация особого спринта (5,10,15…): def={n,hud,hudCol,announce(w),fill(w,ctx)}.
+// fill возвращает очередь спавна (строки типов мобов); босс, если нужен, ставится сам.
+// Не добавляй сюда мобов: новый тип — в spawnMob/combat.js, MOBNAMES+MOBTYPES/MOBRAD/data.js,
+// поведение в updateMobs/sim.js, отрисовка в drawColleague/sprites.js.
+function registerSpecial(id,def){
+  def.id=id;
+  SPECIALS[id]=def;
+  SPECIAL_ORDER.push(id);
+  return def;
+}
+function specialActive(){
+  var sp=G.special?SPECIALS[G.special]:null;
+  return (sp&&!G.boss)?sp:null;
+}
+function specialRoll(w,seed){
+  var s=(((seed===undefined?MAPSEED:seed)>>>0)^Math.imul(w,2654435761))>>>0;
+  s^=s>>>16;s=Math.imul(s,2246822519)>>>0;s^=s>>>13;s=Math.imul(s,3266489917)>>>0;s=(s^(s>>>16))>>>0;
+  return s/4294967296;
+}
+function pickSpecial(w,seed){
+  var pool=[];
+  for(var i=0;i<SPECIAL_ORDER.length;i++)if(!SPECIALS[SPECIAL_ORDER[i]].final)pool.push(SPECIAL_ORDER[i]);
+  if(!pool.length)return null;
+  return SPECIALS[pool[(specialRoll(w,seed)*pool.length)|0]]||null;
+}
+registerSpecial('audit',{
+  n:'АУДИТ',
+  hud:'АУДИТ ИДЁТ',
+  hudCol:'#e5534b',
+  brief:'босс плюс горящие задачи',
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ';},
+  fill:function(w,c){
+    var ni=Math.min(c.ni,5),nd=Math.min(c.nd,2);
+    spawnBoss('audit');
+    var q=[];
+    for(var i=0;i<ni;i++)q.push('intern');
+    for(i=0;i<nd;i++)q.push('deadline');
+    return q;
+  }
+});
+function reviewRoster(w){
+  var q=[],tier=(w/5)|0,nHR=4+tier,nRival=6+tier,nLead=2+((tier/3)|0);
+  for(var i=0;i<nHR;i++)q.push('hr');
+  for(i=0;i<nRival;i++)q.push('rival');
+  for(i=0;i<nLead;i++)q.push('lead');
+  return q;
+}
+registerSpecial('review',{
+  n:'АТТЕСТАЦИЯ',
+  hud:'АТТЕСТАЦИЯ ИДЁТ',
+  hudCol:'#b18ae8',
+  brief:'длительная аттестация команды',
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АТТЕСТАЦИЯ КОМАНДЫ';},
+  fill:function(w){return reviewRoster(w);}
+});
+function pubRoster(w){
+  var q=[],nBar=2,nWait=2+((w/5)|0),nPat=1+((w/5)|0);
+  for(var i=0;i<nBar;i++)q.push('bartender');
+  for(i=0;i<nWait;i++)q.push('waiter');
+  for(i=0;i<nPat;i++)q.push('patron');
+  return q;
+}
+// Пятничный паб. theme — принудительная тема локации: regenLocation строит по ней карту
+// до старта волны, гость получает имя темы в событии map и строит ту же.
+registerSpecial('pub',{
+  n:'ПЯТНИЦА',
+  hud:'ПЯТНИЦА: КОРПОРАТИВ В ПАБЕ',
+  hudCol:'#8bd17c',
+  brief:'бар открыт, персонал и посетители бунтуют',
+  theme:PUBTHEME.name,
+  announce:function(w){return 'СПРИНТ '+w+' · «'+MAPTHEME.name+'» · ПЯТНИЦА: КОРПОРАТИВ БЕЗ ЛИМИТА. БАР ОТКРЫТ';},
+  fill:function(w){return pubRoster(w);}
+});
+// Финальный спринт кампании: не участвует в случайном пуле и всегда закрывает проект.
+registerSpecial('release',{
+  n:'ЗАКРЫТИЕ ПРОЕКТА',
+  hud:'ЗАКАЗЧИК ПРОСИТ ПРАВКУ',
+  hudCol:'#42e0ff',
+  brief:'финал: заказчик снова придумал правку',
+  final:true,
+  announce:function(w){return 'ФИНАЛЬНЫЙ СПРИНТ · ЗАКРЫТИЕ ПРОЕКТА: ЗАКАЗЧИК ЖДЁТ ДЕМО И НОВУЮ ПРАВКУ';},
+  fill:function(){
+    spawnBoss('release');
+    return ['intern','intern','intern','deadline','deadline'];
+  }
+});
 function startWave(){
   try{
   G.wave++;
   var w=G.wave;
+  if(G.training&&w>=4){G.training=false;CAREER.tutorialDone=1;saveCareer();refreshMenuUI();}
   G.spawnQ.length=0;
   var sprintName=SPRINTNAMES[(R()*SPRINTNAMES.length)|0];
-  var ni=(w===1)?8:Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
-  var bossWave=(w===5)||(w>5&&(w-5)%5===0);
-  var horde=(w%4===0)&&!bossWave&&w>3;
-  if(bossWave){ni=Math.min(ni,5);nd=Math.min(nd,2);spawnBoss();}
-  if(horde)ni=Math.round(ni*1.7);
-  for(var i=0;i<ni;i++)G.spawnQ.push('intern');
-  for(i=0;i<nd;i++)G.spawnQ.push('deadline');
+  var ni=(w===1)?(G.training?5:8):Math.min(Math.round((4+3*w)*1.5),48),nd=w>=2?Math.min(Math.round((2*(w-1))*1.5),16):0;
+  var special=specialForWave(w);
+  var specialWave=!!special;
+  var horde=(w%4===0)&&!specialWave&&w>3;
+  G.special=null;G.nextSpecial=null;
+  if(special){
+    G.special=special.id;
+    var sq=special.fill(w,{ni:ni,nd:nd});
+    for(var qi=0;qi<sq.length;qi++)G.spawnQ.push(sq[qi]);
+  }
+  if(!special){
+    if(horde)ni=Math.round(ni*1.7);
+    for(var i=0;i<ni;i++)G.spawnQ.push('intern');
+    for(i=0;i<nd;i++)G.spawnQ.push('deadline');
+  }
   for(i=G.spawnQ.length-1;i>0;i--){var j=(R()*(i+1))|0;var tmp=G.spawnQ[i];G.spawnQ[i]=G.spawnQ[j];G.spawnQ[j]=tmp;}
   G.spawnT=0.14;
   G.hordeBatch=horde;
@@ -53,7 +150,7 @@ function startWave(){
   if(w===2)award('day1');
   if(w===5)award('spr5');
   if(horde)msg('СПРИНТ '+w+' · ХАКАТОН: все стажёры разом ('+ni+'). Держи двери!',4.5);
-  else if(bossWave)msg('СПРИНТ '+w+' · «'+MAPTHEME.name+'» · АУДИТ НАЧИНАЕТСЯ',4);
+  else if(special)msg(special.announce(w),4);
   else msg('Спринт '+w+' · «'+MAPTHEME.name+'» · '+sprintName+': '+ni+' стажёров'+(nd?', '+nd+' дедлайнов':'')+'. ДЕДЛАЙН УСКОРЯЕТСЯ!');
   G.rushT=4;
   }catch(e){window.__swerr=(window.__swerr||[]).concat(e.message+' :: '+(e.stack||'').split('\n')[1]);console.error('startWave:',e);}
@@ -119,18 +216,43 @@ function spawnMob(type){
       else{mm.hp*=1.3;mm.r=17;mm.tint=3;mm.dmgMul=1.7;}
     }
     G.mobs.push(mm);
-  }else{
+  }else if(type==='deadline'){
     G.mobs.push({id:++G.mobSeq,type:'deadline',x:p0.x,y:p0.y,r:13,hp:(9+1.5*w)*pScale*coopScale,hpMax:(9+1.5*w)*pScale*coopScale,spd:150+R()*30,
       stun:0,kx:0,ky:0,cd:0,face:0,tint:(R()*3)|0,emb:0,tilt:R()*6,step:0,elite:0,aggro:true,
       cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0});
     if(R()<0.3&&flavorOK())floatText(p0.x,p0.y-20,['ДО РЕЛИЗА 3 ЧАСА','ПРОД ПОЛЁГ','ГОРИТ','DEMO ЧЕРЕЗ 10 МИНУТ'][(R()*4)|0],'#e07050',12,'F');
+  }else{
+    var cl={id:++G.mobSeq,type:type,x:p0.x,y:p0.y,stun:0,kx:0,ky:0,cd:0,wt:0,wx:0,wy:0,face:0,aggro:true,said:false,tint:(R()*4)|0,emb:0,tilt:R()*6,step:0,fade:0.5,elite:0,
+      cf:0,ch:0,chTick:0,chDmg:0,chSrc:-1,mk:0,wu:0};
+    if(type==='hr'){
+      cl.r=14;cl.spd=96+R()*22;cl.hp=cl.hpMax=(13+1.8*w)*pScale*coopScale;cl.cd=1.2+R()*1.2;
+      cl.phrase=HRWORDS[(R()*HRWORDS.length)|0];
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'HR выходит на связь','#b18ae8',11,'F');
+    }else if(type==='rival'){
+      cl.r=15;cl.spd=222+R()*34;cl.hp=cl.hpMax=(10+1.4*w)*pScale*coopScale;cl.cd=R()*0.6;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'коллега хочет твой грейд','#e5534b',11,'F');
+    }else if(type==='bartender'){
+      cl.r=15;cl.spd=88+R()*20;cl.hp=cl.hpMax=(14+1.9*w)*pScale*coopScale;cl.cd=1.4+R()*1.2;
+      cl.phrase=PUBWORDS[(R()*PUBWORDS.length)|0];
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'бармен вытирает стойку','#8bd17c',11,'F');
+    }else if(type==='waiter'){
+      cl.r=14;cl.spd=232+R()*34;cl.hp=cl.hpMax=(9+1.3*w)*pScale*coopScale;cl.cd=R()*0.5;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-22,'официант уже у тебя','#d8a24e',11,'F');
+    }else if(type==='patron'){
+      cl.r=22;cl.spd=60+R()*14;cl.hp=cl.hpMax=(34+3.4*w)*pScale*coopScale;cl.cd=R()*0.8;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-24,'посетитель вспомнил всё','#7ddb4e',12,'F');
+    }else{
+      cl.r=23;cl.spd=56+R()*12;cl.hp=cl.hpMax=(30+3*w)*pScale*coopScale;cl.cd=R()*0.8;
+      if(R()<0.4&&flavorOK())floatText(p0.x,p0.y-24,'тимлид вышел из переговорки','#e8c56a',12,'F');
+    }
+    G.mobs.push(cl);
   }
   if(elite){
     floatText(p0.x,p0.y-38,'ЭЛИТНЫЙ стажёр-«скала»','#c88a4a',12);
     SFX.grade();
   }
 }
-function spawnBoss(){
+function spawnBoss(kind){
   var arena=bossArena();
   var cx=arena.x+arena.w/2,cy=arena.y+arena.h/2,p=null;
 
@@ -159,7 +281,7 @@ function spawnBoss(){
   G.bossN++;
   bossStinger();
   var bh=680*(1+0.4*(G.bossN-1))*waveScale(G.wave)*(1+0.35*Math.max(0,G.players.length-1));
-  G.boss={type:'boss',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
+  G.boss={type:'boss',kind:kind||'audit',x:p.x,y:p.y,r:44,hp:bh,hpMax:bh,spd:70,phase:1,
     atkCd:2.5,summonCd:8,tapeCd:12,windup:0,wuT:0,tx:0,ty:0,face:0,cd:0,step:0,chgCd:5};
 }
 function addXp(n,x,y){
@@ -183,6 +305,7 @@ function addBurnout(p,n,src){
   if(p.shield>0){floatText(p.x,p.y-30,'заблокировано созвоном','#7aa2c8',12,'I');return;}
   if(p.inv>0)return;
   n*=(p.drMult||1);
+  p.lastDamage=src||'mob';
   if(G.combo>=5)floatText(p.x,p.y-52,'комбо сброшено','#8b949e',10,'I');
   G.combo=0;G.comboT=0;
   p.burnout+=n;p.inv=0.3;p.flash=1;G.shake+=4;SFX.thump();SFX.hexCrackle();
@@ -299,7 +422,7 @@ function furnInArc(pl,arc,rad,dmg){
 }
 
 function dramaOfDeath(x,y,tp,elite){
-  var pitch=tp==='deadline'?0.75:(elite?0.6:1.15+R()*0.25);
+  var pitch=tp==='deadline'?0.75:(elite?0.6:(tp==='lead'?0.85:1.05+R()*0.2));
   var agony=R()<0.5;
   SFX.deathCry(pitch);
   spawnDebris({kind:'soul',x:x,y:y-6,pitch:pitch,elite:elite,mood:agony?'agony':'relief',t:0,life:agony?1.6:1.35});
@@ -309,7 +432,8 @@ function dramaOfDeath(x,y,tp,elite){
   },120);
 }
 function killMob(m){
-  addXp((m.type==='deadline'?9:6)*(m.elite?2:1),m.x,m.y);
+  var xpT={deadline:9,lead:10,hr:7,rival:7,bartender:9,waiter:8,patron:11};
+  addXp((xpT[m.type]||6)*(m.elite?2:1),m.x,m.y);
   for(var sci=0;sci<G.players.length;sci++){var pl=G.players[sci];
     pl.superC=Math.min(1,(pl.superC||0)+(m.elite?0.5:0.22)*(pl.superRate||1));
     if(pl.vamp)pl.burnout=Math.max(0,pl.burnout-pl.vamp);
@@ -329,24 +453,31 @@ function killMob(m){
   }
   if(m.type==='intern'){G.killsI++;addOkr(1);}
   else if(m.type==='deadline'){G.killsD++;addOkr(2);}
+  else if(m.type==='hr'||m.type==='rival'||m.type==='lead'||m.type==='bartender'||m.type==='waiter'||m.type==='patron'){G.killsC++;addOkr(m.type==='lead'||m.type==='patron'?3:2);}
   else if(m.type==='boss'){
     SFX.deathCry(0.5);
-    CAREER.totalBoss++;award('boss1');
+    if(m.kind!=='release'){CAREER.totalBoss++;award('boss1');}
     spawnDebris({kind:'soul',x:m.x,y:m.y-10,pitch:0.55,elite:1,mood:R()<0.5?'agony':'relief',t:0,life:2.4});
     setTimeout(function(){if(R()<0.5)SFX.soulAgony(0.55);else SFX.soulSigh(0.55);},150);
   }
   if(m.type!=='boss')dramaOfDeath(m.x,m.y,m.type,m.elite);
   else if(m.type==='boss'){
-    G.okr+=10;msg('Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
+    G.okr+=10;msg(m.kind==='release'?'Проект сдан. Заказчик уже придумал первую правку.':'Аудит завершён. Замечаний нет.',3.5);SFX.explode();G.shake+=10;
     for(var i=0;i<3;i++)dropPickup(m.x+R()*60-30,m.y+R()*60-30,'coffee');
     dropPickup(m.x,m.y,'espresso');
     dropPickup(m.x+20,m.y,'espresso');
     addXp(150,m.x,m.y);
     if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
-    else if(G.wave<G.campaign)msg('Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
+    else if(G.wave<G.campaign)msg(m.kind==='release'?'Демо прошло. Релиз откладывается до лучших времён.':'Аудит пройден. Начальство довольно. Впереди ещё спринты.',4);
     G.boss=null;return;
   }
   if(m.type==='intern')floatText(m.x,m.y-44,'ASAP','#FF3355',13);
+  else if(m.type==='hr')floatText(m.x,m.y-44,'КАДРОВЫЙ ВОПРОС ЗАКРЫТ','#b18ae8',12);
+  else if(m.type==='rival')floatText(m.x,m.y-44,'ГРЕЙД ДОСТАЛСЯ ТЕБЕ','#8bd17c',12);
+  else if(m.type==='lead')floatText(m.x,m.y-44,'РЕЛИЗ ВЫШЕЛ БЕЗ НЕГО','#e8c56a',12);
+  else if(m.type==='bartender')floatText(m.x,m.y-44,'ЗАКАЗ ОТМЕНЁН','#8bd17c',12);
+  else if(m.type==='waiter')floatText(m.x,m.y-44,'ЧАЕВЫХ НЕ БУДЕТ','#d8a24e',12);
+  else if(m.type==='patron'){floatText(m.x,m.y-44,'ПОСАЖЕН НА ТАКСИ','#7ddb4e',12);if(R()<0.3)dropPickup(m.x,m.y,'espresso');}
   for(var j=0;j<12;j++)G.fx.push({type:'paper',x:m.x,y:m.y,vx:R()*240-120,vy:R()*240-120,rot:R()*3,vr:R()*8-4,t:0,life:0.7+R()*0.5});
   for(j=0;j<5;j++)G.fx.push({type:'spark2',x:m.x,y:m.y,t:0,life:0.3,a:R()*TAU});
   G.shake+=2;

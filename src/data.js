@@ -30,11 +30,12 @@ var NET={mode:'solo',peer:null,conns:[],hostConn:null,code:'',myId:'me',snapT:0,
 var PCOLORS=['#e6edf3','#d29922','#7aa2c8','#3fb950'];
 var G={state:'menu',t:0,players:[],mobs:[],projs:[],fx:[],texts:[],pickups:[],zones:[],
   boss:null,wave:0,waveState:'calm',waveT:1.5,rushT:0,spawnQ:[],spawnT:0,okr:0,grade:1,
-  interT:0,fadeT:0,pendSeed:0,nextTheme:'',interStats:null,
+  interT:0,fadeT:0,pendSeed:0,nextTheme:'',nextSpecial:null,interStats:null,
   level:1,xp:0,xpN:40,plan:0,sepT:0,demon:null,ultAt:4,campaign:10,perkQueue:0,
   killsI:0,killsD:0,bossN:0,winShown:false,winT:0,shake:0,hitStop:0,msg:'',msgT:0,caption:'',capT:8,delays:[],
   combo:0,comboT:0,hsCd:0,flavorT:0,
-  camX:0,camY:0,zoom:1,mobSeq:0,pkSeq:0};
+  camX:0,camY:0,zoom:1,mobSeq:0,pkSeq:0,training:false,runSettled:false,careerOkr:0,careerKi:0,careerKd:0,newUnlocks:[],
+  special:null,killsC:0};
 var COMBONAMES=['','синергия!','пролистал инбокс!','закрыл спринт!','переработал!','тимлид года!','выгорел красиво!','легенда офиса!','машина задач!','БОГ ВЫГОРАНИЯ!'];
 var KILLQUOTES=['отчислен','нашёл работу получше','ушёл на обед','передумал гореть','сбегал в Дубай','отпуск за свой счёт','это не его роль'];
 var SPRINTNAMES=['обычный спринт','спринт горящих дедлайнов','квартальный отчёт','пятничный деплой','аудит недели','хакатон ночами','планёрка без конца'];
@@ -75,6 +76,8 @@ function classLook(cls,seat){
   var L={};
   for(var k in CLSLOOKS[cls]||CLSLOOKS.mgr)L[k]=CLSLOOKS[cls][k];
   L.skin=SKINS[(seat||0)%SKINS.length];
+  if(cosmeticLevel()>=2){L.shirt='#252c3c';L.accent='#e8c56a';}
+  if(cosmeticLevel()>=3)L.accent='#ff5fa8';
   return L;
 }
 function newPlayer(id,cls){
@@ -107,9 +110,25 @@ var PERKS=[
 var PERKBY={};
 for(var _pk=0;_pk<PERKS.length;_pk++)PERKBY[PERKS[_pk].id]=PERKS[_pk];
 
-var CAREER={runs:0,deaths:0,bestSprint:0,bestOkr:0,bestCoins:0,bestLevel:0,totalInterns:0,totalDeadlines:0,totalBoss:0,totalFurn:0,wins:0,ach:{}};
+var CAREER={runs:0,deaths:0,bestSprint:0,bestOkr:0,bestCoins:0,bestLevel:0,totalInterns:0,totalDeadlines:0,totalBoss:0,totalFurn:0,wins:0,tutorialDone:0,ach:{}};
 try{var _cr=JSON.parse(localStorage.getItem('brnt_career')||'null');if(_cr)for(var _ck in CAREER)if(_ck!=='ach')CAREER[_ck]=_cr[_ck]||0;if(_cr&&_cr.ach)CAREER.ach=_cr.ach;}catch(e){}
 function saveCareer(){try{localStorage.setItem('brnt_career',JSON.stringify(CAREER));}catch(e){}}
+var ABILITY_WAVES={secondary:2,dodge:2,skill:3,super:4};
+function abilityUnlocked(id){return !G.training||G.wave>=(ABILITY_WAVES[id]||1);}
+var COSMETICS=[
+  {id:'gold',at:1,n:'золотой бейдж',d:'золотой контур героя'},
+  {id:'tailored',at:3,n:'костюм с пятничного деплоя',d:'новый цвет одежды'},
+  {id:'neon',at:5,n:'неоновый пропуск',d:'неоновый контур героя'}
+];
+function cosmeticLevel(){
+  var n=0;
+  for(var i=0;i<COSMETICS.length;i++)if(CAREER.bestSprint>=COSMETICS[i].at)n++;
+  return n;
+}
+function careerNextUnlock(){
+  for(var i=0;i<COSMETICS.length;i++)if(CAREER.bestSprint<COSMETICS[i].at)return COSMETICS[i];
+  return null;
+}
 var ACHS=[
   {id:'day1',n:'первый рабочий день',d:'пережить спринт 1'},
   {id:'spr5',n:'пятница близко',d:'дожить до спринта 5'},
@@ -133,11 +152,16 @@ function award(id){
   return true;
 }
 function careerEndRun(coopMode){
-  CAREER.runs++;
+  var oldBest=CAREER.bestSprint;
+  if(!G.runSettled){CAREER.runs++;G.runSettled=true;}
   CAREER.bestSprint=Math.max(CAREER.bestSprint,Math.max(0,G.wave-1));
   CAREER.bestOkr=Math.max(CAREER.bestOkr,G.okr);
   CAREER.bestLevel=Math.max(CAREER.bestLevel,G.level);
-  CAREER.totalInterns+=G.killsI;CAREER.totalDeadlines+=G.killsD;
+  CAREER.totalInterns+=Math.max(0,G.killsI-(G.careerKi||0));
+  CAREER.totalDeadlines+=Math.max(0,G.killsD-(G.careerKd||0));
+  G.careerKi=G.killsI;G.careerKd=G.killsD;G.careerOkr=G.okr;
+  G.newUnlocks=[];
+  for(var i=0;i<COSMETICS.length;i++)if(oldBest<COSMETICS[i].at&&CAREER.bestSprint>=COSMETICS[i].at)G.newUnlocks.push(COSMETICS[i]);
   if(CAREER.totalInterns>=100)award('k100');
   if(coopMode)award('coop');
   saveCareer();
@@ -145,13 +169,28 @@ function careerEndRun(coopMode){
 
 var MOBNAMES={
   intern:['стажёр-ибшник','стажёр-фронтендер','стажёр-QA','стажёр-аналитик'],
-  deadline:['дедлайн: релиз','дедлайн: демо','дедлайн: аудит']
+  deadline:['дедлайн: релиз','дедлайн: демо','дедлайн: аудит'],
+  hr:['рекрутёр-каратель','people-ops бот','HR-генералист'],
+  rival:['заклятый коллега','конкурент за грейд','подхалим с амбициями'],
+  lead:['тимлид-ветеран','сеньор на ставке 1.5×','lead из соседнего отдела'],
+  bartender:['бармен-техлид','шеф-бармен из «Шакшуки»','бармен с мемуарами'],
+  waiter:['официант-стажёр','метрдотель в погоне','официант с двумя подносами'],
+  patron:['посетитель «ещё по одной»','патрон барной стойки','тот самый заказчик']
 };
+function bossName(b){
+  return (b&&b.kind==='release')?'ЗАКАЗЧИК':'АУДИТ';
+}
 function mobName(m){
-  if(m.type==='boss')return'АУДИТ';
+  if(m.type==='boss')return bossName(m);
   var list=MOBNAMES[m.type]||MOBNAMES.intern;
   return list[(m.tint||0)%list.length];
 }
+var MOBTYPES=['intern','deadline','hr','rival','lead','bartender','waiter','patron'];
+var MOBTYPE_IDX={};
+for(var _mi=0;_mi<MOBTYPES.length;_mi++)MOBTYPE_IDX[MOBTYPES[_mi]]=_mi;
+var MOBRAD={intern:15,deadline:13,hr:14,rival:15,lead:23,bartender:15,waiter:14,patron:22};
+var HRWORDS=['НА 1:1','ПЕРЕСМОТР ГРЕЙДА','360-ФИДБЕК','ПЛАН РАЗВИТИЯ'];
+var PUBWORDS=['ЗА МОЙ СЧЁТ','ЕЩЁ ПО ОДНОЙ','КОНЦЕРТ ОТМЕНЯЮТ','ПОСЛЕДНИЙ ЗАКАЗ'];
 
 var PROG=[
   [45,[52,57,60,64]],[40,[52,55,59,64]],[41,[53,57,60,65]],[38,[50,57,62,65]],

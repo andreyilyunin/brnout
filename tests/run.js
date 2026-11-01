@@ -221,7 +221,7 @@ test('классовые звуки определены', () => {
 test('ротация локаций: regenLocation существует и чистит', () => {
   const sm = fs2.readFileSync('src/sim.js', 'utf8');
   ok(sm.includes('function regenLocation'), 'функция');
-  ok(sm.includes("NET.events.push({k:'map',seed:seed})"), 'событие гостю');
+  ok(sm.includes("NET.events.push({k:'map',seed:seed,th:nth?nth.name:null})"), 'событие гостю с темой локации');
 });
 test('подбор кружек: радиус 22 и событие pkup', () => {
   const sm = fs2.readFileSync('src/sim.js', 'utf8');
@@ -240,6 +240,21 @@ test('меню: отдельные настройки, углы, старт', ()
   const menuBlock = ih.slice(Math.max(0, i0 - 200), i1);
   ok(menuBlock.includes('sndMaster') === false, 'слайдеры НЕ в главном меню');
   ok((ih.slice(ih.indexOf('id="bset"'), ih.indexOf('id="bset"') + 900)).includes('sndMaster'), 'слайдеры в настройках');
+});
+test('клавиатура: стандартная схема Q/E/R вместо случайных F/Q', () => {
+  const ih = require('fs').readFileSync('index.html', 'utf8');
+  const input = require('fs').readFileSync('src/input.js', 'utf8');
+  const render = require('fs').readFileSync('src/render.js', 'utf8');
+  const ui = require('fs').readFileSync('src/ui.js', 'utf8');
+  const main = require('fs').readFileSync('src/main.js', 'utf8');
+  ok(input.includes("e.code==='KeyQ'&&G.state==='playing')INPUT.fk=true"), 'Q — скилл');
+  ok(input.includes("e.code==='KeyE'&&G.state==='playing')INPUT.sk2=true"), 'E — умение');
+  ok(input.includes("e.code==='KeyR'&&G.state==='playing')INPUT.ultTap=true"), 'R — супер');
+  ok(!input.includes("e.code==='KeyF'"), 'F не занят боевым действием');
+  ok(render.includes("skill:'Q',skill2:'E',super:'R'"), 'HUD показывает Q/E/R');
+  ok(ih.includes('Q — скилл · E — умение · R — супер'), 'общая подсказка классов');
+  ok(ui.includes('Q + E открыты'), 'тренер использует Q/E');
+  ok(main.includes("[C.ult,'Q']") && main.includes("[C.sk,'E']"), 'карточки классов показывают клавиши');
 });
 
 console.log('layout guards:');
@@ -303,10 +318,10 @@ test('кооп на trystero: P2P-комната без брокеров', () =>
   ok(ih.indexOf('trystero-torrent.min.js') > 0, 'бандл trystero подключён');
   ok(ih.indexOf('src/mqtt.js') < 0, 'mqtt.js больше не грузится');
 });
-test('гость строит уровень по событию map из снапшота (синхрон сидов)', () => {
+test('гость строит уровень по событию map из снапшота (синхрон сидов и тем)', () => {
   const gj = require('fs').readFileSync('src/guest.js', 'utf8');
   ok(gj.indexOf("e.k==='map'") > 0, 'guestEvent обрабатывает k=map (иначе гость остаётся на старом уровне)');
-  ok(/k==='map'[\s\S]*?buildMap\(e\.seed\)/.test(gj), 'по событию вызывается buildMap с сидом хоста');
+  ok(/k==='map'[\s\S]*?buildMap\(e\.seed,e\.th\)/.test(gj), 'по событию вызывается buildMap с сидом и темой хоста');
   load('src/guest.js');
   global.DEBRIS=[];global.WATER=[];global.PFX=[];global.STONES=[];
   buildMap(424242);
@@ -401,6 +416,314 @@ test('addXp: уровень ставит выбор буста в очередь
   addXp(95, 0, 0);
   eq(G.level, 3);
   eq(G.perkQueue, 2);
+});
+test('обучение: приёмы открываются по спринтам, атака доступна сразу', () => {
+  G.training = true; G.wave = 1;
+  eq(abilityUnlocked('secondary'), false);
+  eq(abilityUnlocked('dodge'), false);
+  eq(abilityUnlocked('skill'), false);
+  G.wave = 2;
+  eq(abilityUnlocked('secondary'), true);
+  eq(abilityUnlocked('dodge'), true);
+  eq(abilityUnlocked('skill'), false);
+  G.wave = 3;
+  eq(abilityUnlocked('skill'), true);
+  G.training = false; G.wave = 1;
+  eq(abilityUnlocked('super'), true);
+});
+test('награды: разблокировка по рекорду и повторная смерть не дублирует забег', () => {
+  CAREER.bestSprint = 0; CAREER.totalInterns = 0; CAREER.totalDeadlines = 0;
+  G.runSettled = false; G.wave = 2; G.okr = 5; G.killsI = 5; G.killsD = 0;
+  G.careerKi = 0; G.careerKd = 0;
+  careerEndRun(false);
+  eq(CAREER.bestSprint, 1);
+  eq(G.newUnlocks[0].id, 'gold');
+  eq(cosmeticLevel(), 1);
+  const runs = CAREER.runs;
+  G.wave = 3; G.killsI = 8;
+  careerEndRun(false);
+  eq(CAREER.runs, runs);
+  eq(CAREER.totalInterns, 8);
+  eq(CAREER.bestSprint, 2);
+});
+
+console.log('special sprints:');
+global.cv = { width: 960, height: 540 };
+global.DPR = 1;
+global.SFX = new Proxy({}, { get: () => () => {} });
+global.spawnDebris = () => {};
+global.bossStinger = () => {};
+global.broadcast = () => {};
+load('src/sim.js');
+const seedForSpecial = (w, want) => {
+  for (let s = 1; s < 300; s++) { buildMap(s); if (pickSpecial(w).id === want) return s; }
+  return 0;
+};
+const seedAudit5 = seedForSpecial(5, 'audit');
+const seedReview5 = seedForSpecial(5, 'review');
+const seedPub5 = seedForSpecial(5, 'pub');
+test('реестр: случайные средние спринты и отдельный финальный релиз', () => {
+  ok(seedAudit5 > 0 && seedReview5 > 0 && seedPub5 > 0, 'audit/review/pub достижимы в середине кампании');
+  eq(SPECIAL_ORDER.length, 4);
+  ok(SPECIALS.release && SPECIALS.release.final === true, 'release не участвует в случайном пуле');
+  ok(SPECIALS.audit.fill && SPECIALS.review.fill && SPECIALS.pub.fill && SPECIALS.release.fill, 'все спринты имеют состав');
+});
+test('средние спринты 3/5/8 случайны и детерминированы; финал 10 всегда release', () => {
+  for (const s of [7, 42, 1337]) {
+    buildMap(s);
+    const a3 = pickSpecial(3).id, a5 = pickSpecial(5).id, a8 = pickSpecial(8).id;
+    buildMap(s);
+    eq(pickSpecial(3).id, a3);
+    eq(pickSpecial(5).id, a5);
+    eq(pickSpecial(8).id, a8);
+    eq(specialForWave(10, s).id, 'release', 'финал не зависит от сида');
+    eq(specialForWave(4, s), null);
+    eq(specialForWave(6, s), null);
+  }
+  ok(['audit', 'review', 'pub'].indexOf(pickSpecial(10).id) >= 0, 'случайный пул не содержит release');
+});
+test('кампания: 10 спринтов и единый финальный заголовок проекта', () => {
+  eq(G.campaign, 10, 'кампания рассчитана на 10 спринтов');
+  const ih = fs2.readFileSync('index.html', 'utf8');
+  const dj = fs2.readFileSync('src/data.js', 'utf8');
+  const uj = fs2.readFileSync('src/ui.js', 'utf8');
+  ok(ih.includes('пережить 10 спринтов'), 'цель в меню обновлена');
+  ok(dj.includes('пройти все 10 спринтов'), 'достижение обновлено');
+  ok(uj.includes("te.textContent='ПРОЕКТ ЗАВЕРШЁН'"), 'финальный заголовок единый');
+  ok(uj.includes('Первая правка от заказчика'), 'финальный текст обновлён');
+});
+test('перед особым спринтом есть явный брифинг следующего типа', () => {
+  global.updateCamera = () => {};
+  buildMap(seedAudit5);
+  G.training = false; G.wave = 4; G.waveState = 'active';
+  G.players = [newPlayer('t', 'mgr')];
+  G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.pendSeed = seedReview5; G.campaign = 10; G.winShown = false; G.winT = 0;
+  const oldR = R;
+  R = () => seedReview5 / 1e9;
+  updateWaves(0.016);
+  R = oldR;
+  eq(G.nextSpecial, 'review', 'интермиссия знает тип следующего спринта');
+  ok(SPECIALS.review.brief && SPECIALS.review.brief.length > 10, 'у аттестации есть описание');
+  updateWaves(20);
+  ok(G.msg.indexOf('СЛЕДУЮЩИЙ СПРИНТ') >= 0 && G.msg.indexOf('АТТЕСТАЦИЯ') >= 0, 'перед стартом показывается брифинг');
+  const sm = fs2.readFileSync('src/sim.js', 'utf8');
+  const nj = fs2.readFileSync('src/net.js', 'utf8');
+  ok(sm.includes('sp:G.nextSpecial'), 'хост отправляет nextSpecial гостю');
+  ok(nj.includes('G.nextSpecial=d.sp||null'), 'гость применяет nextSpecial');
+});
+test('5-й спринт: аудит — настоящий босс плюс обычная очередь', () => {
+  buildMap(seedAudit5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'audit');
+  ok(G.boss && G.boss.hp > 0, 'босс заспавнен');
+  ok(G.spawnQ.length > 0 && G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
+  eq(G.msg.indexOf('АУДИТ') >= 0, true);
+});
+test('5-й спринт: аттестация — расширенный состав коллег, босса нет', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'review');
+  eq(G.boss, null);
+  const counts = { hr: 0, rival: 0, lead: 0 };
+  for (const t of G.spawnQ) counts[t]++;
+  eq(G.spawnQ.length, 14, 'аттестация должна быть заметно длиннее');
+  eq(counts.hr, 5); eq(counts.rival, 7); eq(counts.lead, 2);
+  eq(G.msg.indexOf('АТТЕСТАЦИЯ') >= 0, true);
+});
+test('финальный спринт 10 — всегда закрытие проекта у владельца продукта', () => {
+  for (const s of [1, 7, 42, seedAudit5]) {
+    buildMap(s);
+    eq(specialForWave(10, s).id, 'release', 'финал не зависит от сида ' + s);
+  }
+  buildMap(42);
+  G.training = false; G.campaign = 10; G.wave = 9; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 10);
+  eq(G.special, 'release');
+  ok(G.boss && G.boss.kind === 'release', 'финальный босс — заказчик');
+  eq(bossName(G.boss), 'ЗАКАЗЧИК');
+  eq(G.spawnQ.length, 5, 'к боссу добавлена горящая очередь');
+  ok(G.msg.indexOf('ЗАКРЫТИЕ ПРОЕКТА') >= 0);
+});
+test('обычные волны не тронуты: состояние сброшено, только стажёры и дедлайны', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 1; G.spawnQ.length = 0; G.boss = null; G.special = 'review';
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 2);
+  eq(G.special, null, 'special сброшен на обычной волне');
+  eq(G.boss, null);
+  eq(G.spawnQ.length, 18); // w2: ni=15, nd=3
+  ok(G.spawnQ.every(t => t === 'intern' || t === 'deadline'));
+});
+test('аттестация: спавн коллег — различимые роли, завершение волны и победа', () => {
+  buildMap(seedReview5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  const p = newPlayer('t', 'mgr'); p.x = REACH_LIST[0].x; p.y = REACH_LIST[0].y;
+  G.players = [p];
+  startWave();
+  eq(G.special, 'review');
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 14);
+  for (const m of G.mobs) {
+    ok(m.hp > 0 && m.hpMax === m.hp, m.type + ' hp');
+    eq(m.r, MOBRAD[m.type]);
+    ok(MOBNAMES[m.type].indexOf(mobName(m)) >= 0, 'имя роли читаемое: ' + mobName(m));
+  }
+  const roles = {};
+  for (const m of G.mobs) roles[m.type] = m;
+  ok(roles.rival.spd > roles.hr.spd && roles.hr.spd > roles.lead.spd, 'скорости: конкурент > HR > лид');
+  ok(roles.lead.hp > roles.hr.hp && roles.lead.hp > roles.rival.hp, 'лид — тяжёлая роль');
+  ok(roles.rival.spd > 200, 'конкурент — быстрый милишник');
+  const kc0 = G.killsC, okr0 = G.okr;
+  for (const m of G.mobs.slice()) { m.dead = true; killMob(m); }
+  G.mobs = G.mobs.filter(m => !m.dead);
+  eq(G.killsC, kc0 + 14);
+  ok(G.okr > okr0, 'коллеги дают OKR');
+  G.spawnQ.length = 0; G.waveState = 'active'; G.campaign = 5; G.winShown = false; G.winT = 0;
+  updateWaves(0.016);
+  eq(G.waveState, 'cleared');
+  ok(G.winT > 0, 'финальная волна без босса завершает забег');
+  eq(G.interStats.kc, kc0 + 14);
+  G.campaign = 10;
+});
+test('паб: спринт 5 — бармен/официант/посетитель в очереди, босса нет, анонс пятницы', () => {
+  buildMap(seedPub5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'pub');
+  eq(G.boss, null);
+  const counts = { bartender: 0, waiter: 0, patron: 0 };
+  for (const t of G.spawnQ) counts[t]++;
+  eq(G.spawnQ.length, 7);
+  eq(counts.bartender, 2); eq(counts.waiter, 3); eq(counts.patron, 2);
+  eq(G.msg.indexOf('ПЯТНИЦА') >= 0, true);
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 7);
+  const roles = {};
+  for (const m of G.mobs) {
+    ok(m.hp > 0 && m.hpMax === m.hp, m.type + ' hp');
+    eq(m.r, MOBRAD[m.type]);
+    ok(MOBNAMES[m.type].indexOf(mobName(m)) >= 0, 'имя роли читаемое: ' + mobName(m));
+    roles[m.type] = m;
+  }
+  ok(roles.waiter.spd > roles.bartender.spd && roles.bartender.spd > roles.patron.spd, 'скорости: официант > бармен > посетитель');
+  ok(roles.patron.hp > roles.bartender.hp && roles.patron.hp > roles.waiter.hp, 'посетитель — тяжёлая роль');
+  ok(roles.waiter.spd > 200, 'официант — быстрый милишник');
+});
+test('паб: тема паба только принудительная — обычные волны её не видят', () => {
+  eq(THEMES.indexOf(PUBTHEME), -1, 'PUBTHEME не в общем пуле THEMES');
+  let sawPub = 0;
+  for (let s = 1; s <= 100; s++) { buildMap(s * 7919 + 13); if (MAPTHEME.pub) sawPub++; }
+  eq(sawPub, 0, 'паб-тема не выпадает на обычных волнах');
+  buildMap(seedPub5);
+  ok(MAPTHEME.name !== PUBTHEME.name, 'до регенерации — обычная тема');
+});
+test('паб: regenLocation перед 5-й волной форсит тему паба, иначе — обычную', () => {
+  global.updateCamera = () => {};
+  buildMap(999);
+  G.wave = 4; G.special = null;
+  regenLocation(seedPub5);
+  eq(MAPTHEME.name, PUBTHEME.name, 'перед паб-волной — паб-тема');
+  const evMap = NET.events.filter(e => e.k === 'map');
+  ok(evMap.length > 0 && evMap[evMap.length - 1].th === PUBTHEME.name, 'имя паб-темы уехало гостю в событии map');
+  buildMap(999);
+  G.wave = 4; G.special = null;
+  regenLocation(seedAudit5);
+  ok(MAPTHEME.name !== PUBTHEME.name, 'перед аудитом — обычная тема');
+  const evMap2 = NET.events.filter(e => e.k === 'map');
+  eq(evMap2[evMap2.length - 1].th, null, 'обычная локация без форс-темы');
+});
+test('тема следующей особой волны выбирается по pending-сиду, а не по старой карте', () => {
+  global.updateCamera = () => {};
+  buildMap(seedAudit5);
+  G.wave = 4; G.special = null;
+  const candidate = 424242;
+  const expected = pickSpecial(5, candidate).id;
+  regenLocation(candidate);
+  eq(G.special, null, 'special ещё не начат');
+  if (expected === 'pub') eq(MAPTHEME.name, PUBTHEME.name, 'pending-сид с пабом даёт паб-тему');
+  else ok(MAPTHEME.name !== PUBTHEME.name, 'pending-сид без паба не даёт паб-тему');
+  buildMap(candidate);
+  eq(pickSpecial(5).id, expected, 'старт волны выбирает тот же special, что и тема локации');
+});
+test('паб: бой, награды и завершение кампании', () => {
+  buildMap(seedPub5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  const p = newPlayer('t', 'mgr'); p.x = REACH_LIST[0].x; p.y = REACH_LIST[0].y;
+  G.players = [p];
+  startWave();
+  eq(G.special, 'pub');
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 7);
+  const kc0 = G.killsC, okr0 = G.okr, lvl0 = G.level, xp0 = G.xp;
+  for (const m of G.mobs.slice()) { m.dead = true; killMob(m); }
+  G.mobs = G.mobs.filter(m => !m.dead);
+  eq(G.killsC, kc0 + 7);
+  ok(G.okr > okr0, 'персонал паба даёт OKR');
+  ok(G.level > lvl0 || G.xp > xp0, 'персонал паба даёт опыт');
+  G.spawnQ.length = 0; G.waveState = 'active'; G.campaign = 5; G.winShown = false; G.winT = 0;
+  updateWaves(0.016);
+  eq(G.waveState, 'cleared');
+  ok(G.winT > 0, 'финальная паб-волна завершает забег');
+  G.campaign = 10;
+});
+test('кооп: типы коллег и особое состояние едут в снапшотах', () => {
+  const gj = fs2.readFileSync('src/guest.js', 'utf8');
+  ok(gj.indexOf('MOBTYPES[sm[1]]') > 0, 'гость декодирует тип моба по индексу');
+  ok(gj.indexOf('MOBTYPE_IDX[mo.type]') > 0, 'хост кодирует тип моба');
+  ok(gj.indexOf('G.special=s.sp||null') > 0, 'гость применяет special из снапшота');
+  ok(gj.indexOf('sp:G.special||null') > 0, 'хост отправляет special');
+  ok(gj.indexOf('wu:sm[13]||0') > 0, 'гость получает замах (wu) для телеграфа');
+  ok(gj.indexOf('k:G.boss.kind||\'audit\'') > 0, 'хост отправляет тип босса');
+  ok(gj.indexOf('kind:s.b.k||\'audit\'') > 0, 'гость применяет тип босса');
+  buildMap(555);
+  guestApplySnapshot({ p: [], m: [[1, 2, 100, 100, 80, 0, 0, 0, 0, 0, 0, -1, 0, 0], [2, 4, 200, 200, 50, 0, 0, 0, 0, 0, 0, -1, 0, 3]], b: null, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 5, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'review', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.mobs.length, 2);
+  eq(VIEW.mobs[0].type, 'hr');
+  eq(VIEW.mobs[1].type, 'lead');
+  eq(VIEW.mobs[1].tgt.wu, 3);
+  eq(G.special, 'review');
+  guestApplySnapshot({ p: [], m: [], b: { x: 100, y: 100, hp: 80, ph: 1, f: 0, k: 'release', wu: 0, wt: 0, tx: 0, ty: 0 }, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 10, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'release', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.boss.kind, 'release', 'гость видит финального владельца продукта');
+  eq(G.special, 'release');
+});
+test('кооп: паб-мобы и паб-тема едут в снапшотах (гость строит ту же тему)', () => {
+  const gj = fs2.readFileSync('src/guest.js', 'utf8');
+  ok(gj.indexOf('buildMap(e.seed,e.th)') > 0, 'гость передаёт тему в buildMap');
+  buildMap(555);
+  VIEW.mobs.length = 0;
+  guestApplySnapshot({ p: [], m: [
+    [1, MOBTYPE_IDX.bartender, 100, 100, 80, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [2, MOBTYPE_IDX.waiter, 200, 200, 50, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [3, MOBTYPE_IDX.patron, 300, 300, 60, 0, 0, 0, 0, 0, 0, -1, 0, 3]
+  ], b: null, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 5, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'pub', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.mobs.length, 3);
+  eq(VIEW.mobs[0].type, 'bartender');
+  eq(VIEW.mobs[1].type, 'waiter');
+  eq(VIEW.mobs[2].type, 'patron');
+  eq(VIEW.mobs[2].r, MOBRAD.patron);
+  eq(VIEW.mobs[2].tgt.wu, 3, 'замах посетителя виден гостю');
+  eq(G.special, 'pub');
+  guestEvent({ k: 'map', seed: 24680, th: PUBTHEME.name });
+  eq(MAPSEED, 24680);
+  eq(MAPTHEME.name, PUBTHEME.name, 'гость построил ту же паб-тему');
+  guestEvent({ k: 'map', seed: 24682, th: null });
+  ok(MAPTHEME.name !== PUBTHEME.name, 'без th — обычная тема');
+  ok(!MAPTHEME.pub, 'флаг pub не установлен на обычной теме');
 });
 
 console.log('open plan map:');

@@ -15,10 +15,10 @@ var OBST=[];
 var LIGHTS=[],COFFEES=[],SPAWNS=[],RUGS=[],DOORS=[],DOORT=[];
 var floorCv=null,mmCv=null;
 
-function buildMap(seed){
+function buildMap(seed,forcedTheme){
   MAPSEED=seed>>>0;if(!MAPSEED)MAPSEED=1;
   _seed=MAPSEED;
-  MAPTHEME=THEMES[(rnd()*THEMES.length)|0];
+  MAPTHEME=(forcedTheme&&THEMEBYNAME[forcedTheme])||THEMES[(rnd()*THEMES.length)|0];
   grid=[];ROOMS=[];WALLS=[];FURN=[];OBST=[];LIGHTS=[];COFFEES=[];SPAWNS=[];RUGS=[];DOORS=[];DOORT=[];
   var i,j,x,y;
   for(j=0;j<GH;j++){grid[j]=[];for(i=0;i<GW;i++)grid[j][i]=0;}
@@ -677,6 +677,7 @@ function furnishRoom(rm,fid){
     else if(rm.glass&&rm.openSide===2)cy0=rm.y+rm.h-46;
     fid=placeFurn(rm,fid,'cstand',cx0,cy0,50,38);
     fid=placeFurn(rm,fid,'cooler',rm.x+rm.w-46,rm.y+rm.h-50,26,26);
+    if(MAPTHEME.pub)RUGS.push({x:rm.x+18,y:rm.y+rm.h-52,w:rm.w-36,h:40,c:'#3a2c1a',c2:'#4a3822'});
   }else if(furnRoom(rm,'lobby')){
     RUGS.push({x:rm.x+rm.w/2-90,y:rm.y+70,w:180,h:110,c:'#463a50',c2:'#554762'});
     fid=placeFurn(rm,fid,'rstand',rm.x+rm.w/2-36,rm.y+30,72,32);
@@ -1127,9 +1128,25 @@ var THEMES=[
 ];
 var MAPTHEME=THEMES[0];
 
+// Тема паба — только принудительная (пятничный корпоратив). В THEMES не добавлять:
+// обычные волны не должны на неё натыкаться. Синхронизация хост→гость — именем темы
+// в событии map (guest.js), поэтому имя живёт и в THEMEBYNAME.
+var PUBTHEME={name:'Паб «Последний коммит»',floor:'#101c10',alt:'#142114',corr:'#0c150c',corrAlt:'#0f190f',wall:'#070d07',wallIn:'#1c2e16',neonA:'#7ddb4e',neonB:'#e8c56a',steel:'#2e4426',pub:true};
+var THEMEBYNAME={};
+for(var _ti=0;_ti<THEMES.length;_ti++)THEMEBYNAME[THEMES[_ti].name]=THEMES[_ti];
+THEMEBYNAME[PUBTHEME.name]=PUBTHEME;
+
 function themeNameFor(seed){
   _seed=(seed>>>0)||1;
   return THEMES[(rnd()*THEMES.length)|0].name;
+}
+function themeForSpecial(sp){
+  return (sp&&sp.theme)?THEMEBYNAME[sp.theme]:null;
+}
+function specialForWave(w,seed){
+  if(w===G.campaign)return SPECIALS.release||null;
+  if(w===3||w===5||w===8)return pickSpecial(w,seed);
+  return null;
 }
 
 var FOG={explored:new Uint8Array(GW*GH),vis:new Uint8Array(GW*GH),t:0,dirty:true};

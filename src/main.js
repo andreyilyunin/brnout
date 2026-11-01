@@ -99,6 +99,7 @@ function $(id){return document.getElementById(id);}
 var menuMode='solo';
 var selCls='mgr';
 function refreshMenuUI(){
+  root.classList.toggle('first-run',!CAREER.tutorialDone);
   for(var i=0;i<_cards.length;i++){
     var el=document.getElementById(_cards[i][0]);
     if(el){
@@ -125,7 +126,7 @@ function updateDetail(){
   var C=CLS[selCls];
   if(!C)return;
   $('detName').textContent=(C.name||'').toUpperCase();
-  $('detRole').textContent=C.role||'';
+  $('detRole').textContent=(C.role||'')+(!CAREER.tutorialDone&&selCls==='mgr'?' · рекомендован для старта':'');
   $('detBio').textContent=C.bio||'';
   var ph=$('bgPhoto');
   if(ph&&PHOTOSRC[selCls]){
@@ -135,12 +136,12 @@ function updateDetail(){
   var box=$('detSkills');
   if(!box)return;
   box.innerHTML='';
-  var list=[C.s1,C.s2,C.ult,C.sk];
+  var list=[[C.s1,'ЛКМ'],[C.s2,'ПКМ'],[C.ult,'Q'],[C.sk,'E']];
   for(var i=0;i<list.length;i++){
-    var s=list[i];
+    var s=list[i][0];
     if(!s)continue;
     var row=document.createElement('div');row.className='bskill';
-    var nm=document.createElement('b');nm.textContent=s.n;
+    var nm=document.createElement('b');nm.textContent=s.n+' · '+list[i][1];
     var ds=document.createElement('p');ds.textContent=s.d||'';
     row.appendChild(nm);row.appendChild(ds);
     box.appendChild(row);
@@ -201,7 +202,11 @@ function careerRender(){
   $('crDeaths').textContent=CAREER.deaths;
   var got=0;
   for(var k in CAREER.ach)if(CAREER.ach[k])got++;
-  var html='<div class="crtitle">ДОСТИЖЕНИЯ · '+got+'/'+ACHS.length+'</div>';
+  var html='<div class="crtitle">КОСМЕТИЧЕСКИЕ НАГРАДЫ</div>';
+  for(var ci=0;ci<COSMETICS.length;ci++){var cosmetic=COSMETICS[ci],unlocked=CAREER.bestSprint>=cosmetic.at;
+    html+='<div class="crrow'+(unlocked?' on':'')+'"><b>'+(unlocked?cosmetic.n:'???')+'</b><span>'+cosmetic.d+' · спринт '+cosmetic.at+'</span></div>';
+  }
+  html+='<div class="crtitle">ДОСТИЖЕНИЯ · '+got+'/'+ACHS.length+'</div>';
   for(var i=0;i<ACHS.length;i++){var a=ACHS[i],on=CAREER.ach[a.id];
     html+='<div class="crrow'+(on?' on':'')+'"><b>'+(on?a.n:'???')+'</b><span>'+a.d+'</span></div>';
   }
@@ -283,7 +288,7 @@ $('bcontinue').addEventListener('click',function(){
   G.state='playing';showOv(null);G.fadeT=0.9;
 });
 window.addEventListener('blur',function(){
-  INPUT.f1=false;INPUT.f2=false;INPUT.sk=false;
+  INPUT.f1=false;INPUT.f2=false;INPUT.sk=false;INPUT.sk2=false;INPUT.fk=false;
   keys={};
 });
 

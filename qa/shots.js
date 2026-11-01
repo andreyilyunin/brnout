@@ -14,7 +14,7 @@ const VIEWPORTS = [
   { name: 'phone-landscape', width: 740, height: 420, mobile: true },
   { name: 'phone-landscape-max', width: 844, height: 390, mobile: true },
 ];
-const SCENES = ['menu', 'game', 'wave', 'interstitial', 'pause'];
+const SCENES = ['menu', 'game', 'wave', 'interstitial', 'pause', 'dead'];
 
 let failures = 0;
 const fail = msg => { console.log('  ✗ ' + msg); failures++; };
@@ -102,6 +102,39 @@ async function auditLayout(page, scene, need) {
     await auditLayout(page, 'game', 'mm');
 
     await page.evaluate(() => {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      G.training = false; G.wave = 4;
+      const p = G.players[0];
+      p.coffee = 100; p.cdQ = 0; p.qT = 0; p.shield = 0; p.cdS = 0; p.haste = 0; p.cdD = 0; p.cdU = 0; p.superC = 0; G.plan = 0;
+    });
+    await page.keyboard.down('KeyQ');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('KeyQ');
+    await new Promise(r => setTimeout(r, 60));
+    let keyState = await page.evaluate(() => ({ skill: G.players[0].shield }));
+    if (!(keyState.skill > 0)) fail('Q не активирует скилл');
+    await page.evaluate(() => { const p = G.players[0]; p.cdS = 0; p.haste = 0; });
+    await page.keyboard.down('KeyE');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('KeyE');
+    await new Promise(r => setTimeout(r, 60));
+    keyState = await page.evaluate(() => ({ haste: G.players[0].haste }));
+    if (!(keyState.haste > 0)) fail('E не активирует умение');
+    await page.evaluate(() => { G.players[0].cdD = 0; });
+    await page.keyboard.down('Space');
+    await new Promise(r => setTimeout(r, 90));
+    await page.keyboard.up('Space');
+    await new Promise(r => setTimeout(r, 60));
+    keyState = await page.evaluate(() => ({ dodge: G.players[0].cdD }));
+    if (!(keyState.dodge > 0)) fail('Space не активирует рывок');
+    await page.evaluate(() => { const p = G.players[0]; p.cdU = 0; p.superC = 1; G.plan = 0; });
+    await page.keyboard.press('KeyR');
+    await new Promise(r => setTimeout(r, 120));
+    keyState = await page.evaluate(() => ({ plan: G.plan, superC: G.players[0].superC }));
+    if (!(keyState.plan > 0 && keyState.superC === 0)) fail('R не активирует супер');
+    else ok('клавиатура: Q скилл · E умение · Space рывок · R супер');
+
+    await page.evaluate(() => {
       G.waveState = 'active'; G.wave = 2; startWave();
       const p = G.players[0]; p.inv = 999; p.burnout = 5;
     });
@@ -148,18 +181,27 @@ async function auditLayout(page, scene, need) {
 
     await page.evaluate(() => {
       G.mobs.length = 0; G.spawnQ.length = 0; G.boss = null;
-      G.interStats = { w: 2, ki: 9, kd: 3, okr: 4, co: 120 };
-      G.nextTheme = 'Ретро-архив';
     });
-    await new Promise(r => setTimeout(r, 900));
+    await new Promise(r => setTimeout(r, 250));
+    await page.evaluate(() => {
+      G.waveState = 'cleared'; G.interT = 20;
+      G.interStats = { w: 2, ki: 9, kd: 3, okr: 4, kc: 2 };
+      G.nextTheme = 'Ретро-архив';
+      G.nextSpecial = 'review';
+    });
+    await new Promise(r => setTimeout(r, 650));
     await page.screenshot({ path: OUT + '/' + vp.name + '-interstitial.png' });
     await auditLayout(page, 'interstitial', 'mm');
     const btnRect = await page.evaluate(() => window.__nextBtnRect ? 1 : 0);
     if (!btnRect) fail('хит-зона кнопки следующего спринта не создана');
     else ok('кнопка следующего спринта отрисована');
-    const interRect = await page.evaluate(() => window.__interRect);
+    const interRect = await page.evaluate(() => window.__interRect ? { h: window.__interRect.h } : null);
     if (!interRect) fail('итоговая статистика спринта не отрисована (__interRect)');
-    else ok('итоги спринта на месте (' + Math.round(interRect.w) + 'x' + Math.round(interRect.h) + ')');
+    else {
+      const needH = vp.mobile ? 80 : 230;
+      if (!(interRect.h >= needH)) fail('карточка интермиссии без брифинга особого спринта: h=' + Math.round(interRect.h));
+      else ok('итоги и брифинг особого спринта на месте (' + Math.round(interRect.h) + 'px)');
+    }
 
     await page.evaluate(() => { G.waveState = 'calm'; G.waveT = 9; togglePause(); });
     await new Promise(r => setTimeout(r, 400));
@@ -168,6 +210,23 @@ async function auditLayout(page, scene, need) {
     const paused = await page.evaluate(() => G.state);
     if (paused !== 'paused') fail('пауза не открылась: ' + paused);
     else ok('пауза работает');
+
+    await page.evaluate(() => {
+      togglePause();
+      const p = G.players[0];
+      p.revived = true; p.inv = 0; p.shield = 0; p.burnout = 99;
+      addBurnout(p, 5, 'deadline');
+    });
+    await new Promise(r => setTimeout(r, 300));
+    await page.screenshot({ path: OUT + '/' + vp.name + '-dead.png' });
+    await auditLayout(page, 'dead');
+    const death = await page.evaluate(() => ({
+      state: G.state,
+      goal: document.getElementById('dGoal').textContent,
+      cause: document.getElementById('dCause').textContent
+    }));
+    if (death.state !== 'dead' || !death.goal || !death.cause.includes('дедлайна')) fail('экран смерти не объясняет причину и следующую награду');
+    else ok('экран смерти: причина, цель и быстрый повтор');
 
     if (pageErrors.length) fail('JS-ошибки: ' + pageErrors.slice(0, 3).join(' | '));
     else ok('JS-ошибок нет');
