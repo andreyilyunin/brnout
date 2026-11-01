@@ -74,7 +74,7 @@ function guestApplySnapshot(s){
 function guestEvent(e){
   var x=e.x,y=e.y;
   if(e.k==='map'){
-    buildMap(e.seed);
+    buildMap(e.seed,e.th);
     VIEW.mobs.length=0;VIEW.projs.length=0;VIEW.pickups.length=0;VIEW.zones.length=0;
     G.fx.length=0;G.texts.length=0;
     DEBRIS.length=0;WATER.length=0;PFX.length=0;STONES.length=0;

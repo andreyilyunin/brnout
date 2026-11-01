@@ -221,7 +221,7 @@ test('классовые звуки определены', () => {
 test('ротация локаций: regenLocation существует и чистит', () => {
   const sm = fs2.readFileSync('src/sim.js', 'utf8');
   ok(sm.includes('function regenLocation'), 'функция');
-  ok(sm.includes("NET.events.push({k:'map',seed:seed})"), 'событие гостю');
+  ok(sm.includes("NET.events.push({k:'map',seed:seed,th:nth?nth.name:null})"), 'событие гостю с темой локации');
 });
 test('подбор кружек: радиус 22 и событие pkup', () => {
   const sm = fs2.readFileSync('src/sim.js', 'utf8');
@@ -303,10 +303,10 @@ test('кооп на trystero: P2P-комната без брокеров', () =>
   ok(ih.indexOf('trystero-torrent.min.js') > 0, 'бандл trystero подключён');
   ok(ih.indexOf('src/mqtt.js') < 0, 'mqtt.js больше не грузится');
 });
-test('гость строит уровень по событию map из снапшота (синхрон сидов)', () => {
+test('гость строит уровень по событию map из снапшота (синхрон сидов и тем)', () => {
   const gj = require('fs').readFileSync('src/guest.js', 'utf8');
   ok(gj.indexOf("e.k==='map'") > 0, 'guestEvent обрабатывает k=map (иначе гость остаётся на старом уровне)');
-  ok(/k==='map'[\s\S]*?buildMap\(e\.seed\)/.test(gj), 'по событию вызывается buildMap с сидом хоста');
+  ok(/k==='map'[\s\S]*?buildMap\(e\.seed,e\.th\)/.test(gj), 'по событию вызывается buildMap с сидом и темой хоста');
   load('src/guest.js');
   global.DEBRIS=[];global.WATER=[];global.PFX=[];global.STONES=[];
   buildMap(424242);
@@ -446,11 +446,13 @@ const seedForSpecial = (w, want) => {
 };
 const seedAudit5 = seedForSpecial(5, 'audit');
 const seedReview5 = seedForSpecial(5, 'review');
-test('реестр: зарегистрированы ровно audit и review, оба достижимы на 5-й волне', () => {
-  ok(seedAudit5 > 0 && seedReview5 > 0, 'оба особых спринта достижимы на 5-й волне');
-  eq(SPECIAL_ORDER.length, 2);
-  ok(SPECIAL_ORDER.indexOf('audit') >= 0 && SPECIAL_ORDER.indexOf('review') >= 0);
+const seedPub5 = seedForSpecial(5, 'pub');
+test('реестр: audit, review и pub зарегистрированы, все достижимы на 5-й волне', () => {
+  ok(seedAudit5 > 0 && seedReview5 > 0 && seedPub5 > 0, 'все особые спринты достижимы на 5-й волне');
+  eq(SPECIAL_ORDER.length, 3);
+  ok(SPECIAL_ORDER.indexOf('audit') >= 0 && SPECIAL_ORDER.indexOf('review') >= 0 && SPECIAL_ORDER.indexOf('pub') >= 0);
   ok(SPECIALS.audit.fill && SPECIALS.review.fill && SPECIALS.review.announce, 'контракт def: fill+announce');
+  ok(SPECIALS.pub.fill && SPECIALS.pub.announce && SPECIALS.pub.theme, 'pub: fill+announce+theme');
 });
 test('выбор особого спринта: детерминирован по сиду карты (хост и гость сходятся)', () => {
   for (const s of [7, 42, 1337]) {
@@ -461,6 +463,11 @@ test('выбор особого спринта: детерминирован п�
     eq(pickSpecial(10).id, a10);
     eq(pickSpecial(15).id, a15);
   }
+  ok(seedPub5 > 0, 'сид с пабом на 5-й волне найден');
+  buildMap(seedPub5);
+  eq(pickSpecial(5).id, 'pub');
+  buildMap(seedPub5);
+  eq(pickSpecial(5).id, 'pub', 'повторный buildMap тот же выбор');
 });
 test('5-й спринт: аудит — настоящий босс плюс обычная очередь', () => {
   buildMap(seedAudit5);
@@ -529,6 +536,77 @@ test('аттестация: спавн коллег — различимые р�
   ok(G.winT > 0, 'финальная волна без босса завершает забег');
   eq(G.interStats.kc, kc0 + 7);
 });
+test('паб: спринт 5 — бармен/официант/посетитель в очереди, босса нет, анонс пятницы', () => {
+  buildMap(seedPub5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  G.players = [newPlayer('t', 'mgr')];
+  startWave();
+  eq(G.wave, 5);
+  eq(G.special, 'pub');
+  eq(G.boss, null);
+  const counts = { bartender: 0, waiter: 0, patron: 0 };
+  for (const t of G.spawnQ) counts[t]++;
+  eq(G.spawnQ.length, 7);
+  eq(counts.bartender, 2); eq(counts.waiter, 3); eq(counts.patron, 2);
+  eq(G.msg.indexOf('ПЯТНИЦА') >= 0, true);
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 7);
+  const roles = {};
+  for (const m of G.mobs) {
+    ok(m.hp > 0 && m.hpMax === m.hp, m.type + ' hp');
+    eq(m.r, MOBRAD[m.type]);
+    ok(MOBNAMES[m.type].indexOf(mobName(m)) >= 0, 'имя роли читаемое: ' + mobName(m));
+    roles[m.type] = m;
+  }
+  ok(roles.waiter.spd > roles.bartender.spd && roles.bartender.spd > roles.patron.spd, 'скорости: официант > бармен > посетитель');
+  ok(roles.patron.hp > roles.bartender.hp && roles.patron.hp > roles.waiter.hp, 'посетитель — тяжёлая роль');
+  ok(roles.waiter.spd > 200, 'официант — быстрый милишник');
+});
+test('паб: тема паба только принудительная — обычные волны её не видят', () => {
+  eq(THEMES.indexOf(PUBTHEME), -1, 'PUBTHEME не в общем пуле THEMES');
+  let sawPub = 0;
+  for (let s = 1; s <= 100; s++) { buildMap(s * 7919 + 13); if (MAPTHEME.pub) sawPub++; }
+  eq(sawPub, 0, 'паб-тема не выпадает на обычных волнах');
+  buildMap(seedPub5);
+  ok(MAPTHEME.name !== PUBTHEME.name, 'до регенерации — обычная тема');
+});
+test('паб: regenLocation перед 5-й волной форсит тему паба, иначе — обычную', () => {
+  global.updateCamera = () => {};
+  buildMap(seedPub5);
+  G.wave = 4;
+  regenLocation(13579);
+  eq(MAPTHEME.name, PUBTHEME.name, 'перед паб-волной — паб-тема');
+  const evMap = NET.events.filter(e => e.k === 'map');
+  ok(evMap.length > 0 && evMap[evMap.length - 1].th === PUBTHEME.name, 'имя паб-темы уехало гостю в событии map');
+  buildMap(seedAudit5);
+  G.wave = 4;
+  regenLocation(13581);
+  ok(MAPTHEME.name !== PUBTHEME.name, 'перед аудитом — обычная тема');
+  const evMap2 = NET.events.filter(e => e.k === 'map');
+  eq(evMap2[evMap2.length - 1].th, null, 'обычная локация без форс-темы');
+});
+test('паб: бой, награды и завершение кампании', () => {
+  buildMap(seedPub5);
+  G.training = false; G.wave = 4; G.spawnQ.length = 0; G.mobs.length = 0; G.boss = null; G.special = null;
+  const p = newPlayer('t', 'mgr'); p.x = REACH_LIST[0].x; p.y = REACH_LIST[0].y;
+  G.players = [p];
+  startWave();
+  eq(G.special, 'pub');
+  G.mobs.length = 0;
+  for (const t of G.spawnQ.slice()) spawnMob(t);
+  eq(G.mobs.length, 7);
+  const kc0 = G.killsC, okr0 = G.okr, lvl0 = G.level, xp0 = G.xp;
+  for (const m of G.mobs.slice()) { m.dead = true; killMob(m); }
+  G.mobs = G.mobs.filter(m => !m.dead);
+  eq(G.killsC, kc0 + 7);
+  ok(G.okr > okr0, 'персонал паба даёт OKR');
+  ok(G.level > lvl0 || G.xp > xp0, 'персонал паба даёт опыт');
+  G.spawnQ.length = 0; G.waveState = 'active'; G.campaign = 5; G.winShown = false; G.winT = 0;
+  updateWaves(0.016);
+  eq(G.waveState, 'cleared');
+  ok(G.winT > 0, 'финальная паб-волна завершает забег');
+});
 test('кооп: типы коллег и особое состояние едут в снапшотах', () => {
   const gj = fs2.readFileSync('src/guest.js', 'utf8');
   ok(gj.indexOf('MOBTYPES[sm[1]]') > 0, 'гость декодирует тип моба по индексу');
@@ -543,6 +621,30 @@ test('кооп: типы коллег и особое состояние еду�
   eq(VIEW.mobs[1].type, 'lead');
   eq(VIEW.mobs[1].tgt.wu, 3);
   eq(G.special, 'review');
+});
+test('кооп: паб-мобы и паб-тема едут в снапшотах (гость строит ту же тему)', () => {
+  const gj = fs2.readFileSync('src/guest.js', 'utf8');
+  ok(gj.indexOf('buildMap(e.seed,e.th)') > 0, 'гость передаёт тему в buildMap');
+  buildMap(555);
+  VIEW.mobs.length = 0;
+  guestApplySnapshot({ p: [], m: [
+    [1, MOBTYPE_IDX.bartender, 100, 100, 80, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [2, MOBTYPE_IDX.waiter, 200, 200, 50, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [3, MOBTYPE_IDX.patron, 300, 300, 60, 0, 0, 0, 0, 0, 0, -1, 0, 3]
+  ], b: null, pr: [], pk: [], z: [], cf: [3, 3], fu: [], ev: [], w: 5, ws: 'active', okr: 0, gr: 1, bn: 1, cb: 0, cbt: 0, lv: 1, xp: 0, xpN: 40, sp: 'pub', msg: null, msgT: 0, cap: '', st: 'playing', pz: 0 });
+  eq(VIEW.mobs.length, 3);
+  eq(VIEW.mobs[0].type, 'bartender');
+  eq(VIEW.mobs[1].type, 'waiter');
+  eq(VIEW.mobs[2].type, 'patron');
+  eq(VIEW.mobs[2].r, MOBRAD.patron);
+  eq(VIEW.mobs[2].tgt.wu, 3, 'замах посетителя виден гостю');
+  eq(G.special, 'pub');
+  guestEvent({ k: 'map', seed: 24680, th: PUBTHEME.name });
+  eq(MAPSEED, 24680);
+  eq(MAPTHEME.name, PUBTHEME.name, 'гость построил ту же паб-тему');
+  guestEvent({ k: 'map', seed: 24682, th: null });
+  ok(MAPTHEME.name !== PUBTHEME.name, 'без th — обычная тема');
+  ok(!MAPTHEME.pub, 'флаг pub не установлен на обычной теме');
 });
 
 console.log('open plan map:');

@@ -172,18 +172,22 @@ var MOBNAMES={
   deadline:['дедлайн: релиз','дедлайн: демо','дедлайн: аудит'],
   hr:['рекрутёр-каратель','people-ops бот','HR-генералист'],
   rival:['заклятый коллега','конкурент за грейд','подхалим с амбициями'],
-  lead:['тимлид-ветеран','сеньор на ставке 1.5×','lead из соседнего отдела']
+  lead:['тимлид-ветеран','сеньор на ставке 1.5×','lead из соседнего отдела'],
+  bartender:['бармен-техлид','шеф-бармен из «Шакшуки»','бармен с мемуарами'],
+  waiter:['официант-стажёр','метрдотель в погоне','официант с двумя подносами'],
+  patron:['посетитель «ещё по одной»','патрон барной стойки','тот самый заказчик']
 };
 function mobName(m){
   if(m.type==='boss')return'АУДИТ';
   var list=MOBNAMES[m.type]||MOBNAMES.intern;
   return list[(m.tint||0)%list.length];
 }
-var MOBTYPES=['intern','deadline','hr','rival','lead'];
+var MOBTYPES=['intern','deadline','hr','rival','lead','bartender','waiter','patron'];
 var MOBTYPE_IDX={};
 for(var _mi=0;_mi<MOBTYPES.length;_mi++)MOBTYPE_IDX[MOBTYPES[_mi]]=_mi;
-var MOBRAD={intern:15,deadline:13,hr:14,rival:15,lead:23};
+var MOBRAD={intern:15,deadline:13,hr:14,rival:15,lead:23,bartender:15,waiter:14,patron:22};
 var HRWORDS=['НА 1:1','ПЕРЕСМОТР ГРЕЙДА','360-ФИДБЕК','ПЛАН РАЗВИТИЯ'];
+var PUBWORDS=['ЗА МОЙ СЧЁТ','ЕЩЁ ПО ОДНОЙ','КОНЦЕРТ ОТМЕНЯЮТ','ПОСЛЕДНИЙ ЗАКАЗ'];
 
 var PROG=[
   [45,[52,57,60,64]],[40,[52,55,59,64]],[41,[53,57,60,65]],[38,[50,57,62,65]],

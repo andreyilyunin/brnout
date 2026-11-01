@@ -244,6 +244,81 @@ function updateMobs(dt){
         if(d<m.r+tgt.r+16&&m.cd<=0){m.wu=0.55;floatText(m.x,m.y-34,'РАЗБОР ПОЛЁТОВ!','#e8c56a',12,'I');}
       }
       sepMob(i,m,dt);
+    }else if(m.type==='bartender'){
+      m.aggro=true;
+      m.face=angTo(m,tgt);
+      if(m.wu>0){
+        m.wu-=dt;
+        if(m.wu<=0){
+          m.cd=2.4;
+          if(d<560){
+            spawnStone(m.x,m.y-14,tgt.x,tgt.y,m.phrase||PUBWORDS[(R()*PUBWORDS.length)|0],(8+0.8*G.wave)|0,tgt.id);
+            SFX.swish&&SFX.swish();
+          }
+        }
+      }else{
+        if(d>320)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
+        else if(d<200)steerMove(m,-Math.cos(m.face),-Math.sin(m.face),m.spd*0.7*slow*dt);
+        else{
+          m.wt-=dt;
+          if(m.wt<=0){m.wt=0.7+R();m.wx=R()*2-1;m.wy=R()*2-1;}
+          var bpa=m.face+Math.PI/2*((m.tint%2)?1:-1);
+          steerMove(m,Math.cos(bpa)*0.6+m.wx*0.4,Math.sin(bpa)*0.6+m.wy*0.4,m.spd*0.5*slow*dt);
+        }
+        if(m.cd<=0&&d<540){m.wu=0.6;floatText(m.x,m.y-30,'на стойку!','#8bd17c',11,'I');}
+      }
+      sepMob(i,m,dt);
+    }else if(m.type==='waiter'){
+      m.aggro=true;
+      m.face=angTo(m,tgt);
+      if(m.wu>0){
+        m.wu-=dt;
+        if(m.wu<=0){
+          m.cd=0.9;
+          if(d<m.r+tgt.r+30){
+            addBurnout(tgt,8+0.9*G.wave,'waiter');
+            var wa2=angTo(m,tgt);
+            tgt.kx+=Math.cos(wa2)*240;tgt.ky+=Math.sin(wa2)*240;
+            G.fx.push({type:'flash',x:m.x,y:m.y,r:32,t:0,life:0.2});
+            SFX.thudFlesh&&SFX.thudFlesh();
+          }
+        }
+      }else{
+        if(d>m.r+tgt.r-2)steerMove(m,Math.cos(m.face),Math.sin(m.face),m.spd*slow*dt);
+        if(d<m.r+tgt.r+14&&m.cd<=0){m.wu=0.24;floatText(m.x,m.y-30,'вот ваш заказ!','#d8a24e',11,'I');}
+      }
+      sepMob(i,m,dt);
+    }else if(m.type==='patron'){
+      m.aggro=true;
+      m.face=angTo(m,tgt);
+      if(m.wu>0){
+        m.wu-=dt;
+        if(m.wu<=0){
+          m.cd=2.1;
+          G.fx.push({type:'ring',x:m.x,y:m.y,rad:12,radMax:120,t:0,life:0.4,green:true});
+          NET.events.push({k:'ring',x:Math.round(m.x),y:Math.round(m.y),rm:120,green:1});
+          SFX.slam&&SFX.slam();
+          G.shake+=5;
+          for(var pl3=0;pl3<G.players.length;pl3++){var lp3=G.players[pl3];
+            if(lp3.dead)continue;
+            var pdd=dist(m,lp3);
+            if(pdd<m.r+lp3.r+34&&Math.abs(angDiff(m.face,angTo(m,lp3)))<1.3){
+              addBurnout(lp3,16+1.2*G.wave,'patron');
+              var pa3=angTo(m,lp3);
+              lp3.kx+=Math.cos(pa3)*420;lp3.ky+=Math.sin(pa3)*420;
+            }
+          }
+        }
+      }else{
+        m.wt-=dt;
+        if(m.wt<=0){m.wt=0.5+R()*0.8;m.wx=R()*2-1;m.wy=R()*2-1;}
+        var sway=Math.sin(G.t*3+(m.tilt||0))*0.7;
+        var ux2=Math.cos(m.face)+(m.wx+sway)*0.55,uy2=Math.sin(m.face)+(m.wy-sway)*0.55;
+        var ul2=Math.hypot(ux2,uy2)||1;
+        if(d>m.r+tgt.r-2)steerMove(m,ux2/ul2,uy2/ul2,m.spd*slow*dt);
+        if(d<m.r+tgt.r+22&&m.cd<=0){m.wu=0.7;floatText(m.x,m.y-34,'А Я ТЕБЯ ЗНАЮ?!','#7ddb4e',12,'I');}
+      }
+      sepMob(i,m,dt);
     }else{
       m.aggro=true;
       if(m.aggro){
@@ -572,7 +647,8 @@ function updateWaves(dt){
       if(G.wave>=G.campaign&&!G.winShown){G.winShown=true;G.winT=1.6;}
       G.waveState='cleared';G.interT=20;
       G.pendSeed=(R()*1e9)|0;
-      G.nextTheme=themeNameFor(G.pendSeed);
+      var nth=themeForSpecial(specialForWave(G.wave+1));
+      G.nextTheme=nth?nth.name:themeNameFor(G.pendSeed);
       G.interStats={w:G.wave,ki:G.killsI,kd:G.killsD,okr:G.okr,kc:G.killsC};
       broadcast({t:'inter',d:3.4,th:G.nextTheme,st:G.interStats});
     }
@@ -624,7 +700,8 @@ function gameOver(){
 
 function regenLocation(seed){
   seed=(seed>0)?(seed|0):((R()*1e9)|0);
-  buildMap(seed);
+  var nth=themeForSpecial(specialForWave(G.wave+1));
+  buildMap(seed,nth?nth.name:null);
   G.mobs.length=0;G.projs.length=0;G.pickups.length=0;G.zones.length=0;
   G.fx.length=0;G.texts.length=0;
   DEBRIS.length=0;WATER.length=0;PFX.length=0;STONES.length=0;
@@ -633,7 +710,7 @@ function regenLocation(seed){
     p.x=lb.x+lb.w/2+(R()*120-60);p.y=lb.y+lb.h/2+(R()*120-60);
     p.kx=0;p.ky=0;p.inv=Math.max(p.inv,1.5);
   }
-  NET.events.push({k:'map',seed:seed});
+  NET.events.push({k:'map',seed:seed,th:nth?nth.name:null});
   floatText(lb.x+lb.w/2,lb.y+lb.h/2-30,'переезд: «'+MAPTHEME.name+'»','#42e0ff',14);
   updateCamera(0.016,true);
 }
